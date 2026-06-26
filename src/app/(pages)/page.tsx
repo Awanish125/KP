@@ -1,10 +1,8 @@
-import Image from "next/image";
-import {HeroSection} from "../components/ui/index";
+
+import { HeroSection } from "@components/ui";
 
 export default function Home() {
   return (
-    <>
-      <HeroSection />
-    </>
+    <HeroSection />
   );
 }

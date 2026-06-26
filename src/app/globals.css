@@ -1,2 +1,14 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}
