@@ -193,7 +193,7 @@ const FRAGMENT_SHADER = /* glsl */ `
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function HeroSection({ images }: HeroProps) {
+export default function Hero({ images }: HeroProps) {
   const containerRef   = useRef<HTMLDivElement>(null);
   const canvasRef      = useRef<HTMLCanvasElement>(null);
   const rendererRef    = useRef<Renderer | null>(null);
@@ -409,7 +409,7 @@ export default function HeroSection({ images }: HeroProps) {
   return (
     <section
       ref={containerRef}
-      className="relative w-full h-dvh overflow-hidden bg-black"
+      className="relative w-full h-screen overflow-hidden bg-black"
       aria-label="Hero"
     >
       {/* WebGL canvas */}
