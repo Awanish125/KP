@@ -2,7 +2,7 @@
 
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
-import { SmoothScroll } from "./components/layouts/SmoothScroll";
+import { SmoothScroll } from "@components/layouts";
 
 type ProvidersProps = {
   children: ReactNode;
