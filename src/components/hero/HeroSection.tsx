@@ -1,21 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useCallback } from "react";
+import { useEffect, useMemo, useRef, useCallback, useState } from "react";
 import NextImage from "next/image";
 import { gsap } from "gsap";
 import { Renderer, Program, Mesh, Triangle, Texture } from "ogl";
+import { useControls, folder } from "leva";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface HeroProps {
   images: string[];
+  debug?: boolean;
+  children?: React.ReactNode;
 }
 
 interface ShaderUniforms {
   uTime: { value: number };
   uProgress: { value: number };
-  uTextureCurrent: { value: Texture };
-  uTextureNext: { value: Texture };
+  uTextureCurrent: { value: Texture | null };
+  uTextureNext: { value: Texture | null };
   uResolution: { value: [number, number] };
   uImageResolutionCurrent: { value: [number, number] };
   uImageResolutionNext: { value: [number, number] };
@@ -23,6 +26,53 @@ interface ShaderUniforms {
   uGrain: { value: number };
   uKenBurns: { value: [number, number, number] };
   uKenBurnsNext: { value: [number, number, number] };
+
+  // Image controls
+  uCover: { value: number };
+  uContain: { value: number };
+  uZoom: { value: number };
+  uScaleX: { value: number };
+  uScaleY: { value: number };
+  uOffsetX: { value: number };
+  uOffsetY: { value: number };
+  uRotation: { value: number };
+  uAspectCompensation: { value: number };
+
+  // Hardcoded value replacements
+  uDisplacementStrength: { value: number };
+  uTearIntensity: { value: number };
+  uBarrelStrength: { value: number };
+  uChromAmtMultiplier: { value: number };
+  uChromAmtBase: { value: number };
+  uDissolveNoiseScale: { value: number };
+  uDissolveNoiseSpeed: { value: number };
+  uPulseStrength: { value: number };
+  uVignetteRadius: { value: number };
+  uVignettePower: { value: number };
+  uScanlineFrequency: { value: number };
+  uScanlineSpeed: { value: number };
+  uScanlineStrength: { value: number };
+  uLeakThreshold: { value: number };
+  uLeakScale: { value: number };
+  uLeakSpeed: { value: number };
+  uLeakStrength: { value: number };
+  uLeakColor: { value: [number, number, number] };
+  uGradColor: { value: [number, number, number] };
+  uGradExponent: { value: number };
+  uGradStrength: { value: number };
+  uMouseParallax: { value: number };
+  uKbMoveScale: { value: number };
+  uKbZoomScale: { value: number };
+}
+
+// Helper to convert hex colors to normalized RGB floats
+function hexToRgb(hex: string): [number, number, number] {
+  const cleanHex = hex.replace("#", "");
+  const num = parseInt(cleanHex, 16);
+  const r = ((num >> 16) & 255) / 255;
+  const g = ((num >> 8) & 255) / 255;
+  const b = (num & 255) / 255;
+  return [r, g, b];
 }
 
 // ─── Shaders ──────────────────────────────────────────────────────────────────
@@ -50,6 +100,42 @@ const FRAGMENT_SHADER = /* glsl */ `
   uniform float uGrain;
   uniform vec3 uKenBurns;
   uniform vec3 uKenBurnsNext;
+
+  // Configurable Uniforms
+  uniform float uCover;
+  uniform float uContain;
+  uniform float uZoom;
+  uniform float uScaleX;
+  uniform float uScaleY;
+  uniform float uOffsetX;
+  uniform float uOffsetY;
+  uniform float uRotation;
+  uniform float uAspectCompensation;
+
+  uniform float uDisplacementStrength;
+  uniform float uTearIntensity;
+  uniform float uBarrelStrength;
+  uniform float uChromAmtMultiplier;
+  uniform float uChromAmtBase;
+  uniform float uDissolveNoiseScale;
+  uniform float uDissolveNoiseSpeed;
+  uniform float uPulseStrength;
+  uniform float uVignetteRadius;
+  uniform float uVignettePower;
+  uniform float uScanlineFrequency;
+  uniform float uScanlineSpeed;
+  uniform float uScanlineStrength;
+  uniform float uLeakThreshold;
+  uniform float uLeakScale;
+  uniform float uLeakSpeed;
+  uniform float uLeakStrength;
+  uniform vec3 uLeakColor;
+  uniform vec3 uGradColor;
+  uniform float uGradExponent;
+  uniform float uGradStrength;
+  uniform float uMouseParallax;
+  uniform float uKbMoveScale;
+  uniform float uKbZoomScale;
 
   varying vec2 vUv;
 
@@ -81,11 +167,57 @@ const FRAGMENT_SHADER = /* glsl */ `
   }
 
   // ── Cover UV ───────────────────────────────────────────────────────────────
-  vec2 coverUv(vec2 uv, vec2 res, float scale, vec2 offset) {
-    float aspect = res.x / res.y;
-    vec2 s = vec2(aspect, 1.0) * scale;
-    vec2 c = (uv - 0.5) * s + 0.5 + offset;
-    return c;
+  vec2 getAspectCorrectedUV(
+    vec2 uv,
+    vec2 screenRes,
+    vec2 imgRes,
+    float coverAmt,
+    float containAmt,
+    float zoomVal,
+    vec2 uvScale,
+    vec2 uvOffset,
+    float rotationVal,
+    float aspectComp
+  ) {
+    vec2 st = uv - 0.5;
+    float screenAspect = screenRes.x / screenRes.y;
+    float imgAspect = imgRes.x / imgRes.y;
+
+    // Default: use original screen-aspect multiplier to avoid distortion
+    if (aspectComp <= 0.0) {
+      vec2 originalScale = vec2(screenAspect, 1.0) / (zoomVal * uvScale);
+      if (rotationVal != 0.0) {
+        float s = sin(rotationVal);
+        float c = cos(rotationVal);
+        st = vec2(st.x * c - st.y * s, st.x * s + st.y * c);
+      }
+      return st * originalScale + 0.5 + uvOffset;
+    }
+
+    vec2 coverRatio = vec2(
+      min(screenAspect / imgAspect, 1.0),
+      min(imgAspect / screenAspect, 1.0)
+    );
+
+    vec2 containRatio = vec2(
+      max(screenAspect / imgAspect, 1.0),
+      max(imgAspect / screenAspect, 1.0)
+    );
+
+    vec2 targetRatio = mix(coverRatio, containRatio, containAmt);
+    targetRatio = mix(vec2(1.0), targetRatio, coverAmt);
+
+    vec2 ratio = mix(vec2(1.0), targetRatio, aspectComp);
+    st *= ratio;
+    st /= (zoomVal * uvScale);
+
+    if (rotationVal != 0.0) {
+      float s = sin(rotationVal);
+      float c = cos(rotationVal);
+      st = vec2(st.x * c - st.y * s, st.x * s + st.y * c);
+    }
+
+    return st + 0.5 + uvOffset;
   }
 
   // ── RGB Split ──────────────────────────────────────────────────────────────
@@ -122,54 +254,76 @@ const FRAGMENT_SHADER = /* glsl */ `
     float transitionPeak = smoothstep(0.3, 0.5, p) * (1.0 - smoothstep(0.5, 0.7, p));
 
     // ── Mouse parallax offset ──────────────────────────────────────────────
-    vec2 mouseOffset = (uMouse - 0.5) * 0.008;
+    vec2 mouseOffset = (uMouse - 0.5) * uMouseParallax;
 
     // ── Ken Burns: current ─────────────────────────────────────────────────
-    vec2 kbOffset = uKenBurns.xy * 0.04 + mouseOffset;
-    float kbScale  = 1.0 + uKenBurns.z * 0.06;
-    vec2 uvCurrent = coverUv(vUv, uResolution, kbScale, kbOffset);
+    vec2 kbOffset = uKenBurns.xy * uKbMoveScale + mouseOffset;
+    float kbScale  = 1.0 + uKenBurns.z * uKbZoomScale;
+    vec2 uvCurrent = getAspectCorrectedUV(
+      vUv,
+      uResolution,
+      uImageResolutionCurrent,
+      uCover,
+      uContain,
+      uZoom,
+      vec2(uScaleX, uScaleY),
+      vec2(uOffsetX, uOffsetY) + kbOffset,
+      uRotation,
+      uAspectCompensation
+    );
 
     // ── Ken Burns: next ────────────────────────────────────────────────────
-    vec2 kbOffsetN = uKenBurnsNext.xy * 0.04 - mouseOffset;
-    float kbScaleN = 1.0 + uKenBurnsNext.z * 0.06;
-    vec2 uvNext = coverUv(vUv, uResolution, kbScaleN, kbOffsetN);
+    vec2 kbOffsetN = uKenBurnsNext.xy * uKbMoveScale - mouseOffset;
+    float kbScaleN = 1.0 + uKenBurnsNext.z * uKbZoomScale;
+    vec2 uvNext = getAspectCorrectedUV(
+      vUv,
+      uResolution,
+      uImageResolutionNext,
+      uCover,
+      uContain,
+      uZoom,
+      vec2(uScaleX, uScaleY),
+      vec2(uOffsetX, uOffsetY) + kbOffsetN,
+      uRotation,
+      uAspectCompensation
+    );
 
     // ── Displacement via fbm ───────────────────────────────────────────────
-    float dispStrength = transitionEdge * 0.025;
+    float dispStrength = transitionEdge * uDisplacementStrength;
     vec2 dispOffset = vec2(
       fbm(vUv * 3.5 + t * 0.4) - 0.5,
       fbm(vUv * 3.5 + vec2(1.7, 9.2) + t * 0.4) - 0.5
     ) * dispStrength;
 
     // ── Digital tearing ────────────────────────────────────────────────────
-    float tearIntensity = transitionPeak * 0.018;
+    float tearIntensity = transitionPeak * uTearIntensity;
     vec2 uvTorn = digitalTear(vUv, t, tearIntensity);
 
     // ── Barrel distortion at peak ──────────────────────────────────────────
-    float barrelStr = sin(p * 3.14159) * 0.06;
+    float barrelStr = sin(p * 3.14159) * uBarrelStrength;
     vec2 uvBarrel = barrel(uvTorn, barrelStr);
 
     // ── Final sample UVs ───────────────────────────────────────────────────
-    vec2 finalUvA = uvCurrent + dispOffset;
-    vec2 finalUvB = uvNext    + dispOffset;
+    vec2 finalUvA = uvCurrent + dispOffset + (uvBarrel - vUv);
+    vec2 finalUvB = uvNext    + dispOffset + (uvBarrel - vUv);
 
     // ── Chromatic aberration ───────────────────────────────────────────────
-    float chromAmt = transitionEdge * 0.006 + 0.0015;
+    float chromAmt = transitionEdge * uChromAmtMultiplier + uChromAmtBase;
     vec4 colorA = rgbSplit(uTextureCurrent, finalUvA, chromAmt);
     vec4 colorB = rgbSplit(uTextureNext,    finalUvB, chromAmt);
 
     // ── Pixel dissolve blend ───────────────────────────────────────────────
-    float dissolveNoise = fbm(vUv * 6.0 + t * 0.2);
+    float dissolveNoise = fbm(vUv * uDissolveNoiseScale + t * uDissolveNoiseSpeed);
     float dissolveEdge  = smoothstep(p - 0.35, p + 0.35, dissolveNoise);
     vec4 blended = mix(colorA, colorB, clamp(dissolveEdge, 0.0, 1.0));
 
     // ── Brightness pulse ───────────────────────────────────────────────────
-    float pulse = 1.0 + transitionPeak * 0.12 * sin(t * 60.0);
+    float pulse = 1.0 + transitionPeak * uPulseStrength * sin(t * 60.0);
     blended.rgb *= pulse;
 
     // ── Vignette ───────────────────────────────────────────────────────────
     vec2 vigUv = vUv * (1.0 - vUv.yx);
-    float vig = pow(vigUv.x * vigUv.y * 18.0, 0.4);
+    float vig = pow(vigUv.x * vigUv.y * uVignetteRadius, uVignettePower);
     vig = clamp(vig, 0.0, 1.0);
     blended.rgb *= mix(0.0, 1.0, vig);
 
@@ -178,25 +332,292 @@ const FRAGMENT_SHADER = /* glsl */ `
     blended.rgb += grain;
 
     // ── Scanline flash at transition peak ──────────────────────────────────
-    float scanline = sin(vUv.y * uResolution.y * 0.5 + t * 120.0);
-    blended.rgb += scanline * transitionPeak * 0.025;
+    float scanline = sin(vUv.y * uResolution.y * uScanlineFrequency + t * uScanlineSpeed);
+    blended.rgb += scanline * transitionPeak * uScanlineStrength;
 
     // ── Light leak ─────────────────────────────────────────────────────────
-    float leak = smoothstep(0.6, 1.0, fbm(vUv * 2.0 + t * 0.1)) * transitionEdge * 0.12;
-    blended.rgb += vec3(0.6, 0.45, 0.3) * leak;
+    float leak = smoothstep(uLeakThreshold, 1.0, fbm(vUv * uLeakScale + t * uLeakSpeed)) * transitionEdge * uLeakStrength;
+    blended.rgb += uLeakColor * leak;
 
     // ── Atmospheric gradient overlay ───────────────────────────────────────
-    vec3 gradBot = vec3(0.0, 0.0, 0.05);
-    float gradMix = pow(1.0 - vUv.y, 2.2) * 0.6;
-    blended.rgb = mix(blended.rgb, gradBot, gradMix);
+    float gradMix = pow(1.0 - vUv.y, uGradExponent) * uGradStrength;
+    blended.rgb = mix(blended.rgb, uGradColor, gradMix);
 
     gl_FragColor = blended;
   }
 `;
 
+// ─── Inner Debug Component ────────────────────────────────────────────────────
+
+interface HeroDebugProps {
+  uniformsRef: React.MutableRefObject<ShaderUniforms | null>;
+  timingsRef: React.MutableRefObject<{ holdDuration: number; transitionDuration: number; ease: string }>;
+}
+
+function HeroDebug({ uniformsRef, timingsRef }: HeroDebugProps) {
+  useControls(() => ({
+    Image: folder({
+      cover: {
+        value: 1.0,
+        min: 0.0,
+        max: 1.0,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uCover.value = v; }
+      },
+      contain: {
+        value: 0.0,
+        min: 0.0,
+        max: 1.0,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uContain.value = v; }
+      },
+      zoom: {
+        value: 1.0,
+        min: 0.1,
+        max: 5.0,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uZoom.value = v; }
+      },
+      scaleX: {
+        value: 1.0,
+        min: 0.1,
+        max: 5.0,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uScaleX.value = v; }
+      },
+      scaleY: {
+        value: 1.0,
+        min: 0.1,
+        max: 5.0,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uScaleY.value = v; }
+      },
+      offsetX: {
+        value: 0.0,
+        min: -2.0,
+        max: 2.0,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uOffsetX.value = v; }
+      },
+      offsetY: {
+        value: 0.0,
+        min: -2.0,
+        max: 2.0,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uOffsetY.value = v; }
+      },
+      rotation: {
+        value: 0.0,
+        min: -Math.PI,
+        max: Math.PI,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uRotation.value = v; }
+      },
+      aspectCompensation: {
+        value: 0.0,
+        min: 0.0,
+        max: 1.0,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uAspectCompensation.value = v; }
+      }
+    }),
+    Transition: folder({
+      holdDuration: {
+        value: 5.0,
+        min: 1.0,
+        max: 20.0,
+        step: 0.1,
+        onChange: (v) => { timingsRef.current.holdDuration = v; }
+      },
+      transitionDuration: {
+        value: 1.6,
+        min: 0.1,
+        max: 10.0,
+        step: 0.1,
+        onChange: (v) => { timingsRef.current.transitionDuration = v; }
+      },
+      ease: {
+        value: "power2.inOut",
+        options: ["power2.inOut", "power2.in", "power2.out", "power1.inOut", "power3.inOut", "none"],
+        onChange: (v) => { timingsRef.current.ease = v; }
+      }
+    }),
+    Mouse: folder({
+      mouseParallax: {
+        value: 0.008,
+        min: 0.0,
+        max: 0.1,
+        step: 0.001,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uMouseParallax.value = v; }
+      }
+    }),
+    "Ken Burns": folder({
+      kbMoveScale: {
+        value: 0.04,
+        min: 0.0,
+        max: 0.2,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uKbMoveScale.value = v; }
+      },
+      kbZoomScale: {
+        value: 0.06,
+        min: 0.0,
+        max: 0.3,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uKbZoomScale.value = v; }
+      }
+    }),
+    Effects: folder({
+      displacementStrength: {
+        value: 0.025,
+        min: 0.0,
+        max: 0.2,
+        step: 0.001,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uDisplacementStrength.value = v; }
+      },
+      tearIntensity: {
+        value: 0.018,
+        min: 0.0,
+        max: 0.1,
+        step: 0.001,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uTearIntensity.value = v; }
+      },
+      barrelStrength: {
+        value: 0.06,
+        min: -0.5,
+        max: 0.5,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uBarrelStrength.value = v; }
+      },
+      chromAmtMultiplier: {
+        value: 0.006,
+        min: 0.0,
+        max: 0.05,
+        step: 0.001,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uChromAmtMultiplier.value = v; }
+      },
+      chromAmtBase: {
+        value: 0.0015,
+        min: 0.0,
+        max: 0.02,
+        step: 0.0005,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uChromAmtBase.value = v; }
+      },
+      dissolveNoiseScale: {
+        value: 6.0,
+        min: 1.0,
+        max: 20.0,
+        step: 0.1,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uDissolveNoiseScale.value = v; }
+      },
+      dissolveNoiseSpeed: {
+        value: 0.2,
+        min: 0.0,
+        max: 2.0,
+        step: 0.05,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uDissolveNoiseSpeed.value = v; }
+      },
+      pulseStrength: {
+        value: 0.12,
+        min: 0.0,
+        max: 0.5,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uPulseStrength.value = v; }
+      },
+      vignetteRadius: {
+        value: 18.0,
+        min: 1.0,
+        max: 50.0,
+        step: 0.5,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uVignetteRadius.value = v; }
+      },
+      vignettePower: {
+        value: 0.4,
+        min: 0.1,
+        max: 2.0,
+        step: 0.05,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uVignettePower.value = v; }
+      },
+      scanlineFrequency: {
+        value: 0.5,
+        min: 0.1,
+        max: 5.0,
+        step: 0.05,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uScanlineFrequency.value = v; }
+      },
+      scanlineSpeed: {
+        value: 120.0,
+        min: -300.0,
+        max: 300.0,
+        step: 5.0,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uScanlineSpeed.value = v; }
+      },
+      scanlineStrength: {
+        value: 0.025,
+        min: 0.0,
+        max: 0.2,
+        step: 0.005,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uScanlineStrength.value = v; }
+      },
+      leakThreshold: {
+        value: 0.6,
+        min: 0.0,
+        max: 1.0,
+        step: 0.05,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uLeakThreshold.value = v; }
+      },
+      leakScale: {
+        value: 2.0,
+        min: 0.1,
+        max: 10.0,
+        step: 0.1,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uLeakScale.value = v; }
+      },
+      leakSpeed: {
+        value: 0.1,
+        min: 0.0,
+        max: 2.0,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uLeakSpeed.value = v; }
+      },
+      leakStrength: {
+        value: 0.12,
+        min: 0.0,
+        max: 1.0,
+        step: 0.01,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uLeakStrength.value = v; }
+      },
+      leakColor: {
+        value: "#99734d",
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uLeakColor.value = hexToRgb(v); }
+      },
+      gradColor: {
+        value: "#00000d",
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uGradColor.value = hexToRgb(v); }
+      },
+      gradExponent: {
+        value: 2.2,
+        min: 0.5,
+        max: 5.0,
+        step: 0.1,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uGradExponent.value = v; }
+      },
+      gradStrength: {
+        value: 0.6,
+        min: 0.0,
+        max: 1.0,
+        step: 0.05,
+        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uGradStrength.value = v; }
+      }
+    })
+  }), [uniformsRef, timingsRef]);
+
+  return null;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function Hero({ images }: HeroProps) {
+export default function Hero({ images, debug = false, children }: HeroProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
@@ -207,6 +628,13 @@ export default function Hero({ images }: HeroProps) {
   const uniformsRef = useRef<ShaderUniforms | null>(null);
   const mouseRef = useRef<[number, number]>([0.5, 0.5]);
   const reducedMotion = useRef(false);
+
+  const timingsRef = useRef({
+    holdDuration: 5.0,
+    transitionDuration: 1.6,
+    ease: "power2.inOut"
+  });
+
   const normalizedImages = useMemo(
     () => images.map((src) => (src.startsWith("/") ? src : `/${src}`)),
     [images],
@@ -278,15 +706,15 @@ export default function Hero({ images }: HeroProps) {
               );
             }
 
-            // Schedule next transition
-            gsap.delayedCall(5, runTransition);
+            // Schedule next transition using configurable hold duration
+            gsap.delayedCall(timingsRef.current.holdDuration, runTransition);
           },
         });
 
         tl.to(u.uProgress, {
           value: 1,
-          duration: reducedMotion.current ? 0.3 : 1.6,
-          ease: "power2.inOut",
+          duration: reducedMotion.current ? 0.3 : timingsRef.current.transitionDuration,
+          ease: timingsRef.current.ease,
           onComplete: () => {
             u.uProgress.value = 0;
           },
@@ -357,9 +785,9 @@ export default function Hero({ images }: HeroProps) {
     const gl = renderer.gl;
     gl.clearColor(0, 0, 0, 1);
 
-    // Build two placeholder textures
     const blankTex = () => new Texture(gl, { generateMipmaps: false });
 
+    // Initialize uniforms with default settings from original code
     const uniforms: ShaderUniforms = {
       uTime: { value: 0 },
       uProgress: { value: 0 },
@@ -372,6 +800,41 @@ export default function Hero({ images }: HeroProps) {
       uKenBurnsNext: { value: [0, 0, 0] },
       uImageResolutionCurrent: { value: [1, 1] },
       uImageResolutionNext: { value: [1, 1] },
+
+      uCover: { value: 1.0 },
+      uContain: { value: 0.0 },
+      uZoom: { value: 1.0 },
+      uScaleX: { value: 1.0 },
+      uScaleY: { value: 1.0 },
+      uOffsetX: { value: 0.0 },
+      uOffsetY: { value: 0.0 },
+      uRotation: { value: 0.0 },
+      uAspectCompensation: { value: 0.0 },
+
+      uDisplacementStrength: { value: 0.025 },
+      uTearIntensity: { value: 0.018 },
+      uBarrelStrength: { value: 0.06 },
+      uChromAmtMultiplier: { value: 0.006 },
+      uChromAmtBase: { value: 0.0015 },
+      uDissolveNoiseScale: { value: 6.0 },
+      uDissolveNoiseSpeed: { value: 0.2 },
+      uPulseStrength: { value: 0.12 },
+      uVignetteRadius: { value: 18.0 },
+      uVignettePower: { value: 0.4 },
+      uScanlineFrequency: { value: 0.5 },
+      uScanlineSpeed: { value: 120.0 },
+      uScanlineStrength: { value: 0.025 },
+      uLeakThreshold: { value: 0.6 },
+      uLeakScale: { value: 2.0 },
+      uLeakSpeed: { value: 0.1 },
+      uLeakStrength: { value: 0.12 },
+      uLeakColor: { value: hexToRgb("#99734d") },
+      uGradColor: { value: hexToRgb("#00000d") },
+      uGradExponent: { value: 2.2 },
+      uGradStrength: { value: 0.6 },
+      uMouseParallax: { value: 0.008 },
+      uKbMoveScale: { value: 0.04 },
+      uKbZoomScale: { value: 0.06 }
     };
     uniformsRef.current = uniforms;
 
@@ -385,7 +848,6 @@ export default function Hero({ images }: HeroProps) {
     const mesh = new Mesh(gl, { geometry, program });
     meshRef.current = mesh;
 
-    // Preload first two images, then start
     Promise.all([
       loadTexture(renderer, normalizedImages[0]),
       loadTexture(
@@ -405,7 +867,6 @@ export default function Hero({ images }: HeroProps) {
       uniforms.uTextureCurrent.value = texA;
       uniforms.uTextureNext.value = texB;
 
-      // Kick off Ken Burns
       const seedA = kbSeed();
       const seedB = kbSeed();
       uniforms.uKenBurns.value = seedA;
@@ -425,7 +886,7 @@ export default function Hero({ images }: HeroProps) {
       });
 
       rafRef.current = requestAnimationFrame(tick);
-      gsap.delayedCall(5, runTransition);
+      gsap.delayedCall(timingsRef.current.holdDuration, runTransition);
     });
 
     window.addEventListener("mousemove", onMouseMove, { passive: true });
@@ -467,7 +928,7 @@ export default function Hero({ images }: HeroProps) {
         aria-hidden="true"
       />
 
-      {/* Dust particles: pure CSS, GPU composited */}
+      {/* Dust particles */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         {Array.from({ length: 18 }).map((_, i) => (
           <span
@@ -485,6 +946,15 @@ export default function Hero({ images }: HeroProps) {
           />
         ))}
       </div>
+
+      {/* Dust Keyframes */}
+      <style>{`
+        @keyframes dust {
+          0%   { opacity: 0;    transform: translateY(0px)  scale(1); }
+          50%  { opacity: 0.35; transform: translateY(-18px) scale(1.4); }
+          100% { opacity: 0;    transform: translateY(-32px) scale(0.8); }
+        }
+      `}</style>
 
       {/* Gradient UI chrome */}
       <div
@@ -506,21 +976,28 @@ export default function Hero({ images }: HeroProps) {
         aria-hidden="true"
       />
 
-      {/* Preload images (hidden, next/image handles optimisation) */}
+      {/* Overlay Content */}
+      {children && (
+        <div className="relative w-full h-full z-20 pointer-events-none">
+          <div className="w-full h-full pointer-events-auto">
+            {children}
+          </div>
+        </div>
+      )}
+
+      {/* Preload images */}
       <div className="sr-only" aria-hidden="true">
         {normalizedImages.map((src, i) => (
-          <NextImage key={i} src={src} alt="" width={1} height={1} />
+          <NextImage key={i} src={src} alt="" width={1} height={1} className="object-cover"/>
         ))}
       </div>
 
-      {/* Keyframes injected as a style tag */}
-      <style>{`
-        @keyframes dust {
-          0%   { opacity: 0;    transform: translateY(0px)  scale(1); }
-          50%  { opacity: 0.35; transform: translateY(-18px) scale(1.4); }
-          100% { opacity: 0;    transform: translateY(-32px) scale(0.8); }
-        }
-      `}</style>
+      {/* Leva UI Debug Panel */}
+      {debug && (
+        <div className="relative z-50">
+          <HeroDebug uniformsRef={uniformsRef} timingsRef={timingsRef} />
+        </div>
+      )}
     </section>
   );
 }

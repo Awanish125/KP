@@ -11,6 +11,6 @@ const images = [
 
 export default function Home() {
   return (
-    <HeroSection images={images} />
+    <HeroSection images={images} debug />
   );
 }
