@@ -1,8 +1,8 @@
 'use client';
 
-import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 import { SmoothScroll } from "@components/layouts";
+import { ThemeProvider } from "@components/theme";
 
 type ProvidersProps = {
   children: ReactNode;

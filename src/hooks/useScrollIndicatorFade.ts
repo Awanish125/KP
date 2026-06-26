@@ -2,7 +2,7 @@
 
 import { useLayoutEffect } from "react";
 import type { HeroAnimationRefs } from "@/types/hero";
-import { ensureGsapPlugins, getHeroScrollRange, gsap, ScrollTrigger } from "@/lib/gsap";
+import { ensureGsapPlugins, getHeroScrollRange, gsap } from "@/lib/gsap";
 
 export function useScrollIndicatorFade({
   sectionRef,

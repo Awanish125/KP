@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useMemo, useRef, useCallback } from "react";
 import NextImage from "next/image";
 import { gsap } from "gsap";
 import { Renderer, Program, Mesh, Triangle, Texture } from "ogl";
@@ -17,6 +17,8 @@ interface ShaderUniforms {
   uTextureCurrent: { value: Texture };
   uTextureNext: { value: Texture };
   uResolution: { value: [number, number] };
+  uImageResolutionCurrent: { value: [number, number] };
+  uImageResolutionNext: { value: [number, number] };
   uMouse: { value: [number, number] };
   uGrain: { value: number };
   uKenBurns: { value: [number, number, number] };
@@ -37,7 +39,8 @@ const VERTEX_SHADER = /* glsl */ `
 
 const FRAGMENT_SHADER = /* glsl */ `
   precision highp float;
-
+  uniform vec2 uImageResolutionCurrent;
+  uniform vec2 uImageResolutionNext;
   uniform float uTime;
   uniform float uProgress;
   uniform sampler2D uTextureCurrent;
@@ -194,18 +197,20 @@ const FRAGMENT_SHADER = /* glsl */ `
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function Hero({ images }: HeroProps) {
-  const containerRef   = useRef<HTMLDivElement>(null);
-  const canvasRef      = useRef<HTMLCanvasElement>(null);
-  const rendererRef    = useRef<Renderer | null>(null);
-  const programRef     = useRef<Program | null>(null);
-  const meshRef        = useRef<Mesh | null>(null);
-  const texturesRef    = useRef<Texture[]>([]);
-  const indexRef       = useRef(0);
-  const rafRef         = useRef<number>(0);
-  const gsapCtxRef     = useRef<gsap.Context | null>(null);
-  const uniformsRef    = useRef<ShaderUniforms | null>(null);
-  const mouseRef       = useRef<[number, number]>([0.5, 0.5]);
-  const reducedMotion  = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rendererRef = useRef<Renderer | null>(null);
+  const meshRef = useRef<Mesh | null>(null);
+  const indexRef = useRef(0);
+  const rafRef = useRef<number>(0);
+  const gsapCtxRef = useRef<gsap.Context | null>(null);
+  const uniformsRef = useRef<ShaderUniforms | null>(null);
+  const mouseRef = useRef<[number, number]>([0.5, 0.5]);
+  const reducedMotion = useRef(false);
+  const normalizedImages = useMemo(
+    () => images.map((src) => (src.startsWith("/") ? src : `/${src}`)),
+    [images],
+  );
 
   // ── Image loading ─────────────────────────────────────────────────────────
 
@@ -221,7 +226,7 @@ export default function Hero({ images }: HeroProps) {
         };
         img.src = src;
       }),
-    []
+    [],
   );
 
   // ── Ken Burns seed ────────────────────────────────────────────────────────
@@ -233,55 +238,69 @@ export default function Hero({ images }: HeroProps) {
 
   // ── Transition sequence ───────────────────────────────────────────────────
 
-  const runTransition = useCallback(() => {
-    const u = uniformsRef.current;
-    if (!u) return;
+  const runTransition = useCallback(
+    function runTransition() {
+      const u = uniformsRef.current;
+      if (!u) return;
 
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        onComplete: () => {
-          indexRef.current = (indexRef.current + 1) % images.length;
-          // Swap: next becomes current, load new next
-          const nextIdx = (indexRef.current + 1) % images.length;
-          u.uTextureCurrent.value = u.uTextureNext.value;
-          u.uKenBurns.value = [...u.uKenBurnsNext.value] as [number, number, number];
+      const ctx = gsap.context(() => {
+        const tl = gsap.timeline({
+          onComplete: () => {
+            indexRef.current = (indexRef.current + 1) % normalizedImages.length;
+            // Swap: next becomes current, load new next
+            const nextIdx = (indexRef.current + 1) % normalizedImages.length;
+            u.uTextureCurrent.value = u.uTextureNext.value;
+            u.uImageResolutionCurrent.value = [...u.uImageResolutionNext.value];
+            u.uKenBurns.value = [...u.uKenBurnsNext.value] as [
+              number,
+              number,
+              number,
+            ];
 
-          // Animate Ken Burns for incoming
-          const seed = kbSeed();
-          gsap.fromTo(
-            u.uKenBurnsNext,
-            { value: seed },
-            { value: kbSeed(), duration: 7, ease: "none" }
-          );
+            // Animate Ken Burns for incoming
+            const seed = kbSeed();
+            gsap.fromTo(
+              u.uKenBurnsNext,
+              { value: seed },
+              { value: kbSeed(), duration: 7, ease: "none" },
+            );
 
-          // Preload next texture
-          if (rendererRef.current) {
-            loadTexture(rendererRef.current, images[nextIdx]).then((tex) => {
-              u.uTextureNext.value = tex;
-            });
-          }
+            // Preload next texture
+            if (rendererRef.current) {
+              loadTexture(rendererRef.current, normalizedImages[nextIdx]).then(
+                (tex) => {
+                  u.uTextureNext.value = tex;
+                  u.uImageResolutionNext.value = [
+                    (tex.image as HTMLImageElement).width,
+                    (tex.image as HTMLImageElement).height,
+                  ];
+                },
+              );
+            }
 
-          // Schedule next transition
-          gsap.delayedCall(5, runTransition);
-        },
+            // Schedule next transition
+            gsap.delayedCall(5, runTransition);
+          },
+        });
+
+        tl.to(u.uProgress, {
+          value: 1,
+          duration: reducedMotion.current ? 0.3 : 1.6,
+          ease: "power2.inOut",
+          onComplete: () => {
+            u.uProgress.value = 0;
+          },
+        });
       });
 
-      tl.to(u.uProgress, {
-        value: 1,
-        duration: reducedMotion.current ? 0.3 : 1.6,
-        ease: "power2.inOut",
-        onComplete: () => {
-          u.uProgress.value = 0;
-        },
-      });
-    });
-
-    gsapCtxRef.current = ctx;
-  }, [images, kbSeed, loadTexture]);
+      gsapCtxRef.current = ctx;
+    },
+    [kbSeed, loadTexture, normalizedImages],
+  );
 
   // ── Render loop ───────────────────────────────────────────────────────────
 
-  const tick = useCallback((now: number) => {
+  const tick = useCallback(function tick(now: number) {
     const u = uniformsRef.current;
     const renderer = rendererRef.current;
     const mesh = meshRef.current;
@@ -320,10 +339,10 @@ export default function Hero({ images }: HeroProps) {
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!canvasRef.current || images.length === 0) return;
+    if (!canvasRef.current || normalizedImages.length === 0) return;
 
     reducedMotion.current = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
+      "(prefers-reduced-motion: reduce)",
     ).matches;
 
     const renderer = new Renderer({
@@ -342,15 +361,17 @@ export default function Hero({ images }: HeroProps) {
     const blankTex = () => new Texture(gl, { generateMipmaps: false });
 
     const uniforms: ShaderUniforms = {
-      uTime:            { value: 0 },
-      uProgress:        { value: 0 },
-      uTextureCurrent:  { value: blankTex() },
-      uTextureNext:     { value: blankTex() },
-      uResolution:      { value: [window.innerWidth, window.innerHeight] },
-      uMouse:           { value: [0.5, 0.5] },
-      uGrain:           { value: reducedMotion.current ? 0 : 1 },
-      uKenBurns:        { value: [0, 0, 0] },
-      uKenBurnsNext:    { value: [0, 0, 0] },
+      uTime: { value: 0 },
+      uProgress: { value: 0 },
+      uTextureCurrent: { value: blankTex() },
+      uTextureNext: { value: blankTex() },
+      uResolution: { value: [window.innerWidth, window.innerHeight] },
+      uMouse: { value: [0.5, 0.5] },
+      uGrain: { value: reducedMotion.current ? 0 : 1 },
+      uKenBurns: { value: [0, 0, 0] },
+      uKenBurnsNext: { value: [0, 0, 0] },
+      uImageResolutionCurrent: { value: [1, 1] },
+      uImageResolutionNext: { value: [1, 1] },
     };
     uniformsRef.current = uniforms;
 
@@ -359,7 +380,6 @@ export default function Hero({ images }: HeroProps) {
       fragment: FRAGMENT_SHADER,
       uniforms,
     });
-    programRef.current = program;
 
     const geometry = new Triangle(gl);
     const mesh = new Mesh(gl, { geometry, program });
@@ -367,20 +387,42 @@ export default function Hero({ images }: HeroProps) {
 
     // Preload first two images, then start
     Promise.all([
-      loadTexture(renderer, images[0]),
-      loadTexture(renderer, images[Math.min(1, images.length - 1)]),
+      loadTexture(renderer, normalizedImages[0]),
+      loadTexture(
+        renderer,
+        normalizedImages[Math.min(1, normalizedImages.length - 1)],
+      ),
     ]).then(([texA, texB]) => {
+      uniforms.uImageResolutionCurrent.value = [
+        (texA.image as HTMLImageElement).width,
+        (texA.image as HTMLImageElement).height,
+      ];
+
+      uniforms.uImageResolutionNext.value = [
+        (texB.image as HTMLImageElement).width,
+        (texB.image as HTMLImageElement).height,
+      ];
       uniforms.uTextureCurrent.value = texA;
-      uniforms.uTextureNext.value    = texB;
+      uniforms.uTextureNext.value = texB;
 
       // Kick off Ken Burns
       const seedA = kbSeed();
       const seedB = kbSeed();
-      uniforms.uKenBurns.value     = seedA;
+      uniforms.uKenBurns.value = seedA;
       uniforms.uKenBurnsNext.value = seedB;
 
-      gsap.to(uniforms.uKenBurns,     { value: kbSeed(), duration: 7, ease: "none", repeat: -1 });
-      gsap.to(uniforms.uKenBurnsNext, { value: kbSeed(), duration: 7, ease: "none", repeat: -1 });
+      gsap.to(uniforms.uKenBurns, {
+        value: kbSeed(),
+        duration: 7,
+        ease: "none",
+        repeat: -1,
+      });
+      gsap.to(uniforms.uKenBurnsNext, {
+        value: kbSeed(),
+        duration: 7,
+        ease: "none",
+        repeat: -1,
+      });
 
       rafRef.current = requestAnimationFrame(tick);
       gsap.delayedCall(5, runTransition);
@@ -398,13 +440,19 @@ export default function Hero({ images }: HeroProps) {
       gsap.globalTimeline.getChildren(true, false, true).forEach((t) => {
         if ((t as gsap.core.Tween).vars?.onComplete === runTransition) t.kill();
       });
-      texturesRef.current.forEach((t) => t.image && ((t as unknown as { destroy?: () => void }).destroy?.()));
       renderer.gl.getExtension("WEBGL_lose_context")?.loseContext();
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("resize", onResize);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [images]);
+  }, [
+    normalizedImages,
+    kbSeed,
+    loadTexture,
+    onMouseMove,
+    onResize,
+    tick,
+    runTransition,
+  ]);
 
   return (
     <section
@@ -426,11 +474,11 @@ export default function Hero({ images }: HeroProps) {
             key={i}
             className="absolute rounded-full opacity-0"
             style={{
-              width:  `${1 + (i % 3)}px`,
+              width: `${1 + (i % 3)}px`,
               height: `${1 + (i % 3)}px`,
               background: "rgba(255,255,255,0.5)",
-              left:  `${(i * 5.7 + 3) % 100}%`,
-              top:   `${(i * 7.3 + 10) % 100}%`,
+              left: `${(i * 5.7 + 3) % 100}%`,
+              top: `${(i * 7.3 + 10) % 100}%`,
               animation: `dust ${6 + (i % 4) * 2}s ${(i * 0.7) % 5}s ease-in-out infinite alternate`,
               willChange: "transform, opacity",
             }}
@@ -460,7 +508,7 @@ export default function Hero({ images }: HeroProps) {
 
       {/* Preload images (hidden, next/image handles optimisation) */}
       <div className="sr-only" aria-hidden="true">
-        {images.map((src,i) => (
+        {normalizedImages.map((src, i) => (
           <NextImage key={i} src={src} alt="" width={1} height={1} />
         ))}
       </div>
