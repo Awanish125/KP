@@ -328,7 +328,7 @@ const FRAGMENT_SHADER = /* glsl */ `
     blended.rgb *= mix(0.0, 1.0, vig);
 
     // ── Film grain ─────────────────────────────────────────────────────────
-    float grain = (hash(vUv + fract(t * 0.07)) - 0.5) * uGrain * 0.18;
+    float grain = (hash(vUv + fract(t * 0.07)) - 0.5) * uGrain * 0.1;//this is for noise
     blended.rgb += grain;
 
     // ── Scanline flash at transition peak ──────────────────────────────────
@@ -351,266 +351,373 @@ const FRAGMENT_SHADER = /* glsl */ `
 
 interface HeroDebugProps {
   uniformsRef: React.MutableRefObject<ShaderUniforms | null>;
-  timingsRef: React.MutableRefObject<{ holdDuration: number; transitionDuration: number; ease: string }>;
+  timingsRef: React.MutableRefObject<{
+    holdDuration: number;
+    transitionDuration: number;
+    ease: string;
+  }>;
 }
 
 function HeroDebug({ uniformsRef, timingsRef }: HeroDebugProps) {
-  useControls(() => ({
-    Image: folder({
-      cover: {
-        value: 1.0,
-        min: 0.0,
-        max: 1.0,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uCover.value = v; }
-      },
-      contain: {
-        value: 0.0,
-        min: 0.0,
-        max: 1.0,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uContain.value = v; }
-      },
-      zoom: {
-        value: 1.0,
-        min: 0.1,
-        max: 5.0,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uZoom.value = v; }
-      },
-      scaleX: {
-        value: 1.0,
-        min: 0.1,
-        max: 5.0,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uScaleX.value = v; }
-      },
-      scaleY: {
-        value: 1.0,
-        min: 0.1,
-        max: 5.0,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uScaleY.value = v; }
-      },
-      offsetX: {
-        value: 0.0,
-        min: -2.0,
-        max: 2.0,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uOffsetX.value = v; }
-      },
-      offsetY: {
-        value: 0.0,
-        min: -2.0,
-        max: 2.0,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uOffsetY.value = v; }
-      },
-      rotation: {
-        value: 0.0,
-        min: -Math.PI,
-        max: Math.PI,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uRotation.value = v; }
-      },
-      aspectCompensation: {
-        value: 0.0,
-        min: 0.0,
-        max: 1.0,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uAspectCompensation.value = v; }
-      }
+  useControls(
+    () => ({
+      Image: folder({
+        cover: {
+          value: 1.0,
+          min: 0.0,
+          max: 1.0,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current) uniformsRef.current.uCover.value = v;
+          },
+        },
+        contain: {
+          value: 0.0,
+          min: 0.0,
+          max: 1.0,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current) uniformsRef.current.uContain.value = v;
+          },
+        },
+        zoom: {
+          value: 1.0,
+          min: 0.1,
+          max: 5.0,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current) uniformsRef.current.uZoom.value = v;
+          },
+        },
+        scaleX: {
+          value: 1.0,
+          min: 0.1,
+          max: 5.0,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current) uniformsRef.current.uScaleX.value = v;
+          },
+        },
+        scaleY: {
+          value: 1.0,
+          min: 0.1,
+          max: 5.0,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current) uniformsRef.current.uScaleY.value = v;
+          },
+        },
+        offsetX: {
+          value: 0.0,
+          min: -2.0,
+          max: 2.0,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current) uniformsRef.current.uOffsetX.value = v;
+          },
+        },
+        offsetY: {
+          value: 0.0,
+          min: -2.0,
+          max: 2.0,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current) uniformsRef.current.uOffsetY.value = v;
+          },
+        },
+        rotation: {
+          value: 0.0,
+          min: -Math.PI,
+          max: Math.PI,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current) uniformsRef.current.uRotation.value = v;
+          },
+        },
+        aspectCompensation: {
+          value: 0.0,
+          min: 0.0,
+          max: 1.0,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uAspectCompensation.value = v;
+          },
+        },
+      }),
+      Transition: folder({
+        holdDuration: {
+          value: 5.0,
+          min: 1.0,
+          max: 20.0,
+          step: 0.1,
+          onChange: (v) => {
+            timingsRef.current.holdDuration = v;
+          },
+        },
+        transitionDuration: {
+          value: 1.6,
+          min: 0.1,
+          max: 10.0,
+          step: 0.1,
+          onChange: (v) => {
+            timingsRef.current.transitionDuration = v;
+          },
+        },
+        ease: {
+          value: "power2.inOut",
+          options: [
+            "power2.inOut",
+            "power2.in",
+            "power2.out",
+            "power1.inOut",
+            "power3.inOut",
+            "none",
+          ],
+          onChange: (v) => {
+            timingsRef.current.ease = v;
+          },
+        },
+      }),
+      Mouse: folder({
+        mouseParallax: {
+          value: 0.008,
+          min: 0.0,
+          max: 0.1,
+          step: 0.001,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uMouseParallax.value = v;
+          },
+        },
+      }),
+      "Ken Burns": folder({
+        kbMoveScale: {
+          value: 0.04,
+          min: 0.0,
+          max: 0.2,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current) uniformsRef.current.uKbMoveScale.value = v;
+          },
+        },
+        kbZoomScale: {
+          value: 0.06,
+          min: 0.0,
+          max: 0.3,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current) uniformsRef.current.uKbZoomScale.value = v;
+          },
+        },
+      }),
+      Effects: folder({
+        displacementStrength: {
+          value: 0.025,
+          min: 0.0,
+          max: 0.2,
+          step: 0.001,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uDisplacementStrength.value = v;
+          },
+        },
+        tearIntensity: {
+          value: 0.018,
+          min: 0.0,
+          max: 0.1,
+          step: 0.001,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uTearIntensity.value = v;
+          },
+        },
+        barrelStrength: {
+          value: 0.06,
+          min: -0.5,
+          max: 0.5,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uBarrelStrength.value = v;
+          },
+        },
+        chromAmtMultiplier: {
+          value: 0.006,
+          min: 0.0,
+          max: 0.05,
+          step: 0.001,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uChromAmtMultiplier.value = v;
+          },
+        },
+        chromAmtBase: {
+          value: 0.0015,
+          min: 0.0,
+          max: 0.02,
+          step: 0.0005,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uChromAmtBase.value = v;
+          },
+        },
+        dissolveNoiseScale: {
+          value: 6.0,
+          min: 1.0,
+          max: 20.0,
+          step: 0.1,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uDissolveNoiseScale.value = v;
+          },
+        },
+        dissolveNoiseSpeed: {
+          value: 0.2,
+          min: 0.0,
+          max: 2.0,
+          step: 0.05,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uDissolveNoiseSpeed.value = v;
+          },
+        },
+        pulseStrength: {
+          value: 0.12,
+          min: 0.0,
+          max: 0.5,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uPulseStrength.value = v;
+          },
+        },
+        vignetteRadius: {
+          value: 18.0,
+          min: 1.0,
+          max: 50.0,
+          step: 0.5,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uVignetteRadius.value = v;
+          },
+        },
+        vignettePower: {
+          value: 0.4,
+          min: 0.1,
+          max: 2.0,
+          step: 0.05,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uVignettePower.value = v;
+          },
+        },
+        scanlineFrequency: {
+          value: 0.5,
+          min: 0.1,
+          max: 5.0,
+          step: 0.05,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uScanlineFrequency.value = v;
+          },
+        },
+        scanlineSpeed: {
+          value: 120.0,
+          min: -300.0,
+          max: 300.0,
+          step: 5.0,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uScanlineSpeed.value = v;
+          },
+        },
+        scanlineStrength: {
+          value: 0.025,
+          min: 0.0,
+          max: 0.2,
+          step: 0.005,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uScanlineStrength.value = v;
+          },
+        },
+        leakThreshold: {
+          value: 0.6,
+          min: 0.0,
+          max: 1.0,
+          step: 0.05,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uLeakThreshold.value = v;
+          },
+        },
+        leakScale: {
+          value: 2.0,
+          min: 0.1,
+          max: 10.0,
+          step: 0.1,
+          onChange: (v) => {
+            if (uniformsRef.current) uniformsRef.current.uLeakScale.value = v;
+          },
+        },
+        leakSpeed: {
+          value: 0.1,
+          min: 0.0,
+          max: 2.0,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current) uniformsRef.current.uLeakSpeed.value = v;
+          },
+        },
+        leakStrength: {
+          value: 0.12,
+          min: 0.0,
+          max: 1.0,
+          step: 0.01,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uLeakStrength.value = v;
+          },
+        },
+        leakColor: {
+          value: "#99734d",
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uLeakColor.value = hexToRgb(v);
+          },
+        },
+        gradColor: {
+          value: "#00000d",
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uGradColor.value = hexToRgb(v);
+          },
+        },
+        gradExponent: {
+          value: 2.2,
+          min: 0.5,
+          max: 5.0,
+          step: 0.1,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uGradExponent.value = v;
+          },
+        },
+        gradStrength: {
+          value: 0.6,
+          min: 0.0,
+          max: 1.0,
+          step: 0.05,
+          onChange: (v) => {
+            if (uniformsRef.current)
+              uniformsRef.current.uGradStrength.value = v;
+          },
+        },
+      }),
     }),
-    Transition: folder({
-      holdDuration: {
-        value: 5.0,
-        min: 1.0,
-        max: 20.0,
-        step: 0.1,
-        onChange: (v) => { timingsRef.current.holdDuration = v; }
-      },
-      transitionDuration: {
-        value: 1.6,
-        min: 0.1,
-        max: 10.0,
-        step: 0.1,
-        onChange: (v) => { timingsRef.current.transitionDuration = v; }
-      },
-      ease: {
-        value: "power2.inOut",
-        options: ["power2.inOut", "power2.in", "power2.out", "power1.inOut", "power3.inOut", "none"],
-        onChange: (v) => { timingsRef.current.ease = v; }
-      }
-    }),
-    Mouse: folder({
-      mouseParallax: {
-        value: 0.008,
-        min: 0.0,
-        max: 0.1,
-        step: 0.001,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uMouseParallax.value = v; }
-      }
-    }),
-    "Ken Burns": folder({
-      kbMoveScale: {
-        value: 0.04,
-        min: 0.0,
-        max: 0.2,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uKbMoveScale.value = v; }
-      },
-      kbZoomScale: {
-        value: 0.06,
-        min: 0.0,
-        max: 0.3,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uKbZoomScale.value = v; }
-      }
-    }),
-    Effects: folder({
-      displacementStrength: {
-        value: 0.025,
-        min: 0.0,
-        max: 0.2,
-        step: 0.001,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uDisplacementStrength.value = v; }
-      },
-      tearIntensity: {
-        value: 0.018,
-        min: 0.0,
-        max: 0.1,
-        step: 0.001,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uTearIntensity.value = v; }
-      },
-      barrelStrength: {
-        value: 0.06,
-        min: -0.5,
-        max: 0.5,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uBarrelStrength.value = v; }
-      },
-      chromAmtMultiplier: {
-        value: 0.006,
-        min: 0.0,
-        max: 0.05,
-        step: 0.001,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uChromAmtMultiplier.value = v; }
-      },
-      chromAmtBase: {
-        value: 0.0015,
-        min: 0.0,
-        max: 0.02,
-        step: 0.0005,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uChromAmtBase.value = v; }
-      },
-      dissolveNoiseScale: {
-        value: 6.0,
-        min: 1.0,
-        max: 20.0,
-        step: 0.1,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uDissolveNoiseScale.value = v; }
-      },
-      dissolveNoiseSpeed: {
-        value: 0.2,
-        min: 0.0,
-        max: 2.0,
-        step: 0.05,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uDissolveNoiseSpeed.value = v; }
-      },
-      pulseStrength: {
-        value: 0.12,
-        min: 0.0,
-        max: 0.5,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uPulseStrength.value = v; }
-      },
-      vignetteRadius: {
-        value: 18.0,
-        min: 1.0,
-        max: 50.0,
-        step: 0.5,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uVignetteRadius.value = v; }
-      },
-      vignettePower: {
-        value: 0.4,
-        min: 0.1,
-        max: 2.0,
-        step: 0.05,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uVignettePower.value = v; }
-      },
-      scanlineFrequency: {
-        value: 0.5,
-        min: 0.1,
-        max: 5.0,
-        step: 0.05,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uScanlineFrequency.value = v; }
-      },
-      scanlineSpeed: {
-        value: 120.0,
-        min: -300.0,
-        max: 300.0,
-        step: 5.0,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uScanlineSpeed.value = v; }
-      },
-      scanlineStrength: {
-        value: 0.025,
-        min: 0.0,
-        max: 0.2,
-        step: 0.005,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uScanlineStrength.value = v; }
-      },
-      leakThreshold: {
-        value: 0.6,
-        min: 0.0,
-        max: 1.0,
-        step: 0.05,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uLeakThreshold.value = v; }
-      },
-      leakScale: {
-        value: 2.0,
-        min: 0.1,
-        max: 10.0,
-        step: 0.1,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uLeakScale.value = v; }
-      },
-      leakSpeed: {
-        value: 0.1,
-        min: 0.0,
-        max: 2.0,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uLeakSpeed.value = v; }
-      },
-      leakStrength: {
-        value: 0.12,
-        min: 0.0,
-        max: 1.0,
-        step: 0.01,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uLeakStrength.value = v; }
-      },
-      leakColor: {
-        value: "#99734d",
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uLeakColor.value = hexToRgb(v); }
-      },
-      gradColor: {
-        value: "#00000d",
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uGradColor.value = hexToRgb(v); }
-      },
-      gradExponent: {
-        value: 2.2,
-        min: 0.5,
-        max: 5.0,
-        step: 0.1,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uGradExponent.value = v; }
-      },
-      gradStrength: {
-        value: 0.6,
-        min: 0.0,
-        max: 1.0,
-        step: 0.05,
-        onChange: (v) => { if (uniformsRef.current) uniformsRef.current.uGradStrength.value = v; }
-      }
-    })
-  }), [uniformsRef, timingsRef]);
+    [uniformsRef, timingsRef],
+  );
 
   return null;
 }
@@ -630,9 +737,9 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
   const reducedMotion = useRef(false);
 
   const timingsRef = useRef({
-    holdDuration: 5.0,
-    transitionDuration: 1.6,
-    ease: "power2.inOut"
+    holdDuration: 6.0,
+    transitionDuration: 1.1,
+    ease: "power2.inOut",
   });
 
   const normalizedImages = useMemo(
@@ -659,9 +766,22 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
 
   // ── Ken Burns seed ────────────────────────────────────────────────────────
 
-  const kbSeed = useCallback((): [number, number, number] => {
-    const angle = Math.random() * Math.PI * 2;
-    return [Math.cos(angle), Math.sin(angle), Math.random()];
+  const kbSeed = useCallback((index = 0): [number, number, number] => {
+    const directions: [number, number][] = [
+      [0.004, 0.002],
+      [-0.003, 0.003],
+      [0.002, -0.004],
+      [-0.002, -0.002],
+      [0.003, 0.001],
+    ];
+
+    const [x, y] = directions[index % directions.length];
+
+    return [
+      x,
+      y,
+      0.01, // ~1% zoom
+    ];
   }, []);
 
   // ── Transition sequence ───────────────────────────────────────────────────
@@ -686,11 +806,16 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
             ];
 
             // Animate Ken Burns for incoming
-            const seed = kbSeed();
+            const seed = kbSeed(nextIdx);
+
             gsap.fromTo(
               u.uKenBurnsNext,
               { value: seed },
-              { value: kbSeed(), duration: 7, ease: "none" },
+              {
+                value: kbSeed(nextIdx + 1),
+                duration: 20,
+                ease: "sine.inOut",
+              },
             );
 
             // Preload next texture
@@ -713,7 +838,9 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
 
         tl.to(u.uProgress, {
           value: 1,
-          duration: reducedMotion.current ? 0.3 : timingsRef.current.transitionDuration,
+          duration: reducedMotion.current
+            ? 0.3
+            : timingsRef.current.transitionDuration,
           ease: timingsRef.current.ease,
           onComplete: () => {
             u.uProgress.value = 0;
@@ -801,40 +928,40 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
       uImageResolutionCurrent: { value: [1, 1] },
       uImageResolutionNext: { value: [1, 1] },
 
-      uCover: { value: 1.0 },
-      uContain: { value: 0.0 },
-      uZoom: { value: 1.0 },
+      uCover: { value: 0.8 },
+      uContain: { value: 0.2 },
+      uZoom: { value: 0.9 },
       uScaleX: { value: 1.0 },
       uScaleY: { value: 1.0 },
       uOffsetX: { value: 0.0 },
       uOffsetY: { value: 0.0 },
       uRotation: { value: 0.0 },
-      uAspectCompensation: { value: 0.0 },
+      uAspectCompensation: { value: 1 },
 
-      uDisplacementStrength: { value: 0.025 },
-      uTearIntensity: { value: 0.018 },
-      uBarrelStrength: { value: 0.06 },
-      uChromAmtMultiplier: { value: 0.006 },
-      uChromAmtBase: { value: 0.0015 },
+      uDisplacementStrength: { value: 0.006 },
+      uTearIntensity: { value: 0.002 },
+      uBarrelStrength: { value: 0.005 },
+      uChromAmtMultiplier: { value: 0.0015 },
+      uChromAmtBase: { value: 0.0002 },
       uDissolveNoiseScale: { value: 6.0 },
       uDissolveNoiseSpeed: { value: 0.2 },
       uPulseStrength: { value: 0.12 },
-      uVignetteRadius: { value: 18.0 },
-      uVignettePower: { value: 0.4 },
+      uVignetteRadius: { value: 12.0 },
+      uVignettePower: { value: 0.2 },
       uScanlineFrequency: { value: 0.5 },
       uScanlineSpeed: { value: 120.0 },
-      uScanlineStrength: { value: 0.025 },
+      uScanlineStrength: { value: 0.005 },
       uLeakThreshold: { value: 0.6 },
       uLeakScale: { value: 2.0 },
       uLeakSpeed: { value: 0.1 },
-      uLeakStrength: { value: 0.12 },
+      uLeakStrength: { value: 0.03 },
       uLeakColor: { value: hexToRgb("#99734d") },
       uGradColor: { value: hexToRgb("#00000d") },
       uGradExponent: { value: 2.2 },
-      uGradStrength: { value: 0.6 },
-      uMouseParallax: { value: 0.008 },
-      uKbMoveScale: { value: 0.04 },
-      uKbZoomScale: { value: 0.06 }
+      uGradStrength: { value: 0.18 },
+      uMouseParallax: { value: 0.01 },
+      uKbMoveScale: { value: 0.003 },
+      uKbZoomScale: { value: 0.008 },
     };
     uniformsRef.current = uniforms;
 
@@ -867,22 +994,25 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
       uniforms.uTextureCurrent.value = texA;
       uniforms.uTextureNext.value = texB;
 
-      const seedA = kbSeed();
-      const seedB = kbSeed();
+      const seedA = kbSeed(0);
+      const seedB = kbSeed(1);
       uniforms.uKenBurns.value = seedA;
       uniforms.uKenBurnsNext.value = seedB;
 
       gsap.to(uniforms.uKenBurns, {
-        value: kbSeed(),
-        duration: 7,
-        ease: "none",
+        value: kbSeed(2),
+        duration: 20,
+        ease: "sine.inOut",
         repeat: -1,
+        yoyo: true,
       });
+
       gsap.to(uniforms.uKenBurnsNext, {
-        value: kbSeed(),
-        duration: 7,
-        ease: "none",
+        value: kbSeed(3),
+        duration: 20,
+        ease: "sine.inOut",
         repeat: -1,
+        yoyo: true,
       });
 
       rafRef.current = requestAnimationFrame(tick);
@@ -979,16 +1109,21 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
       {/* Overlay Content */}
       {children && (
         <div className="relative w-full h-full z-20 pointer-events-none">
-          <div className="w-full h-full pointer-events-auto">
-            {children}
-          </div>
+          <div className="w-full h-full pointer-events-auto">{children}</div>
         </div>
       )}
 
       {/* Preload images */}
       <div className="sr-only" aria-hidden="true">
         {normalizedImages.map((src, i) => (
-          <NextImage key={i} src={src} alt="" width={1} height={1} className="object-cover"/>
+          <NextImage
+            key={i}
+            src={src}
+            alt=""
+            width={1}
+            height={1}
+            className="object-cover"
+          />
         ))}
       </div>
 
