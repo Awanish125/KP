@@ -1,1276 +1,1146 @@
-"use client";
+'use client'
 
-import {
+/**
+ * Billboard.tsx
+ * ---------------------------------------------------------------------------
+ * Standalone, procedural 3D billboard built with React Three Fiber.
+ *
+ * This file is fully self-contained and independent from any existing Hero
+ * section / canvas / camera / lighting in the host project. It renders its
+ * own <Canvas> and can be dropped in anywhere below the Hero:
+ *
+ *   import Billboard from '@/components/Billboard'
+ *   ...
+ *   <Hero />
+ *   <Billboard />
+ *
+ * Nothing here touches global state, the page's existing R3F context, or any
+ * other component. No GLB/FBX/OBJ assets are used — every shape (frame,
+ * panels, pole, braces, brackets, bolts, base plate) is built from primitive
+ * geometry composed at runtime.
+ *
+ * GSAP roadmap hook points (see bottom of file for details):
+ *   - `BillboardMesh` is a forwardRef component. The ref exposes the group
+ *     object3D plus refs to the front/back poster materials, so a future
+ *     GSAP timeline can tween position/rotation/scale directly on the
+ *     group, and uniforms (opacity/brightness/texture swap) directly on the
+ *     poster materials, without touching this file's internals.
+ *   - `BillboardMesh` also accepts plain props (position/rotation/scale/
+ *     visible/frontImage/backImage) so it can be driven by either GSAP refs
+ *     or declarative scroll-state, whichever the future integration prefers.
+ */
+
+import React, {
   forwardRef,
-  Suspense,
-  useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
   useState,
-} from "react";
-import type { CSSProperties, RefObject } from "react";
+} from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import {
-  Canvas,
-  useLoader,
-  useThree,
-} from "@react-three/fiber";
-import {
-  AccumulativeShadows,
-  ContactShadows,
   Environment,
+  Lightformer,
+  OrbitControls,
   PerspectiveCamera,
   RoundedBox,
-  useHelper,
-} from "@react-three/drei";
-import { Leva, button, folder, useControls } from "leva";
-import * as THREE from "three";
-import { EXRLoader } from "three/examples/jsm/loaders/EXRLoader.js";
+  Grid,
+  AdaptiveDpr,
+  AdaptiveEvents,
+  Bvh,
+} from '@react-three/drei'
+import { useControls, folder, Leva, button } from 'leva'
+import * as THREE from 'three'
 
-const DEFAULT_FRONT_POSTER = "/posters/front.jpg";
-const DEFAULT_BACK_POSTER = "/posters/back.jpg";
-const DEFAULT_FRAME_COLOR = "/textures/metals/green_metal_rust_diff_2k.jpg";
-const DEFAULT_FRAME_NORMAL = "/textures/metals/green_metal_rust_nor_gl_2k.exr";
-const DEFAULT_FRAME_ROUGHNESS = "/textures/metals/green_metal_rust_rough_2k.jpg";
-const DEFAULT_FRAME_HEIGHT = "/textures/metals/green_metal_rust_disp_2k.png";
-const DEFAULT_POLE_COLOR = "/textures/poles/polystyrene_diff_2k.jpg";
-const DEFAULT_POLE_NORMAL = "/textures/poles/polystyrene_nor_gl_2k.exr";
-const DEFAULT_POLE_ROUGHNESS = "/textures/poles/polystyrene_rough_2k.exr";
-const DEFAULT_POLE_HEIGHT = "/textures/poles/polystyrene_disp_2k.png";
+/* -------------------------------------------------------------------------- */
+/*  Texture loading with graceful fallbacks                                   */
+/* -------------------------------------------------------------------------- */
 
-type Vector3 = [number, number, number];
+type FallbackKind = 'color' | 'gray' | 'normal'
 
-export interface BillboardHandles {
-  root: THREE.Group | null;
-  frameMaterial: THREE.MeshPhysicalMaterial | null;
-  poleMaterial: THREE.MeshPhysicalMaterial | null;
-  posterFrontMaterial: THREE.MeshBasicMaterial | null;
-  posterBackMaterial: THREE.MeshBasicMaterial | null;
-}
-
-export interface BillboardProps {
-  className?: string;
-  style?: CSSProperties;
-  debug?: boolean;
-  environmentPath?: string;
-  frontImage?: string;
-  backImage?: string;
-  onReady?: (handles: BillboardHandles) => void;
-}
-
-type BillboardControlSchema = {
-  Billboard: {
-    billboardWidth: number;
-    billboardHeight: number;
-    billboardFrameWidth: number;
-    billboardFrameThickness: number;
-    billboardCornerRadius: number;
-    billboardPosterDepth: number;
-    billboardPosterGap: number;
-  };
-  Pole: {
-    poleHeight: number;
-    poleRadius: number;
-    poleSegments: number;
-    polePosition: Vector3;
-    poleRotation: Vector3;
-    poleScale: Vector3;
-  };
-  Supports: {
-    supportsEnableSupports: boolean;
-    supportsEnableRearBraces: boolean;
-    thickness: number;
-    width: number;
-    depth: number;
-  };
-  Posters: {
-    posterFrontImage: string;
-    posterBackImage: string;
-    posterFrontOpacity: number;
-    posterBackOpacity: number;
-    posterBrightness: number;
-    posterContrast: number;
-    posterSaturation: number;
-    posterSwapImages: boolean;
-  };
-  Materials: {
-    materialMetalness: number;
-    materialRoughness: number;
-    materialClearcoat: number;
-    materialClearcoatRoughness: number;
-    materialNormalScale: number;
-    materialBumpScale: number;
-    materialEnvironmentIntensity: number;
-    materialFrameTint: string;
-    materialPoleTint: string;
-  };
-  "Texture Tiling": {
-    frameRepeatX: number;
-    frameRepeatY: number;
-    poleRepeatX: number;
-    poleRepeatY: number;
-  };
-  Lighting: {
-    lightingAmbient: number;
-    lightingDirectional: number;
-    lightingRim: number;
-    lightingFill: number;
-    lightingExposure: number;
-    lightingHdrIntensity: number;
-    lightingShadowBias: number;
-    lightingUseAccumulativeShadows: boolean;
-  };
-  Camera: {
-    cameraPosition: Vector3;
-    cameraRotation: Vector3;
-    cameraFov: number;
-    cameraTarget: Vector3;
-  };
-  Transform: {
-    transformPosition: Vector3;
-    transformRotation: Vector3;
-    transformScale: Vector3;
-  };
-  Debug: {
-    debugWireframe: boolean;
-    debugHelpers: boolean;
-    debugAxes: boolean;
-    debugBoundingBox: boolean;
-  };
-};
-
-function configureTexture(texture: THREE.Texture, repeatX: number, repeatY: number) {
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(repeatX, repeatY);
-  texture.anisotropy = 8;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function useRepeatedTexture(
-  texture: THREE.Texture,
-  repeatX: number,
-  repeatY: number,
-  colorSpace?: boolean,
-) {
-  const repeated = useMemo(() => {
-    const next = configureTexture(texture.clone(), repeatX, repeatY);
-    if (colorSpace) {
-      next.colorSpace = THREE.SRGBColorSpace;
+/** Builds a small in-memory texture so the component never breaks if a real
+ *  texture/image file hasn't been added to /public yet. */
+function makeFallbackTexture(kind: FallbackKind, hex = '#6b7a63'): THREE.Texture {
+  const size = 8
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    if (kind === 'normal') {
+      ctx.fillStyle = 'rgb(128,128,255)'
+    } else if (kind === 'gray') {
+      ctx.fillStyle = 'rgb(140,140,140)'
+    } else {
+      ctx.fillStyle = hex
     }
-    return next;
-  }, [colorSpace, repeatX, repeatY, texture]);
+    ctx.fillRect(0, 0, size, size)
+  }
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.needsUpdate = true
+  return tex
+}
+
+interface UseSafeTextureOptions {
+  fallbackKind: FallbackKind
+  fallbackColor?: string
+  colorSpace?: boolean // true => sRGB (for base color / poster maps)
+}
+
+/** Loads a texture by URL. Falls back to a flat procedural texture instead of
+ *  throwing/suspending if the file is missing — keeps the billboard rendering
+ *  even before real art/textures are dropped into /public. */
+function useSafeTexture(url: string | undefined, options: UseSafeTextureOptions): THREE.Texture {
+  const { fallbackKind, fallbackColor, colorSpace } = options
+  const fallback = useMemo(
+    () => makeFallbackTexture(fallbackKind, fallbackColor),
+    [fallbackKind, fallbackColor],
+  )
+  const [texture, setTexture] = useState<THREE.Texture>(fallback)
 
   useEffect(() => {
+    if (!url) {
+      setTexture(fallback)
+      return
+    }
+    let disposed = false
+    const loader = new THREE.TextureLoader()
+    let loaded: THREE.Texture | null = null
+    loader.load(
+      url,
+      (tex) => {
+        if (disposed) {
+          tex.dispose()
+          return
+        }
+        if (colorSpace) tex.colorSpace = THREE.SRGBColorSpace
+        loaded = tex
+        setTexture(tex)
+      },
+      undefined,
+      () => {
+        if (!disposed) setTexture(fallback)
+      },
+    )
     return () => {
-      repeated.dispose();
-    };
-  }, [repeated]);
+      disposed = true
+      if (loaded) loaded.dispose()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, fallback, colorSpace])
 
-  return repeated;
+  useEffect(() => () => fallback.dispose(), [fallback])
+
+  return texture
 }
 
-function usePosterTexture(
-  source: THREE.Texture,
-  brightness: number,
-  contrast: number,
-  saturation: number,
-) {
-  const texture = useMemo(() => {
-    const image = source.image as CanvasImageSource & {
-      width: number;
-      height: number;
-    };
+/* -------------------------------------------------------------------------- */
+/*  Poster source: image OR looping video                                    */
+/* -------------------------------------------------------------------------- */
 
-    if (!image || !image.width || !image.height) {
-      return null;
-    }
+const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.ogv', '.ogg', '.mov', '.m4v']
 
-    const canvas = document.createElement("canvas");
-    canvas.width = image.width;
-    canvas.height = image.height;
+function isVideoUrl(url: string): boolean {
+  const clean = url.split('?')[0].toLowerCase()
+  return VIDEO_EXTENSIONS.some((ext) => clean.endsWith(ext))
+}
 
-    const context = canvas.getContext("2d");
-    if (!context) {
-      return;
-    }
-
-    context.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation})`;
-    context.drawImage(image, 0, 0);
-    context.filter = "none";
-
-    const nextTexture = new THREE.CanvasTexture(canvas);
-    nextTexture.colorSpace = THREE.SRGBColorSpace;
-    nextTexture.anisotropy = 8;
-    nextTexture.needsUpdate = true;
-
-    return nextTexture;
-  }, [brightness, contrast, saturation, source]);
+/** Loads a poster source that can be either a still image or a video file.
+ *  Videos autoplay muted and loop continuously; images behave exactly like
+ *  before. Falls back to a flat color texture if the file is missing or
+ *  fails to load, so a panel never breaks rendering. */
+function useMediaTexture(url: string | undefined, fallbackColor: string): THREE.Texture {
+  const fallback = useMemo(() => makeFallbackTexture('color', fallbackColor), [fallbackColor])
+  const [texture, setTexture] = useState<THREE.Texture>(fallback)
 
   useEffect(() => {
+    if (!url) {
+      setTexture(fallback)
+      return
+    }
+
+    let disposed = false
+
+    if (isVideoUrl(url)) {
+      const video = document.createElement('video')
+      video.src = url
+      video.loop = true
+      video.muted = true
+      video.autoplay = true
+      video.playsInline = true
+      video.setAttribute('playsinline', '') // older Safari/iOS
+      video.crossOrigin = 'anonymous'
+
+      const videoTexture = new THREE.VideoTexture(video)
+      videoTexture.minFilter = THREE.LinearFilter
+      videoTexture.magFilter = THREE.LinearFilter
+      videoTexture.generateMipmaps = false
+
+      const handleReady = () => {
+        if (disposed) return
+        // Autoplay can be blocked until a user gesture on some browsers;
+        // the texture still picks up frames as soon as playback starts.
+        video.play().catch(() => undefined)
+        setTexture(videoTexture)
+      }
+      const handleError = () => {
+        if (!disposed) setTexture(fallback)
+      }
+
+      video.addEventListener('loadeddata', handleReady)
+      video.addEventListener('error', handleError)
+
+      return () => {
+        disposed = true
+        video.removeEventListener('loadeddata', handleReady)
+        video.removeEventListener('error', handleError)
+        video.pause()
+        video.removeAttribute('src')
+        video.load()
+        videoTexture.dispose()
+      }
+    }
+
+    const loader = new THREE.TextureLoader()
+    let loaded: THREE.Texture | null = null
+    loader.load(
+      url,
+      (tex) => {
+        if (disposed) {
+          tex.dispose()
+          return
+        }
+        loaded = tex
+        setTexture(tex)
+      },
+      undefined,
+      () => {
+        if (!disposed) setTexture(fallback)
+      },
+    )
     return () => {
-      texture?.dispose();
-    };
-  }, [texture]);
+      disposed = true
+      if (loaded) loaded.dispose()
+    }
+  }, [url, fallback])
 
-  return texture;
+  useEffect(() => () => fallback.dispose(), [fallback])
+
+  return texture
 }
 
-function buildLinkGeometry(start: Vector3, end: Vector3, radius: number) {
-  const startVector = new THREE.Vector3(...start);
-  const endVector = new THREE.Vector3(...end);
-  const direction = new THREE.Vector3().subVectors(endVector, startVector);
-  const length = direction.length();
-  const midpoint = new THREE.Vector3()
-    .addVectors(startVector, endVector)
-    .multiplyScalar(0.5);
-  const quaternion = new THREE.Quaternion().setFromUnitVectors(
-    new THREE.Vector3(0, 1, 0),
-    direction.normalize(),
-  );
-
-  return {
-    length,
-    midpoint,
-    quaternion,
-    radius,
-  };
+interface RepeatSettings {
+  repeatX: number
+  repeatY: number
+  rotation?: number
+  offsetX?: number
+  offsetY?: number
 }
 
-function CameraRig({
-  cameraPosition: position,
-  cameraRotation: rotation,
-  cameraTarget: target,
-  cameraFov: fov,
-}: BillboardControlSchema["Camera"]) {
-  const cameraRef = useRef<THREE.PerspectiveCamera>(null);
+function applyRepeat(tex: THREE.Texture, settings: RepeatSettings) {
+  tex.wrapS = THREE.RepeatWrapping
+  tex.wrapT = THREE.RepeatWrapping
+  tex.repeat.set(settings.repeatX, settings.repeatY)
+  tex.rotation = settings.rotation ?? 0
+  tex.offset.set(settings.offsetX ?? 0, settings.offsetY ?? 0)
+  tex.anisotropy = 8
+  tex.needsUpdate = true
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Poster panel shader material (independent front/back uniforms)           */
+/* -------------------------------------------------------------------------- */
+
+const posterVertexShader = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+
+const posterFragmentShader = /* glsl */ `
+  uniform sampler2D map;
+  uniform float brightness;
+  uniform float contrast;
+  uniform float saturation;
+  uniform float opacity;
+  varying vec2 vUv;
+
+  void main() {
+    vec4 tex = texture2D(map, vUv);
+    vec3 color = tex.rgb * brightness;
+    color = (color - 0.5) * contrast + 0.5;
+    float luma = dot(color, vec3(0.299, 0.587, 0.114));
+    color = mix(vec3(luma), color, saturation);
+    gl_FragColor = vec4(clamp(color, 0.0, 1.0), tex.a * opacity);
+  }
+`
+
+interface PosterUniforms {
+  map: { value: THREE.Texture }
+  brightness: { value: number }
+  contrast: { value: number }
+  saturation: { value: number }
+  opacity: { value: number }
+}
+
+function usePosterMaterial(texture: THREE.Texture): {
+  material: THREE.ShaderMaterial
+  uniforms: PosterUniforms
+} {
+  const uniforms = useMemo<PosterUniforms>(
+    () => ({
+      map: { value: texture },
+      brightness: { value: 1 },
+      contrast: { value: 1 },
+      saturation: { value: 1 },
+      opacity: { value: 1 },
+    }),
+    // texture identity changes when a new image loads in; rebuild uniforms then
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
+
+  const material = useMemo(() => {
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: posterVertexShader,
+      fragmentShader: posterFragmentShader,
+      uniforms: uniforms as unknown as { [uniform: string]: THREE.IUniform },
+      transparent: true,
+      side: THREE.FrontSide,
+    })
+    return mat
+  }, [uniforms])
 
   useEffect(() => {
-    const camera = cameraRef.current;
-    if (!camera) {
-      return;
-    }
+    uniforms.map.value = texture
+  }, [texture, uniforms])
 
-    camera.position.set(...position);
-    camera.rotation.set(...rotation);
-    camera.lookAt(...target);
-    camera.fov = fov;
-    camera.updateProjectionMatrix();
-  }, [fov, position, rotation, target]);
+  useEffect(() => () => material.dispose(), [material])
+
+  return { material, uniforms }
+}
+
+/* -------------------------------------------------------------------------- */
+/*  PBR frame / pole materials                                                */
+/* -------------------------------------------------------------------------- */
+
+interface PbrMaps {
+  map: THREE.Texture
+  roughnessMap: THREE.Texture
+  normalMap: THREE.Texture
+  bumpMap: THREE.Texture
+}
+
+function usePbrMaps(basePath: string, repeat: RepeatSettings, normalFallback: string, colorFallback: string): PbrMaps {
+  const map = useSafeTexture(`${basePath}/basecolor.jpg`, {
+    fallbackKind: 'color',
+    fallbackColor: colorFallback,
+    colorSpace: true,
+  })
+  const roughnessMap = useSafeTexture(`${basePath}/roughness.jpg`, { fallbackKind: 'gray' })
+  const normalMap = useSafeTexture(`${basePath}/normal.jpg`, { fallbackKind: 'normal' })
+  const bumpMap = useSafeTexture(`${basePath}/height.jpg`, { fallbackKind: 'gray' })
+
+  useEffect(() => {
+    applyRepeat(map, repeat)
+    applyRepeat(roughnessMap, repeat)
+    applyRepeat(normalMap, repeat)
+    applyRepeat(bumpMap, repeat)
+  }, [map, roughnessMap, normalMap, bumpMap, repeat])
+
+  void normalFallback
+  return { map, roughnessMap, normalMap, bumpMap }
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Bolts / rivets (instanced)                                                */
+/* -------------------------------------------------------------------------- */
+
+interface BoltFieldProps {
+  width: number
+  height: number
+  frameWidth: number
+  depth: number
+  material: THREE.Material
+  spacing?: number
+}
+
+function BoltField({ width, height, frameWidth, depth, material, spacing = 0.45 }: BoltFieldProps) {
+  const geometry = useMemo(() => new THREE.CylinderGeometry(0.025, 0.025, 0.04, 8), [])
+
+  const positions = useMemo(() => {
+    const pts: THREE.Vector3[] = []
+    const halfW = width / 2
+    const halfH = height / 2
+    const inset = frameWidth / 2
+
+    const countX = Math.max(2, Math.floor(width / spacing))
+    const countY = Math.max(2, Math.floor(height / spacing))
+
+    // top & bottom rows
+    for (let i = 0; i <= countX; i++) {
+      const x = -halfW + (i / countX) * width
+      pts.push(new THREE.Vector3(x, halfH - inset, depth / 2))
+      pts.push(new THREE.Vector3(x, -halfH + inset, depth / 2))
+    }
+    // left & right columns
+    for (let j = 0; j <= countY; j++) {
+      const y = -halfH + (j / countY) * height
+      pts.push(new THREE.Vector3(-halfW + inset, y, depth / 2))
+      pts.push(new THREE.Vector3(halfW - inset, y, depth / 2))
+    }
+    return pts
+  }, [width, height, frameWidth, depth, spacing])
+
+  const instancedRef = useRef<THREE.InstancedMesh>(null)
+
+  useEffect(() => {
+    const mesh = instancedRef.current
+    if (!mesh) return
+    const dummy = new THREE.Object3D()
+    positions.forEach((p, i) => {
+      dummy.position.copy(p)
+      dummy.rotation.x = Math.PI / 2
+      dummy.updateMatrix()
+      mesh.setMatrixAt(i, dummy.matrix)
+    })
+    mesh.instanceMatrix.needsUpdate = true
+  }, [positions])
 
   return (
-    <PerspectiveCamera
-      ref={cameraRef}
-      makeDefault
-      position={position}
-      rotation={rotation}
-      fov={fov}
-      near={0.1}
-      far={100}
+    <instancedMesh
+      ref={instancedRef}
+      args={[geometry, material, positions.length]}
+      castShadow
+      receiveShadow
     />
-  );
+  )
 }
 
-type BillboardAssetProps = {
-  width: number;
-  height: number;
-  frameWidth: number;
-  frameThickness: number;
-  cornerRadius: number;
-  posterDepth: number;
-  posterGap: number;
-  poleHeight: number;
-  poleRadius: number;
-  poleSegments: number;
-  polePosition: Vector3;
-  poleRotation: Vector3;
-  poleScale: Vector3;
-  enableSupports: boolean;
-  enableRearBraces: boolean;
-  supportThickness: number;
-  supportWidth: number;
-  supportDepth: number;
-  frameTint: string;
-  poleTint: string;
-  metalness: number;
-  roughness: number;
-  clearcoat: number;
-  clearcoatRoughness: number;
-  normalScale: number;
-  bumpScale: number;
-  environmentIntensity: number;
-  wireframe: boolean;
-  helpers: boolean;
-  axes: boolean;
-  boundingBox: boolean;
-  frameColorMap: THREE.Texture;
-  frameNormalMap: THREE.Texture;
-  frameRoughnessMap: THREE.Texture;
-  frameHeightMap: THREE.Texture;
-  poleColorMap: THREE.Texture;
-  poleNormalMap: THREE.Texture;
-  poleRoughnessMap: THREE.Texture;
-  poleHeightMap: THREE.Texture;
-  frontPosterTexture: THREE.Texture;
-  backPosterTexture: THREE.Texture;
-  frontPosterOpacity: number;
-  backPosterOpacity: number;
-  transform: BillboardControlSchema["Transform"];
-};
+/* -------------------------------------------------------------------------- */
+/*  Poster panel                                                              */
+/* -------------------------------------------------------------------------- */
 
-const BillboardAsset = forwardRef<BillboardHandles, BillboardAssetProps>(
-  function BillboardAsset(
-    {
-      width,
-      height,
-      frameWidth,
-      frameThickness,
-      cornerRadius,
-      posterDepth,
-      posterGap,
-      poleHeight,
-      poleRadius,
-      poleSegments,
-      polePosition,
-      poleRotation,
-      poleScale,
-      enableSupports,
-      enableRearBraces,
-      supportThickness,
-      supportWidth,
-      supportDepth,
-      frameTint,
-      poleTint,
-      metalness,
-      roughness,
-      clearcoat,
-      clearcoatRoughness,
-      normalScale,
-      bumpScale,
-      environmentIntensity,
-      wireframe,
-      helpers,
-      axes,
-      boundingBox,
-      frameColorMap,
-      frameNormalMap,
-      frameRoughnessMap,
-      frameHeightMap,
-      poleColorMap,
-      poleNormalMap,
-      poleRoughnessMap,
-      poleHeightMap,
-      frontPosterTexture,
-      backPosterTexture,
-      frontPosterOpacity,
-      backPosterOpacity,
-      transform,
-    },
-    ref,
-  ) {
-    const rootRef = useRef<THREE.Group>(null);
-    const frameMaterialRef = useRef<THREE.MeshPhysicalMaterial>(null);
-    const poleMaterialRef = useRef<THREE.MeshPhysicalMaterial>(null);
-    const posterFrontMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
-    const posterBackMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
-    useHelper(
-      boundingBox ? (rootRef as RefObject<THREE.Object3D>) : null,
-      THREE.BoxHelper,
-      0xfbbf24,
-    );
+interface PosterPanelProps {
+  width: number
+  height: number
+  z: number
+  rotationY: number
+  material: THREE.ShaderMaterial
+}
 
-    const normalScaleVector = useMemo(
-      () => new THREE.Vector2(normalScale, normalScale),
-      [normalScale],
-    );
+function PosterPanel({ width, height, z, rotationY, material }: PosterPanelProps) {
+  const geometry = useMemo(() => new THREE.PlaneGeometry(width, height, 1, 1), [width, height])
+  useEffect(() => () => geometry.dispose(), [geometry])
 
-    const posterWidth = width - frameWidth * 2 - posterGap * 2;
-    const posterHeight = height - frameWidth * 2 - posterGap * 2;
-    const outerDepth = frameThickness;
-    const innerDepth = frameThickness * 0.72;
-    const posterInset = frameThickness * 0.1;
+  return (
+    <mesh
+      geometry={geometry}
+      material={material}
+      position={[0, 0, z]}
+      rotation={[0, rotationY, 0]}
+    />
+  )
+}
 
+/* -------------------------------------------------------------------------- */
+/*  BillboardMesh — the procedural structure                                  */
+/* -------------------------------------------------------------------------- */
+
+export interface BillboardImperativeHandle {
+  group: THREE.Group | null
+  frontMaterial: THREE.ShaderMaterial | null
+  backMaterial: THREE.ShaderMaterial | null
+  frontUniforms: PosterUniforms | null
+  backUniforms: PosterUniforms | null
+}
+
+export interface BillboardMeshProps {
+  /** Declarative transform overrides — future scroll/GSAP-driven layouts can
+   *  pass these in directly instead of (or in addition to) using the ref. */
+  position?: [number, number, number]
+  rotation?: [number, number, number]
+  scale?: number | [number, number, number]
+  visible?: boolean
+  frontImage?: string
+  backImage?: string
+}
+
+const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
+  function BillboardMesh(props, ref) {
+    const { position = [0, 0, 0], rotation = [0, 0, 0], scale = 1, visible = true } = props
+
+    /* ---- Leva: Billboard dimensions ---- */
+    const dims = useControls('Billboard', {
+      width: { value: 4, min: 1, max: 10, step: 0.1 },
+      height: { value: 2.4, min: 1, max: 8, step: 0.1 },
+      thickness: { value: 0.18, min: 0.05, max: 0.6, step: 0.01 },
+      frameWidth: { value: 0.16, min: 0.04, max: 0.5, step: 0.01 },
+      frameDepth: { value: 0.14, min: 0.04, max: 0.5, step: 0.01 },
+      cornerRadius: { value: 0.04, min: 0, max: 0.2, step: 0.005 },
+      posterDepth: { value: 0.02, min: 0.005, max: 0.1, step: 0.005 },
+      posterGap: { value: 0.01, min: 0, max: 0.08, step: 0.005 },
+    })
+
+    /* ---- Leva: Pole ---- */
+    const poleCtl = useControls('Pole', {
+      radius: { value: 0.09, min: 0.02, max: 0.3, step: 0.005 },
+      height: { value: 3.4, min: 0.5, max: 8, step: 0.1 },
+      segments: { value: 20, min: 6, max: 48, step: 1 },
+      position: { value: [0, 0, 0] as [number, number, number] },
+      rotation: { value: [0, 0, 0] as [number, number, number] },
+      scale: { value: 1, min: 0.2, max: 3, step: 0.05 },
+      textureRepeat: { value: 4, min: 0.5, max: 16, step: 0.5 },
+    })
+
+    /* ---- Leva: Supports ---- */
+    const supportCtl = useControls('Supports', {
+      enableSupports: true,
+      enableRearBraces: true,
+      thickness: { value: 0.045, min: 0.01, max: 0.15, step: 0.005 },
+      width: { value: 0.06, min: 0.01, max: 0.2, step: 0.005 },
+      depth: { value: 0.06, min: 0.01, max: 0.2, step: 0.005 },
+    })
+
+    /* ---- Leva: Posters ----
+     * frontImage/backImage accept either a still image path or a video
+     * path (.mp4/.webm/.mov/etc). Videos autoplay muted and loop. */
+    const posterCtl = useControls('Posters', {
+      frontImage: { value: props.frontImage ?? '/posters/front.jpg', label: 'Front Image/Video' },
+      backImage: { value: props.backImage ?? '/posters/back.jpg', label: 'Back Image/Video' },
+      frontBrightness: { value: 1, min: 0, max: 2, step: 0.01 },
+      backBrightness: { value: 1, min: 0, max: 2, step: 0.01 },
+      frontOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
+      backOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
+      contrast: { value: 1, min: 0, max: 2, step: 0.01 },
+      saturation: { value: 1, min: 0, max: 2, step: 0.01 },
+      swapImages: false,
+    })
+
+    /* ---- Leva: Materials ---- */
+    const frameMatCtl = useControls('Materials', {
+      Frame: folder({
+        metalness: { value: 0.85, min: 0, max: 1, step: 0.01 },
+        roughness: { value: 0.4, min: 0, max: 1, step: 0.01 },
+        clearcoat: { value: 0.15, min: 0, max: 1, step: 0.01 },
+        clearcoatRoughness: { value: 0.3, min: 0, max: 1, step: 0.01 },
+        normalScale: { value: 1, min: 0, max: 3, step: 0.05 },
+        bumpScale: { value: 0.02, min: 0, max: 0.2, step: 0.005 },
+        envMapIntensity: { value: 1, min: 0, max: 5, step: 0.05 },
+        colorTint: '#9fb39a',
+      }),
+      Pole: folder({
+        poleMetalness: { value: 0.7, min: 0, max: 1, step: 0.01 },
+        poleRoughness: { value: 0.45, min: 0, max: 1, step: 0.01 },
+        poleBumpScale: { value: 0.015, min: 0, max: 0.1, step: 0.002 },
+        poleColorTint: '#888f86',
+      }),
+    })
+
+    /* ---- Leva: Texture tiling ---- */
+    const tilingCtl = useControls('Texture Tiling', {
+      Frame: folder({
+        frameRepeatX: { value: 2, min: 0.25, max: 8, step: 0.25 },
+        frameRepeatY: { value: 1, min: 0.25, max: 8, step: 0.25 },
+      }),
+      Pole: folder({
+        poleRepeatX: { value: 1, min: 0.25, max: 8, step: 0.25 },
+        poleRepeatY: { value: 4, min: 0.25, max: 16, step: 0.25 },
+      }),
+      Rotation: { value: 0, min: -Math.PI, max: Math.PI, step: 0.01 },
+      OffsetX: { value: 0, min: -1, max: 1, step: 0.01 },
+      OffsetY: { value: 0, min: -1, max: 1, step: 0.01 },
+    })
+
+    const wireframeCtl = useControls('Debug', {
+      wireframe: false,
+      boundingBox: false,
+      axes: false,
+    })
+
+    /* ---- derived repeat settings ---- */
+    const frameRepeat: RepeatSettings = useMemo(
+      () => ({
+        repeatX: tilingCtl.frameRepeatX,
+        repeatY: tilingCtl.frameRepeatY,
+        rotation: tilingCtl.Rotation,
+        offsetX: tilingCtl.OffsetX,
+        offsetY: tilingCtl.OffsetY,
+      }),
+      [tilingCtl.frameRepeatX, tilingCtl.frameRepeatY, tilingCtl.Rotation, tilingCtl.OffsetX, tilingCtl.OffsetY],
+    )
+
+    const poleRepeat: RepeatSettings = useMemo(
+      () => ({
+        repeatX: tilingCtl.poleRepeatX,
+        repeatY: tilingCtl.poleRepeatY * poleCtl.textureRepeat,
+        rotation: tilingCtl.Rotation,
+        offsetX: tilingCtl.OffsetX,
+        offsetY: tilingCtl.OffsetY,
+      }),
+      [tilingCtl.poleRepeatX, tilingCtl.poleRepeatY, poleCtl.textureRepeat, tilingCtl.Rotation, tilingCtl.OffsetX, tilingCtl.OffsetY],
+    )
+
+    /* ---- textures: rusted green metal frame, pole, posters ---- */
+    const frameMaps = usePbrMaps('/textures/frame', frameRepeat, '#8090ff', '#5e6e52')
+    const poleMaps = usePbrMaps('/textures/pole', poleRepeat, '#8090ff', '#6b6f66')
+
+    const swapped = posterCtl.swapImages
+    const frontImagePath = swapped ? posterCtl.backImage : posterCtl.frontImage
+    const backImagePath = swapped ? posterCtl.frontImage : posterCtl.backImage
+
+    // Note: these are deliberately NOT tagged as sRGB color-managed. The
+    // poster shader is a flat, unlit "display the image as authored" pass —
+    // tagging them sRGB makes the GPU linearize on sample (correct for lit/
+    // PBR materials), but since this shader writes straight to gl_FragColor
+    // with no linear->sRGB step back out, that made the artwork look washed
+    // out and dark. Leaving them untagged keeps the source image faithful.
+    //
+    // Each path can point to either a still image or a video file (.mp4,
+    // .webm, .mov, etc.) — useMediaTexture detects which and handles it
+    // accordingly. Videos autoplay muted and loop continuously.
+    const frontTexture = useMediaTexture(frontImagePath, '#c94f4f')
+    const backTexture = useMediaTexture(backImagePath, '#4f7fc9')
+
+    const { material: frontMaterial, uniforms: frontUniforms } = usePosterMaterial(frontTexture)
+    const { material: backMaterial, uniforms: backUniforms } = usePosterMaterial(backTexture)
+
+    useEffect(() => {
+      frontUniforms.brightness.value = posterCtl.frontBrightness
+      frontUniforms.contrast.value = posterCtl.contrast
+      frontUniforms.saturation.value = posterCtl.saturation
+      frontUniforms.opacity.value = posterCtl.frontOpacity
+    }, [frontUniforms, posterCtl.frontBrightness, posterCtl.contrast, posterCtl.saturation, posterCtl.frontOpacity])
+
+    useEffect(() => {
+      backUniforms.brightness.value = posterCtl.backBrightness
+      backUniforms.contrast.value = posterCtl.contrast
+      backUniforms.saturation.value = posterCtl.saturation
+      backUniforms.opacity.value = posterCtl.backOpacity
+    }, [backUniforms, posterCtl.backBrightness, posterCtl.contrast, posterCtl.saturation, posterCtl.backOpacity])
+
+    /* ---- frame material (memoized, disposed on change) ---- */
+    const frameMaterial = useMemo(() => {
+      const mat = new THREE.MeshPhysicalMaterial({
+        map: frameMaps.map,
+        roughnessMap: frameMaps.roughnessMap,
+        normalMap: frameMaps.normalMap,
+        bumpMap: frameMaps.bumpMap,
+        metalness: frameMatCtl.metalness,
+        roughness: frameMatCtl.roughness,
+        clearcoat: frameMatCtl.clearcoat,
+        clearcoatRoughness: frameMatCtl.clearcoatRoughness,
+        bumpScale: frameMatCtl.bumpScale,
+        envMapIntensity: frameMatCtl.envMapIntensity,
+        color: new THREE.Color(frameMatCtl.colorTint),
+        wireframe: wireframeCtl.wireframe,
+      })
+      mat.normalScale.set(frameMatCtl.normalScale, frameMatCtl.normalScale)
+      return mat
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+      frameMaps,
+      frameMatCtl.metalness,
+      frameMatCtl.roughness,
+      frameMatCtl.clearcoat,
+      frameMatCtl.clearcoatRoughness,
+      frameMatCtl.bumpScale,
+      frameMatCtl.normalScale,
+      frameMatCtl.envMapIntensity,
+      frameMatCtl.colorTint,
+      wireframeCtl.wireframe,
+    ])
+    useEffect(() => () => frameMaterial.dispose(), [frameMaterial])
+
+    /* ---- pole material ---- */
+    const poleMaterial = useMemo(() => {
+      const mat = new THREE.MeshStandardMaterial({
+        map: poleMaps.map,
+        roughnessMap: poleMaps.roughnessMap,
+        normalMap: poleMaps.normalMap,
+        bumpMap: poleMaps.bumpMap,
+        metalness: frameMatCtl.poleMetalness,
+        roughness: frameMatCtl.poleRoughness,
+        bumpScale: frameMatCtl.poleBumpScale,
+        color: new THREE.Color(frameMatCtl.poleColorTint),
+        wireframe: wireframeCtl.wireframe,
+      })
+      return mat
+    }, [
+      poleMaps,
+      frameMatCtl.poleMetalness,
+      frameMatCtl.poleRoughness,
+      frameMatCtl.poleBumpScale,
+      frameMatCtl.poleColorTint,
+      wireframeCtl.wireframe,
+    ])
+    useEffect(() => () => poleMaterial.dispose(), [poleMaterial])
+
+    /* ---- bracket / support material (shares frame look, flat) ---- */
+    const supportMaterial = useMemo(
+      () =>
+        new THREE.MeshStandardMaterial({
+          color: new THREE.Color(frameMatCtl.colorTint).multiplyScalar(0.85),
+          metalness: 0.8,
+          roughness: 0.55,
+          wireframe: wireframeCtl.wireframe,
+        }),
+      [frameMatCtl.colorTint, wireframeCtl.wireframe],
+    )
+    useEffect(() => () => supportMaterial.dispose(), [supportMaterial])
+
+    const boltMaterial = useMemo(
+      () =>
+        new THREE.MeshStandardMaterial({
+          color: '#3b3b3b',
+          metalness: 0.9,
+          roughness: 0.35,
+        }),
+      [],
+    )
+    useEffect(() => () => boltMaterial.dispose(), [boltMaterial])
+
+    /* ---- geometry: four frame bars forming a rectangular border ---- */
+    const { width, height, thickness, frameWidth, frameDepth, cornerRadius, posterDepth, posterGap } = dims
+
+    const frameBars = useMemo(() => {
+      const halfW = width / 2
+      const halfH = height / 2
+      const bars: { size: [number, number, number]; position: [number, number, number] }[] = [
+        // top
+        { size: [width + frameWidth, frameWidth, frameDepth], position: [0, halfH, 0] },
+        // bottom
+        { size: [width + frameWidth, frameWidth, frameDepth], position: [0, -halfH, 0] },
+        // left
+        { size: [frameWidth, height + frameWidth, frameDepth], position: [-halfW, 0, 0] },
+        // right
+        { size: [frameWidth, height + frameWidth, frameDepth], position: [halfW, 0, 0] },
+      ]
+      return bars
+    }, [width, height, frameWidth, frameDepth])
+
+    const innerLipSize: [number, number, number] = useMemo(
+      () => [width - frameWidth * 0.4, height - frameWidth * 0.4, frameDepth * 0.4],
+      [width, height, frameWidth, frameDepth],
+    )
+
+    /* ---- rear support truss & brackets ---- */
+    const braceLength = useMemo(() => Math.sqrt((width / 2) ** 2 + (height / 2) ** 2), [width, height])
+
+    /* Rear bracing must sit comfortably *toward the center* — between the
+     * front and back posters — so that whichever poster a viewer is looking
+     * at is always the closest surface and hides the truss behind it. (An
+     * earlier pass here pushed the truss further outward past the back
+     * poster instead, which actually put it closer to a viewer standing
+     * behind the board than the poster itself — backwards.) A tiny gap is
+     * also below the depth buffer's practical precision at this scale, so a
+     * real safety margin is used rather than a hairline offset. */
+    const backPosterZ = -(thickness / 2 + posterDepth / 2 + posterGap)
+    const supportSafetyMargin = 0.05
+    const supportZ = useMemo(
+      () => backPosterZ + supportSafetyMargin + supportCtl.depth / 2,
+      [backPosterZ, supportSafetyMargin, supportCtl.depth],
+    )
+
+    /* ---- imperative handle for future GSAP integration ---- */
+    const groupRef = useRef<THREE.Group>(null)
     useImperativeHandle(
       ref,
       () => ({
-        root: rootRef.current,
-        frameMaterial: frameMaterialRef.current,
-        poleMaterial: poleMaterialRef.current,
-        posterFrontMaterial: posterFrontMaterialRef.current,
-        posterBackMaterial: posterBackMaterialRef.current,
+        group: groupRef.current,
+        frontMaterial,
+        backMaterial,
+        frontUniforms,
+        backUniforms,
       }),
-      [],
-    );
+      [frontMaterial, backMaterial, frontUniforms, backUniforms],
+    )
+
+    /* ---- frame mount height ----
+     * The pole's round shaft always terminates at (and tucks slightly into)
+     * the bottom-back of the frame — it never reaches anywhere near the top.
+     * This isn't a clamp or a fraction that can break with different slider
+     * values; it's true by construction, the same way a real billboard pole
+     * only carries the sign from below while a separate rear lattice/truss
+     * (already modeled below) bridges up the back for rigidity. */
+    const poleEmbed = frameWidth * 0.5 // how far the pole tucks into the bottom bar
+    const frameMountY = useMemo(
+      () => poleCtl.height - poleEmbed + height / 2,
+      [poleCtl.height, poleEmbed, height],
+    )
 
     return (
       <group
-        ref={rootRef}
-        position={transform.transformPosition}
-        rotation={transform.transformRotation}
-        scale={transform.transformScale}
+        ref={groupRef}
+        position={position}
+        rotation={rotation}
+        scale={scale}
+        visible={visible}
       >
-        {helpers ? <gridHelper args={[40, 40, "#20322b", "#111a16"]} /> : null}
-        {axes ? <axesHelper args={[6]} /> : null}
+        {/* ---------- Frame ---------- */}
+        <group position={[0, frameMountY, 0]}>
+          {frameBars.map((bar, i) => (
+            <RoundedBox
+              key={i}
+              args={bar.size}
+              radius={Math.min(cornerRadius, Math.min(...bar.size) * 0.3)}
+              smoothness={4}
+              position={bar.position}
+              material={frameMaterial}
+              castShadow
+              receiveShadow
+            />
+          ))}
 
-        <group position={[0, 0, 0]} rotation={[0, 0, 0]}>
+          {/* inner frame lip, sits just behind the posters */}
           <RoundedBox
-            args={[width, height, outerDepth]}
-            radius={cornerRadius}
-            smoothness={6}
-            bevelSegments={4}
+            args={innerLipSize}
+            radius={Math.min(cornerRadius * 0.6, 0.03)}
+            smoothness={4}
+            position={[0, 0, -frameDepth * 0.2]}
+            material={frameMaterial}
             castShadow
             receiveShadow
-            position={[0, 0, 0]}
-          >
-              <meshPhysicalMaterial
-                ref={frameMaterialRef}
-                color={frameTint}
-                map={frameColorMap}
-                normalMap={frameNormalMap}
-                roughnessMap={frameRoughnessMap}
-                bumpMap={frameHeightMap}
-                metalness={metalness}
-                roughness={roughness}
-                clearcoat={clearcoat}
-              clearcoatRoughness={clearcoatRoughness}
-              envMapIntensity={environmentIntensity}
-              normalScale={normalScaleVector}
-              bumpScale={bumpScale}
-              wireframe={wireframe}
-            />
-          </RoundedBox>
+          />
 
-          <RoundedBox
-            args={[width - frameWidth * 1.35, height - frameWidth * 1.35, innerDepth]}
-            radius={Math.max(cornerRadius * 0.75, 0.01)}
-            smoothness={6}
-            bevelSegments={4}
-            castShadow
-            receiveShadow
-            position={[0, 0, -posterInset]}
-          >
-            <meshPhysicalMaterial
-              color={new THREE.Color(frameTint).multiplyScalar(0.72)}
-              metalness={metalness * 0.8}
-              roughness={roughness + 0.08}
-              clearcoat={clearcoat * 0.45}
-              clearcoatRoughness={clearcoatRoughness + 0.05}
-              envMapIntensity={environmentIntensity * 0.75}
-              normalScale={normalScaleVector}
-              bumpScale={bumpScale * 0.5}
-              wireframe={wireframe}
-            />
-          </RoundedBox>
+          {/* bolts around the frame perimeter */}
+          <BoltField
+            width={width}
+            height={height}
+            frameWidth={frameWidth}
+            depth={frameDepth}
+            material={boltMaterial}
+          />
 
-          <RoundedBox
-            args={[posterWidth, posterHeight, posterDepth]}
-            radius={Math.max(cornerRadius * 0.55, 0.008)}
-            smoothness={6}
-            bevelSegments={4}
-            castShadow
-            receiveShadow
-            position={[0, 0, posterInset]}
-          >
-            <meshPhysicalMaterial
-              color={new THREE.Color(frameTint).multiplyScalar(0.35)}
-              metalness={0.25}
-              roughness={0.82}
-              clearcoat={0.08}
-              clearcoatRoughness={0.75}
-              envMapIntensity={environmentIntensity * 0.45}
-              normalScale={normalScaleVector}
-              bumpScale={bumpScale * 0.25}
-            />
-          </RoundedBox>
+          {/* ---------- Poster panels (independent front/back) ---------- */}
+          <PosterPanel
+            width={width - frameWidth}
+            height={height - frameWidth}
+            z={thickness / 2 + posterDepth / 2 + posterGap}
+            rotationY={0}
+            material={frontMaterial}
+          />
+          <PosterPanel
+            width={width - frameWidth}
+            height={height - frameWidth}
+            z={-(thickness / 2 + posterDepth / 2 + posterGap)}
+            rotationY={Math.PI}
+            material={backMaterial}
+          />
 
-          <mesh
-            castShadow
-            receiveShadow
-            position={[0, 0, posterDepth * 0.5 + posterGap]}
-            rotation={[0, 0, 0]}
-          >
-            <planeGeometry args={[posterWidth, posterHeight]} />
-            <meshBasicMaterial
-              ref={posterFrontMaterialRef}
-              map={frontPosterTexture}
-              color={new THREE.Color("#ffffff")}
-              transparent
-              opacity={frontPosterOpacity}
-              toneMapped={false}
-            />
-          </mesh>
-
-          <mesh
-            castShadow
-            receiveShadow
-            position={[0, 0, -(posterDepth * 0.5 + posterGap)]}
-            rotation={[0, Math.PI, 0]}
-          >
-            <planeGeometry args={[posterWidth, posterHeight]} />
-            <meshBasicMaterial
-              ref={posterBackMaterialRef}
-              map={backPosterTexture}
-              color={new THREE.Color("#ffffff")}
-              transparent
-              opacity={backPosterOpacity}
-              toneMapped={false}
-            />
-          </mesh>
-
-          <RoundedBox
-            args={[posterWidth + frameWidth * 0.15, posterHeight + frameWidth * 0.15, 0.12]}
-            radius={Math.max(cornerRadius * 0.45, 0.005)}
-            smoothness={5}
-            bevelSegments={3}
-            position={[0, 0, posterDepth * 0.72]}
-            castShadow
-            receiveShadow
-          >
-            <meshPhysicalMaterial
-              color={new THREE.Color("#0d140f")}
-              metalness={0.15}
-              roughness={0.9}
-              clearcoat={0.02}
-              clearcoatRoughness={0.8}
-              envMapIntensity={environmentIntensity * 0.3}
-              wireframe={wireframe}
-            />
-          </RoundedBox>
-
-          <group position={[0, -height * 0.5 - 0.2, 0]}>
-            <group position={polePosition} rotation={poleRotation} scale={poleScale}>
-              <mesh
-                castShadow
-                receiveShadow
-                position={[0, -poleHeight * 0.5, 0]}
-                rotation={[Math.PI / 2, 0, 0]}
-              >
-                <cylinderGeometry
-                  args={[poleRadius, poleRadius, poleHeight, Math.max(12, poleSegments), 1]}
-                />
-                <meshPhysicalMaterial
-                  ref={poleMaterialRef}
-                  color={poleTint}
-                  map={poleColorMap}
-                  normalMap={poleNormalMap}
-                  roughnessMap={poleRoughnessMap}
-                  bumpMap={poleHeightMap}
-                  metalness={metalness}
-                  roughness={roughness}
-                  clearcoat={clearcoat * 0.7}
-                  clearcoatRoughness={clearcoatRoughness}
-                  envMapIntensity={environmentIntensity}
-                  normalScale={normalScaleVector}
-                  bumpScale={bumpScale}
-                  wireframe={wireframe}
-                />
+          {/* ---------- Rear support truss ---------- */}
+          {supportCtl.enableSupports && (
+            <group position={[0, 0, supportZ]}>
+              {/* horizontal brace */}
+              <mesh material={supportMaterial} castShadow receiveShadow>
+                <boxGeometry args={[width * 0.9, supportCtl.thickness, supportCtl.depth]} />
               </mesh>
-
-              <RoundedBox
-                args={[supportWidth, supportThickness * 2.4, supportDepth]}
-                radius={Math.max(supportThickness * 0.5, 0.01)}
-                smoothness={4}
-                bevelSegments={3}
-                position={[0, 0.65, 0.08]}
-                rotation={[0, 0, 0]}
-                castShadow
-                receiveShadow
-              >
-                <meshPhysicalMaterial
-                  color={poleTint}
-                  metalness={metalness}
-                  roughness={roughness + 0.08}
-                  clearcoat={clearcoat * 0.6}
-                  clearcoatRoughness={clearcoatRoughness}
-                  envMapIntensity={environmentIntensity}
-                  normalScale={normalScaleVector}
-                  bumpScale={bumpScale * 0.5}
-                  wireframe={wireframe}
-                />
-              </RoundedBox>
-
-              {enableSupports ? (
-                <group position={[0, 0.6, 0.15]}>
-                  <RoundedBox
-                    args={[supportWidth * 0.78, supportThickness * 1.1, supportDepth * 1.1]}
-                    radius={Math.max(supportThickness * 0.35, 0.008)}
-                    smoothness={4}
-                    bevelSegments={3}
-                    position={[0, height * 0.3, 0]}
-                    rotation={[0, 0, Math.PI / 10]}
-                    castShadow
-                    receiveShadow
-                  >
-                    <meshPhysicalMaterial
-                      color={poleTint}
-                      metalness={metalness}
-                      roughness={roughness + 0.05}
-                      clearcoat={clearcoat * 0.45}
-                      clearcoatRoughness={clearcoatRoughness}
-                      envMapIntensity={environmentIntensity}
-                      normalScale={normalScaleVector}
-                      bumpScale={bumpScale * 0.45}
-                      wireframe={wireframe}
-                    />
-                  </RoundedBox>
-                  <RoundedBox
-                    args={[supportWidth * 0.72, supportThickness * 1.1, supportDepth * 1.1]}
-                    radius={Math.max(supportThickness * 0.35, 0.008)}
-                    smoothness={4}
-                    bevelSegments={3}
-                    position={[0, height * 0.18, -0.18]}
-                    rotation={[0, 0, -Math.PI / 10]}
-                    castShadow
-                    receiveShadow
-                  >
-                    <meshPhysicalMaterial
-                      color={poleTint}
-                      metalness={metalness}
-                      roughness={roughness + 0.05}
-                      clearcoat={clearcoat * 0.45}
-                      clearcoatRoughness={clearcoatRoughness}
-                      envMapIntensity={environmentIntensity}
-                      normalScale={normalScaleVector}
-                      bumpScale={bumpScale * 0.45}
-                      wireframe={wireframe}
-                    />
-                  </RoundedBox>
-                </group>
-              ) : null}
-
-              {enableRearBraces ? (
-                <group position={[0, 0.15, -0.1]}>
-                  {[
-                    [
-                      [-width * 0.28, height * 0.03, 0.04],
-                      [0, -0.05, -0.15],
-                    ],
-                    [
-                      [width * 0.28, height * 0.03, 0.04],
-                      [0, -0.05, -0.15],
-                    ],
-                  ].map(([start, end], index) => {
-                    const link = buildLinkGeometry(
-                      start as Vector3,
-                      end as Vector3,
-                      supportThickness * 0.42,
-                    );
-
-                    return (
-                      <group key={index}>
-                        <mesh
-                          position={link.midpoint.toArray() as Vector3}
-                          quaternion={link.quaternion}
-                          castShadow
-                          receiveShadow
-                        >
-                          <cylinderGeometry
-                            args={[
-                              link.radius,
-                              link.radius,
-                              link.length,
-                              14,
-                              1,
-                            ]}
-                          />
-                          <meshPhysicalMaterial
-                            color={poleTint}
-                            metalness={metalness}
-                            roughness={roughness + 0.1}
-                            clearcoat={clearcoat * 0.5}
-                            clearcoatRoughness={clearcoatRoughness}
-                            envMapIntensity={environmentIntensity}
-                            normalScale={normalScaleVector}
-                            bumpScale={bumpScale * 0.4}
-                            wireframe={wireframe}
-                          />
-                        </mesh>
-                        <mesh
-                          position={start as Vector3}
-                          castShadow
-                          receiveShadow
-                        >
-                          <sphereGeometry args={[supportThickness * 0.55, 12, 12]} />
-                          <meshPhysicalMaterial
-                            color={poleTint}
-                            metalness={metalness}
-                            roughness={roughness + 0.12}
-                            clearcoat={clearcoat * 0.45}
-                            clearcoatRoughness={clearcoatRoughness}
-                            envMapIntensity={environmentIntensity}
-                            normalScale={normalScaleVector}
-                            bumpScale={bumpScale * 0.35}
-                            wireframe={wireframe}
-                          />
-                        </mesh>
-                      </group>
-                    );
-                  })}
-                </group>
-              ) : null}
+              {/* mounting bracket connecting truss to pole — shares the
+                  truss group's already-safe depth, no extra z push */}
+              <mesh position={[0, -0.1, 0]} material={supportMaterial} castShadow receiveShadow>
+                <boxGeometry args={[supportCtl.width * 2.4, supportCtl.width * 2.4, supportCtl.depth * 1.6]} />
+              </mesh>
             </group>
-          </group>
+          )}
 
-          <group position={[0, 0, outerDepth * 0.55]}>
-            {[
-              [-width * 0.5, height * 0.5, 1],
-              [width * 0.5, height * 0.5, -1],
-              [-width * 0.5, -height * 0.5, -1],
-              [width * 0.5, -height * 0.5, 1],
-              [0, height * 0.5, 1],
-              [0, -height * 0.5, -1],
-              [-width * 0.5, 0, 1],
-              [width * 0.5, 0, -1],
-            ].map(([x, y, z], index) => (
+          {supportCtl.enableRearBraces && (
+            <group position={[0, 0, supportZ]}>
+              {/* two diagonal braces forming an X */}
               <mesh
-                key={index}
-                position={[
-                  x * 0.98,
-                  y * 0.98,
-                  z * (outerDepth * 0.5 + 0.02),
-                ]}
+                rotation={[0, 0, Math.atan2(height, width)]}
+                material={supportMaterial}
                 castShadow
                 receiveShadow
               >
-                <cylinderGeometry args={[0.055, 0.055, 0.16, 10]} />
-                <meshPhysicalMaterial
-                  color="#8d7d59"
-                  metalness={0.9}
-                  roughness={0.25}
-                  clearcoat={0.1}
-                  clearcoatRoughness={0.35}
-                  envMapIntensity={environmentIntensity * 0.8}
-                  wireframe={wireframe}
-                />
+                <cylinderGeometry args={[supportCtl.thickness / 2, supportCtl.thickness / 2, braceLength, 8]} />
               </mesh>
-            ))}
+              <mesh
+                rotation={[0, 0, -Math.atan2(height, width)]}
+                material={supportMaterial}
+                castShadow
+                receiveShadow
+              >
+                <cylinderGeometry args={[supportCtl.thickness / 2, supportCtl.thickness / 2, braceLength, 8]} />
+              </mesh>
+            </group>
+          )}
+        </group>
+
+        {/* ---------- Pole ---------- */}
+        <group
+          position={poleCtl.position}
+          rotation={poleCtl.rotation}
+          scale={poleCtl.scale}
+        >
+          <mesh
+            position={[0, poleCtl.height / 2, 0]}
+            material={poleMaterial}
+            castShadow
+            receiveShadow
+          >
+            <cylinderGeometry
+              args={[poleCtl.radius, poleCtl.radius * 1.05, poleCtl.height, poleCtl.segments]}
+            />
+          </mesh>
+
+          {/* base connection plate */}
+          <mesh position={[0, 0.02, 0]} material={supportMaterial} castShadow receiveShadow>
+            <cylinderGeometry args={[poleCtl.radius * 3.2, poleCtl.radius * 3.4, 0.04, 24]} />
+          </mesh>
+
+          {/* base plate bolts */}
+          <group position={[0, 0.045, 0]}>
+            {Array.from({ length: 6 }).map((_, i) => {
+              const angle = (i / 6) * Math.PI * 2
+              const r = poleCtl.radius * 2.7
+              return (
+                <mesh
+                  key={i}
+                  position={[Math.cos(angle) * r, 0, Math.sin(angle) * r]}
+                  material={boltMaterial}
+                  castShadow
+                >
+                  <cylinderGeometry args={[0.03, 0.03, 0.05, 8]} />
+                </mesh>
+              )
+            })}
           </group>
         </group>
+
+        {/* ---------- Debug helpers ---------- */}
+        {wireframeCtl.axes && <axesHelper args={[Math.max(width, height, poleCtl.height)]} />}
+        {wireframeCtl.boundingBox && (
+          <BoundingBoxHelper targetRef={groupRef} />
+        )}
       </group>
-    );
+    )
   },
-);
+)
 
-const BillboardScene = forwardRef<
-  BillboardHandles,
-  {
-    width: number;
-    height: number;
-    frameWidth: number;
-    frameThickness: number;
-    cornerRadius: number;
-    posterDepth: number;
-    posterGap: number;
-    poleHeight: number;
-    poleRadius: number;
-    poleSegments: number;
-    polePosition: Vector3;
-    poleRotation: Vector3;
-    poleScale: Vector3;
-    enableSupports: boolean;
-    enableRearBraces: boolean;
-    supportThickness: number;
-    supportWidth: number;
-    supportDepth: number;
-    frameTint: string;
-    poleTint: string;
-    metalness: number;
-    roughness: number;
-    clearcoat: number;
-    clearcoatRoughness: number;
-    normalScale: number;
-    bumpScale: number;
-    environmentIntensity: number;
-    frameRepeatX: number;
-    frameRepeatY: number;
-    poleRepeatX: number;
-    poleRepeatY: number;
-    frontPosterTextureSource: string;
-    backPosterTextureSource: string;
-    frontPosterOpacity: number;
-    backPosterOpacity: number;
-    wireframe: boolean;
-    helpers: boolean;
-    axes: boolean;
-    boundingBox: boolean;
-    environmentPath?: string;
-    camera: BillboardControlSchema["Camera"];
-    lighting: BillboardControlSchema["Lighting"];
-    transform: BillboardControlSchema["Transform"];
-  }
->(function BillboardScene(
-  {
-    width,
-    height,
-    frameWidth,
-    frameThickness,
-    cornerRadius,
-    posterDepth,
-    posterGap,
-    poleHeight,
-    poleRadius,
-    poleSegments,
-    polePosition,
-    poleRotation,
-    poleScale,
-    enableSupports,
-    enableRearBraces,
-    supportThickness,
-    supportWidth,
-    supportDepth,
-    frameTint,
-    poleTint,
-    metalness,
-    roughness,
-    clearcoat,
-    clearcoatRoughness,
-    normalScale,
-    bumpScale,
-    environmentIntensity,
-    frameRepeatX,
-    frameRepeatY,
-    poleRepeatX,
-    poleRepeatY,
-    frontPosterTextureSource,
-    backPosterTextureSource,
-    frontPosterOpacity,
-    backPosterOpacity,
-    wireframe,
-    helpers,
-    axes,
-    boundingBox,
-    environmentPath,
-    camera,
-    lighting,
-    transform,
-  },
-  ref,
-) {
-  const frameColorSource = useLoader(THREE.TextureLoader, DEFAULT_FRAME_COLOR) as THREE.Texture;
-  const frameNormalSource = useLoader(EXRLoader, DEFAULT_FRAME_NORMAL) as THREE.Texture;
-  const frameRoughnessSource = useLoader(THREE.TextureLoader, DEFAULT_FRAME_ROUGHNESS) as THREE.Texture;
-  const frameHeightSource = useLoader(THREE.TextureLoader, DEFAULT_FRAME_HEIGHT) as THREE.Texture;
+export { BillboardMesh }
 
-  const poleColorSource = useLoader(THREE.TextureLoader, DEFAULT_POLE_COLOR) as THREE.Texture;
-  const poleNormalSource = useLoader(EXRLoader, DEFAULT_POLE_NORMAL) as THREE.Texture;
-  const poleRoughnessSource = useLoader(EXRLoader, DEFAULT_POLE_ROUGHNESS) as THREE.Texture;
-  const poleHeightSource = useLoader(THREE.TextureLoader, DEFAULT_POLE_HEIGHT) as THREE.Texture;
+/* -------------------------------------------------------------------------- */
+/*  Bounding box debug helper                                                 */
+/* -------------------------------------------------------------------------- */
 
-  const [frontPosterSourceTexture, backPosterSourceTexture] = useLoader(
-    THREE.TextureLoader,
-    [frontPosterTextureSource, backPosterTextureSource],
-  ) as THREE.Texture[];
-
-  const frameColorMap = useRepeatedTexture(frameColorSource, frameRepeatX, frameRepeatY, true);
-  const frameNormalMap = useRepeatedTexture(frameNormalSource, frameRepeatX, frameRepeatY);
-  const frameRoughnessMap = useRepeatedTexture(frameRoughnessSource, frameRepeatX, frameRepeatY);
-  const frameHeightMap = useRepeatedTexture(frameHeightSource, frameRepeatX, frameRepeatY);
-
-  const poleColorMap = useRepeatedTexture(poleColorSource, poleRepeatX, poleRepeatY, true);
-  const poleNormalMap = useRepeatedTexture(poleNormalSource, poleRepeatX, poleRepeatY);
-  const poleRoughnessMap = useRepeatedTexture(poleRoughnessSource, poleRepeatX, poleRepeatY);
-  const poleHeightMap = useRepeatedTexture(poleHeightSource, poleRepeatX, poleRepeatY);
-
-  const frontPosterTexture = usePosterTexture(
-    frontPosterSourceTexture,
-    lighting.lightingAmbient + 0.2,
-    1 + lighting.lightingFill * 0.15,
-    1 + lighting.lightingRim * 0.1,
-  );
-  const backPosterTexture = usePosterTexture(
-    backPosterSourceTexture,
-    lighting.lightingAmbient + 0.2,
-    1 + lighting.lightingFill * 0.15,
-    1 + lighting.lightingRim * 0.1,
-  );
-
-  const billboardRef = useRef<BillboardHandles>(null);
-  const directionalLightRef = useRef<THREE.DirectionalLight>(null);
-  const { gl } = useThree();
+function BoundingBoxHelper({ targetRef }: { targetRef: React.RefObject<THREE.Object3D | null> }) {
+  const helperRef = useRef<THREE.BoxHelper | null>(null)
+  const { scene } = useThree()
 
   useEffect(() => {
-    if (!directionalLightRef.current) {
-      return;
+    if (!targetRef.current) return
+    const helper = new THREE.BoxHelper(targetRef.current, 0xffaa00)
+    helperRef.current = helper
+    scene.add(helper)
+    return () => {
+      scene.remove(helper)
+      helper.dispose()
     }
+  }, [targetRef, scene])
 
-    directionalLightRef.current.shadow.bias = lighting.lightingShadowBias;
-  }, [lighting.lightingShadowBias]);
+  useFrame(() => {
+    helperRef.current?.update()
+  })
 
-  useEffect(() => {
-    // Sync the renderer exposure with the Leva control.
-    // eslint-disable-next-line react-hooks/immutability
-    gl.toneMappingExposure = lighting.lightingExposure;
-  }, [gl, lighting.lightingExposure]);
+  return null
+}
 
-  useImperativeHandle(
-    ref,
-    () => ({
-      root: billboardRef.current?.root ?? null,
-      frameMaterial: billboardRef.current?.frameMaterial ?? null,
-      poleMaterial: billboardRef.current?.poleMaterial ?? null,
-      posterFrontMaterial: billboardRef.current?.posterFrontMaterial ?? null,
-      posterBackMaterial: billboardRef.current?.posterBackMaterial ?? null,
+/* -------------------------------------------------------------------------- */
+/*  Scene contents — lighting, environment, camera, grid                     */
+/* -------------------------------------------------------------------------- */
+
+function SceneContents({ billboardRef }: { billboardRef: React.RefObject<BillboardImperativeHandle | null> }) {
+  const lightingCtl = useControls('Lighting', {
+    ambientIntensity: { value: 0.35, min: 0, max: 2, step: 0.01 },
+    directionalIntensity: { value: 1.4, min: 0, max: 5, step: 0.05 },
+    fillLight: { value: 0.4, min: 0, max: 3, step: 0.05 },
+    rimLight: { value: 0.6, min: 0, max: 3, step: 0.05 },
+    hdrIntensity: { value: 1, min: 0, max: 3, step: 0.05 },
+    exposure: { value: 1.1, min: 0.1, max: 3, step: 0.05 },
+    shadowBias: { value: -0.0005, min: -0.01, max: 0.01, step: 0.0001 },
+  })
+
+  const cameraCtl = useControls('Camera', {
+    position: { value: [4.5, 2.2, 6] as [number, number, number] },
+    rotation: { value: [0, 0, 0] as [number, number, number] },
+    target: { value: [0, 1.6, 0] as [number, number, number] },
+    fov: { value: 42, min: 10, max: 100, step: 1 },
+    zoom: { value: 1, min: 0.2, max: 3, step: 0.05 },
+    Interaction: folder({
+      controlsEnabled: { value: true, label: 'Enable Controls' },
+      enableZoom: { value: true, label: 'Zoom' },
+      enableRotate: { value: true, label: 'Rotate' },
+      enablePan: { value: true, label: 'Pan' },
     }),
-    [],
-  );
+  })
+
+  const debugCtl = useControls('Debug', {
+    helpers: false,
+    grid: false,
+  })
+
+  const { gl } = useThree()
+  useEffect(() => {
+    gl.toneMapping = THREE.ACESFilmicToneMapping
+    gl.toneMappingExposure = lightingCtl.exposure
+    gl.outputColorSpace = THREE.SRGBColorSpace
+  }, [gl, lightingCtl.exposure])
+
+  const dirLightRef = useRef<THREE.DirectionalLight>(null)
 
   return (
     <>
-      <color attach="background" args={["#050805"]} />
-      <fog attach="fog" args={["#050805", 24, 60]} />
+      <PerspectiveCamera
+        makeDefault
+        position={cameraCtl.position}
+        rotation={cameraCtl.rotation}
+        fov={cameraCtl.fov}
+        zoom={cameraCtl.zoom}
+      />
+      <OrbitControls
+        target={cameraCtl.target}
+        enabled={cameraCtl.controlsEnabled}
+        enableZoom={cameraCtl.enableZoom}
+        enableRotate={cameraCtl.enableRotate}
+        enablePan={cameraCtl.enablePan}
+        enableDamping
+      />
 
-      <ambientLight intensity={lighting.lightingAmbient} />
+      <ambientLight intensity={lightingCtl.ambientIntensity} />
       <directionalLight
-        ref={directionalLightRef}
-        position={[8, 12, 10]}
-        intensity={lighting.lightingDirectional}
+        ref={dirLightRef}
+        position={[5, 6, 4]}
+        intensity={lightingCtl.directionalIntensity}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
+        shadow-bias={lightingCtl.shadowBias}
       />
-      <directionalLight position={[-10, 6, -8]} intensity={lighting.lightingFill} />
-      <directionalLight position={[0, 18, -6]} intensity={lighting.lightingRim} />
+      {/* fill light, softens shadow side */}
+      <directionalLight position={[-4, 2, -3]} intensity={lightingCtl.fillLight} />
+      {/* rim light, separates silhouette from background */}
+      <directionalLight position={[0, 3, -6]} intensity={lightingCtl.rimLight} />
 
-      <Environment
-        {...(environmentPath
-          ? { files: environmentPath }
-          : { preset: "city" as const })}
-        background={false}
-        blur={0.4}
-        environmentIntensity={lighting.lightingHdrIntensity}
-        environmentRotation={[0, 0.45, 0]}
-      />
-
-      <CameraRig {...camera} />
-
-      <BillboardAsset
-        ref={billboardRef}
-        width={width}
-        height={height}
-        frameWidth={frameWidth}
-        frameThickness={frameThickness}
-        cornerRadius={cornerRadius}
-        posterDepth={posterDepth}
-        posterGap={posterGap}
-        poleHeight={poleHeight}
-        poleRadius={poleRadius}
-        poleSegments={poleSegments}
-        polePosition={polePosition}
-        poleRotation={poleRotation}
-        poleScale={poleScale}
-        enableSupports={enableSupports}
-        enableRearBraces={enableRearBraces}
-        supportThickness={supportThickness}
-        supportWidth={supportWidth}
-        supportDepth={supportDepth}
-        frameTint={frameTint}
-        poleTint={poleTint}
-        metalness={metalness}
-        roughness={roughness}
-        clearcoat={clearcoat}
-        clearcoatRoughness={clearcoatRoughness}
-        normalScale={normalScale}
-        bumpScale={bumpScale}
-        environmentIntensity={environmentIntensity}
-        wireframe={wireframe}
-        helpers={helpers}
-        axes={axes}
-        boundingBox={boundingBox}
-        frameColorMap={frameColorMap}
-        frameNormalMap={frameNormalMap}
-        frameRoughnessMap={frameRoughnessMap}
-        frameHeightMap={frameHeightMap}
-        poleColorMap={poleColorMap}
-        poleNormalMap={poleNormalMap}
-        poleRoughnessMap={poleRoughnessMap}
-        poleHeightMap={poleHeightMap}
-        frontPosterTexture={frontPosterTexture ?? frontPosterSourceTexture}
-        backPosterTexture={backPosterTexture ?? backPosterSourceTexture}
-        frontPosterOpacity={frontPosterOpacity}
-        backPosterOpacity={backPosterOpacity}
-        transform={transform}
-      />
-
-      {lighting.lightingUseAccumulativeShadows ? (
-        <AccumulativeShadows
-          temporal
-          frames={60}
-          color="#10150f"
-          alphaTest={0.85}
-          opacity={0.75}
-          scale={20}
-          position={[0, -7.6, 0]}
-        >
-          <ambientLight intensity={0.15} />
-        </AccumulativeShadows>
-      ) : (
-        <ContactShadows
-          opacity={0.42}
-          scale={20}
-          blur={2.5}
-          far={8}
-          resolution={1024}
-          color="#08110a"
-          position={[0, -7.6, 0]}
+      {/* Procedural environment map — built entirely from in-scene light
+          panels, so there is no network fetch (no remote .hdr file) and the
+          billboard still gets soft, realistic reflections/lighting. */}
+      <Environment resolution={256} environmentIntensity={lightingCtl.hdrIntensity}>
+        <Lightformer
+          intensity={2.5}
+          color="#ffffff"
+          position={[0, 6, -6]}
+          scale={[12, 6, 1]}
         />
+        <Lightformer
+          intensity={1.2}
+          color="#bcd4ff"
+          position={[-6, 3, 4]}
+          rotation={[0, Math.PI / 3, 0]}
+          scale={[6, 6, 1]}
+        />
+        <Lightformer
+          intensity={1.2}
+          color="#ffdfb0"
+          position={[6, 3, 4]}
+          rotation={[0, -Math.PI / 3, 0]}
+          scale={[6, 6, 1]}
+        />
+        <Lightformer
+          intensity={0.6}
+          color="#ffffff"
+          position={[0, -5, 2]}
+          rotation={[Math.PI / 2, 0, 0]}
+          scale={[10, 10, 1]}
+        />
+      </Environment>
+
+      {debugCtl.grid && <Grid args={[20, 20]} position={[0, 0.001, 0]} />}
+      {debugCtl.helpers && dirLightRef.current && (
+        <primitive object={new THREE.DirectionalLightHelper(dirLightRef.current, 1)} />
       )}
+
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0, 0]}>
+        <planeGeometry args={[60, 60]} />
+        <shadowMaterial opacity={0.25} />
+      </mesh>
+
+      <BillboardMesh ref={billboardRef} />
     </>
-  );
-});
+  )
+}
 
-export default forwardRef<BillboardHandles, BillboardProps>(function Billboard(
-  {
-    className,
-    style,
-    debug = false,
-    environmentPath,
-    frontImage = DEFAULT_FRONT_POSTER,
-    backImage = DEFAULT_BACK_POSTER,
-    onReady,
-  },
-  ref,
-) {
-  const [swap, setSwap] = useState(false);
+/* -------------------------------------------------------------------------- */
+/*  Top-level Billboard — owns its own Canvas, fully independent              */
+/* -------------------------------------------------------------------------- */
 
-  const toggleSwap = useCallback(() => {
-    setSwap((current) => !current);
-  }, []);
+export interface BillboardProps {
+  /** Height of the fixed background canvas. Stays pinned to the viewport at
+   *  this size regardless of how tall `children` is. Defaults to '100vh'. */
+  height?: string
+  /** Show the Leva control panel. Defaults to true; set false in production. */
+  showControls?: boolean
+  className?: string
+  /** Scrollable page content rendered *over* the fixed canvas. Can be taller
+   *  than the canvas — the canvas stays put as this scrolls past it. */
+  children?: React.ReactNode
+}
 
-  const controls = useControls({
-    Billboard: folder({
-      billboardWidth: { label: "Width", value: 10, min: 5, max: 20, step: 0.1 },
-      billboardHeight: { label: "Height", value: 5.5, min: 3, max: 14, step: 0.1 },
-      billboardFrameWidth: { label: "Frame Width", value: 0.62, min: 0.2, max: 1.5, step: 0.01 },
-      billboardFrameThickness: { label: "Frame Thickness", value: 0.44, min: 0.16, max: 1.2, step: 0.01 },
-      billboardCornerRadius: { label: "Corner Radius", value: 0.4, min: 0.08, max: 1.2, step: 0.01 },
-      billboardPosterDepth: { label: "Poster Depth", value: 0.14, min: 0.04, max: 0.5, step: 0.01 },
-      billboardPosterGap: { label: "Poster Gap", value: 0.08, min: 0.01, max: 0.4, step: 0.01 },
-    }),
-    Pole: folder({
-      poleHeight: { label: "Height", value: 8, min: 4, max: 20, step: 0.1 },
-      poleRadius: { label: "Radius", value: 0.34, min: 0.12, max: 1.2, step: 0.01 },
-      poleSegments: { label: "Segments", value: 24, min: 8, max: 48, step: 1 },
-      polePosition: { label: "Position", value: [0, -0.2, -0.1] as Vector3, step: 0.01 },
-      poleRotation: {
-        label: "Rotation",
-        value: [0, 0, 0] as Vector3,
-        step: 0.01,
-      },
-      poleScale: { label: "Scale", value: [1, 1, 1] as Vector3, step: 0.01 },
-    }),
-    Supports: folder({
-      supportsEnableSupports: { label: "Enable Supports", value: true },
-      supportsEnableRearBraces: { label: "Enable Rear Braces", value: true },
-      thickness: { label: "Thickness", value: 0.18, min: 0.05, max: 0.6, step: 0.01 },
-      width: { label: "Width", value: 1.8, min: 0.8, max: 4, step: 0.01 },
-      depth: { label: "Depth", value: 0.28, min: 0.08, max: 1.2, step: 0.01 },
-    }),
-    Posters: folder({
-      posterFrontImage: { label: "Front Image", value: frontImage },
-      posterBackImage: { label: "Back Image", value: backImage },
-      posterFrontOpacity: { label: "Front Opacity", value: 1, min: 0, max: 1, step: 0.01 },
-      posterBackOpacity: { label: "Back Opacity", value: 1, min: 0, max: 1, step: 0.01 },
-      posterBrightness: { label: "Brightness", value: 1, min: 0.2, max: 2.2, step: 0.01 },
-      posterContrast: { label: "Contrast", value: 1, min: 0.2, max: 2.2, step: 0.01 },
-      posterSaturation: { label: "Saturation", value: 1, min: 0, max: 2.5, step: 0.01 },
-      posterSwapImages: button(toggleSwap),
-    }),
-    Materials: folder({
-      materialMetalness: { label: "Metalness", value: 0.78, min: 0, max: 1, step: 0.01 },
-      materialRoughness: { label: "Roughness", value: 0.58, min: 0, max: 1, step: 0.01 },
-      materialClearcoat: { label: "Clearcoat", value: 0.16, min: 0, max: 1, step: 0.01 },
-      materialClearcoatRoughness: { label: "Clearcoat Roughness", value: 0.34, min: 0, max: 1, step: 0.01 },
-      materialNormalScale: { label: "Normal Scale", value: 0.85, min: 0, max: 3, step: 0.01 },
-      materialBumpScale: { label: "Bump Scale", value: 0.12, min: 0, max: 1, step: 0.01 },
-      materialEnvironmentIntensity: { label: "Environment Intensity", value: 1.15, min: 0, max: 3, step: 0.01 },
-      materialFrameTint: { label: "Frame Tint", value: "#6a805c" },
-      materialPoleTint: { label: "Pole Tint", value: "#8f8a75" },
-    }),
-    "Texture Tiling": folder({
-      frameRepeatX: { value: 1.6, min: 0.1, max: 12, step: 0.01 },
-      frameRepeatY: { value: 1.2, min: 0.1, max: 12, step: 0.01 },
-      poleRepeatX: { value: 1, min: 0.1, max: 12, step: 0.01 },
-      poleRepeatY: { value: 2.5, min: 0.1, max: 12, step: 0.01 },
-    }),
-    Lighting: folder({
-      lightingAmbient: { label: "Ambient", value: 1.25, min: 0, max: 4, step: 0.01 },
-      lightingDirectional: { label: "Directional", value: 2.6, min: 0, max: 6, step: 0.01 },
-      lightingRim: { label: "Rim", value: 0.95, min: 0, max: 4, step: 0.01 },
-      lightingFill: { label: "Fill", value: 0.7, min: 0, max: 4, step: 0.01 },
-      lightingExposure: { label: "Exposure", value: 1.05, min: 0.25, max: 2.25, step: 0.01 },
-      lightingHdrIntensity: { label: "HDR Intensity", value: 1.3, min: 0, max: 3, step: 0.01 },
-      lightingShadowBias: { label: "Shadow Bias", value: -0.001, min: -0.02, max: 0.02, step: 0.0001 },
-      lightingUseAccumulativeShadows: { label: "Accumulative Shadows", value: false },
-    }),
-    Camera: folder({
-      cameraPosition: { label: "Position", value: [0, 0.9, 15] as Vector3, step: 0.01 },
-      cameraRotation: { label: "Rotation", value: [0, 0, 0] as Vector3, step: 0.01 },
-      cameraFov: { label: "FOV", value: 30, min: 15, max: 70, step: 1 },
-      cameraTarget: { label: "Target", value: [0, 0.15, 0] as Vector3, step: 0.01 },
-    }),
-    Transform: folder({
-      transformPosition: { label: "Position", value: [0, 0, 0] as Vector3, step: 0.01 },
-      transformRotation: { label: "Rotation", value: [0, -0.18, 0] as Vector3, step: 0.01 },
-      transformScale: { label: "Scale", value: [1, 1, 1] as Vector3, step: 0.01 },
-    }),
-    Debug: folder({
-      debugWireframe: { label: "Wireframe", value: false },
-      debugHelpers: { label: "Helpers", value: false },
-      debugAxes: { label: "Axes", value: false },
-      debugBoundingBox: { label: "Bounding Box", value: false },
-    }),
-  }) as unknown as BillboardControlSchema;
-
-  const canvasSceneRef = useRef<BillboardHandles>(null);
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      root: canvasSceneRef.current?.root ?? null,
-      frameMaterial: canvasSceneRef.current?.frameMaterial ?? null,
-      poleMaterial: canvasSceneRef.current?.poleMaterial ?? null,
-      posterFrontMaterial: canvasSceneRef.current?.posterFrontMaterial ?? null,
-      posterBackMaterial: canvasSceneRef.current?.posterBackMaterial ?? null,
-    }),
-    [],
-  );
-
-  useEffect(() => {
-    if (onReady) {
-      onReady({
-        root: canvasSceneRef.current?.root ?? null,
-        frameMaterial: canvasSceneRef.current?.frameMaterial ?? null,
-        poleMaterial: canvasSceneRef.current?.poleMaterial ?? null,
-        posterFrontMaterial: canvasSceneRef.current?.posterFrontMaterial ?? null,
-        posterBackMaterial: canvasSceneRef.current?.posterBackMaterial ?? null,
-      });
-    }
-  }, [onReady]);
-
-  const posterSources = swap
-    ? ([backImage, frontImage] as const)
-    : ([frontImage, backImage] as const);
-
-  const billboardControls = controls.Billboard;
-  const poleControls = controls.Pole;
-  const supportsControls = controls.Supports;
-  const posterControls = controls.Posters;
-  const materialControls = controls.Materials;
-  const tilingControls = controls["Texture Tiling"];
-  const lightingControls = controls.Lighting;
-  const cameraControls = controls.Camera;
-  const transformControls = controls.Transform;
-  const debugControls = controls.Debug;
-
-  const controlsReady =
-    !!billboardControls &&
-    !!poleControls &&
-    !!supportsControls &&
-    !!posterControls &&
-    !!materialControls &&
-    !!tilingControls &&
-    !!lightingControls &&
-    !!cameraControls &&
-    !!transformControls &&
-    !!debugControls;
-
-  if (!controlsReady) {
-    return (
-      <section
-        className={`relative isolate w-full overflow-hidden bg-[#050805] ${className ?? ""}`}
-        style={style}
-        aria-label="Procedural billboard"
-      >
-        <div className="relative z-10 h-[100vh] w-full" />
-      </section>
-    );
-  }
+export default function Billboard({ height = '100vh', showControls = true, className, children }: BillboardProps) {
+  const billboardRef = useRef<BillboardImperativeHandle>(null)
 
   return (
-    <section
-      className={`relative isolate w-full overflow-hidden bg-[#050805] ${className ?? ""}`}
-      style={style}
-      aria-label="Procedural billboard"
-    >
-      <div
-        className="pointer-events-none absolute inset-0"
-        aria-hidden="true"
-        style={{
-          background:
-            "radial-gradient(circle at top, rgba(74, 222, 128, 0.12), transparent 34%), radial-gradient(circle at 70% 20%, rgba(132, 204, 22, 0.08), transparent 28%)",
-        }}
-      />
+    <div className={className} style={{ position: 'relative' }}>
+      <Leva hidden={!showControls} collapsed />
 
-      <Canvas
-        shadows
-        dpr={[1, 2]}
-        gl={{
-          antialias: true,
-          powerPreference: "high-performance",
-          alpha: false,
-          toneMapping: THREE.ACESFilmicToneMapping,
-        }}
-        camera={{
-          position: cameraControls.cameraPosition,
-          fov: cameraControls.cameraFov,
-          near: 0.1,
-          far: 100,
-        }}
-        className="relative z-10 h-[100vh] w-full"
-      >
-        <Suspense fallback={null}>
-          <BillboardScene
-            ref={canvasSceneRef}
-            width={billboardControls.billboardWidth}
-            height={billboardControls.billboardHeight}
-            frameWidth={billboardControls.billboardFrameWidth}
-            frameThickness={billboardControls.billboardFrameThickness}
-            cornerRadius={billboardControls.billboardCornerRadius}
-            posterDepth={billboardControls.billboardPosterDepth}
-            posterGap={billboardControls.billboardPosterGap}
-            poleHeight={poleControls.poleHeight}
-            poleRadius={poleControls.poleRadius}
-            poleSegments={poleControls.poleSegments}
-            polePosition={poleControls.polePosition}
-            poleRotation={poleControls.poleRotation}
-            poleScale={poleControls.poleScale}
-            enableSupports={supportsControls.supportsEnableSupports}
-            enableRearBraces={supportsControls.supportsEnableRearBraces}
-            supportThickness={supportsControls.thickness}
-            supportWidth={supportsControls.width}
-            supportDepth={supportsControls.depth}
-            frameTint={materialControls.materialFrameTint}
-            poleTint={materialControls.materialPoleTint}
-            metalness={materialControls.materialMetalness}
-            roughness={materialControls.materialRoughness}
-            clearcoat={materialControls.materialClearcoat}
-            clearcoatRoughness={materialControls.materialClearcoatRoughness}
-            normalScale={materialControls.materialNormalScale}
-            bumpScale={materialControls.materialBumpScale}
-            environmentIntensity={materialControls.materialEnvironmentIntensity}
-            frameRepeatX={tilingControls.frameRepeatX}
-            frameRepeatY={tilingControls.frameRepeatY}
-            poleRepeatX={tilingControls.poleRepeatX}
-            poleRepeatY={tilingControls.poleRepeatY}
-            frontPosterTextureSource={posterSources[0]}
-            backPosterTextureSource={posterSources[1]}
-            frontPosterOpacity={posterControls.posterFrontOpacity}
-            backPosterOpacity={posterControls.posterBackOpacity}
-            wireframe={debugControls.debugWireframe}
-            helpers={debugControls.debugHelpers}
-            axes={debugControls.debugAxes}
-            boundingBox={debugControls.debugBoundingBox}
-            environmentPath={environmentPath}
-            camera={cameraControls}
-            lighting={lightingControls}
-            transform={transformControls}
-          />
-        </Suspense>
-      </Canvas>
+      {/* Pinned background canvas — fixed to the viewport, always `height`
+          tall, stays in place while the content below scrolls over it. */}
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height, zIndex: 0 }}>
+        <Canvas
+          shadows={{ type: THREE.PCFShadowMap }}
+          dpr={[1, 2]}
+          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+          camera={{ position: [4.5, 2.2, 6], fov: 42 }}
+          style={{ background: 'transparent' }}
+        >
+          <Bvh>
+            <AdaptiveDpr pixelated={false} />
+            <AdaptiveEvents />
+            <SceneContents billboardRef={billboardRef} />
+          </Bvh>
+        </Canvas>
+      </div>
 
-      {!controlsReady ? null : debug ? <Leva collapsed titleBar={false} /> : null}
-    </section>
-  );
-});
+      {/* Scrollable content — can be any height, sits above the canvas. */}
+      <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Future roadmap notes (architecture only — not implemented here)          */
+/* -------------------------------------------------------------------------- */
+//
+// Scroll-driven cinematic sequencing (GSAP) will eventually:
+//   - move/rotate/scale the billboard      -> tween billboardRef.current.group
+//   - swap front/back artwork               -> update frontUniforms/backUniforms.map.value
+//                                               (load a new THREE.Texture and assign it)
+//   - fade panels in/out                    -> tween *Uniforms.opacity.value
+//   - move the camera / change environment  -> lift camera + Environment intensity
+//                                               state up to a parent that both this
+//                                               component and a ScrollTrigger timeline
+//                                               can read from (e.g. via a shared store
+//                                               or by passing camera/env props down
+//                                               instead of using internal Leva state
+//                                               in production).
+//
+// To wire this up later:
+//   1. Replace the Leva-driven camera/lighting values in `SceneContents` with
+//      props/context once GSAP needs to own them.
+//   2. Keep `BillboardMesh`'s forwardRef contract stable — GSAP only needs
+//      `group`, `frontUniforms`, and `backUniforms`.
+//   3. Mount this component inside the future fullscreen background canvas by
+//      reusing `BillboardMesh` + `SceneContents` directly rather than the
+//      default-exported `<Billboard />` wrapper (which owns its own Canvas).
