@@ -1,4 +1,4 @@
-import { HeroSection } from "@/components/ui";
+import { HeroSection, Scene } from "@/components/ui";
 
 const images = [
   "/homepage/herosection/1.png",
@@ -11,6 +11,11 @@ const images = [
 
 export default function Home() {
   return (
+    <div className="w-screen h-screen ">
     <HeroSection images={images} debug />
+    <div className="w-screen h-screen">
+      <Scene />
+    </div>
+    </div>
   );
 }
