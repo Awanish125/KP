@@ -15,6 +15,7 @@ export default function Home() {
     <>
     <HeroSection images={images}  />
     <Billboard/>
+    <div className="h-[300vh]">Lorem ipsum dolor sit amet consectetur adipisicing elit. Natus facilis, adipisci earum minus velit veritatis non pariatur beatae ullam numquam laudantium repudiandae distinctio? Et culpa esse quaerat minima consequuntur quod!</div>
     </>
   );
 }

@@ -732,6 +732,8 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
   const indexRef = useRef(0);
   const rafRef = useRef<number>(0);
   const gsapCtxRef = useRef<gsap.Context | null>(null);
+  const disposedRef = useRef(false);
+  const delayedCallRef = useRef<gsap.core.Tween | null>(null);
   const uniformsRef = useRef<ShaderUniforms | null>(null);
   const mouseRef = useRef<[number, number]>([0.5, 0.5]);
   const reducedMotion = useRef(false);
@@ -822,6 +824,7 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
             if (rendererRef.current) {
               loadTexture(rendererRef.current, normalizedImages[nextIdx]).then(
                 (tex) => {
+                  if (disposedRef.current) return;
                   u.uTextureNext.value = tex;
                   u.uImageResolutionNext.value = [
                     (tex.image as HTMLImageElement).width,
@@ -832,7 +835,10 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
             }
 
             // Schedule next transition using configurable hold duration
-            gsap.delayedCall(timingsRef.current.holdDuration, runTransition);
+            delayedCallRef.current = gsap.delayedCall(
+              timingsRef.current.holdDuration,
+              runTransition,
+            );
           },
         });
 
@@ -859,6 +865,7 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
     const u = uniformsRef.current;
     const renderer = rendererRef.current;
     const mesh = meshRef.current;
+    if (disposedRef.current) return;
     if (!u || !renderer || !mesh) return;
 
     u.uTime.value = now * 0.001;
@@ -868,7 +875,9 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
     u.uMouse.value[0] += (mx - u.uMouse.value[0]) * 0.05;
     u.uMouse.value[1] += (my - u.uMouse.value[1]) * 0.05;
 
-    renderer.render({ scene: mesh });
+    if (!renderer.gl.isContextLost()) {
+      renderer.render({ scene: mesh });
+    }
     rafRef.current = requestAnimationFrame(tick);
   }, []);
 
@@ -894,6 +903,7 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
+    disposedRef.current = false;
     if (!canvasRef.current || normalizedImages.length === 0) return;
 
     reducedMotion.current = window.matchMedia(
@@ -982,6 +992,7 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
         normalizedImages[Math.min(1, normalizedImages.length - 1)],
       ),
     ]).then(([texA, texB]) => {
+      if (disposedRef.current) return;
       uniforms.uImageResolutionCurrent.value = [
         (texA.image as HTMLImageElement).width,
         (texA.image as HTMLImageElement).height,
@@ -1016,22 +1027,28 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
       });
 
       rafRef.current = requestAnimationFrame(tick);
-      gsap.delayedCall(timingsRef.current.holdDuration, runTransition);
+      delayedCallRef.current = gsap.delayedCall(
+        timingsRef.current.holdDuration,
+        runTransition,
+      );
     });
 
     window.addEventListener("mousemove", onMouseMove, { passive: true });
     window.addEventListener("resize", onResize);
 
     return () => {
+      disposedRef.current = true;
       cancelAnimationFrame(rafRef.current);
-      gsapCtxRef.current?.kill();
+      gsapCtxRef.current?.revert();
+      gsapCtxRef.current = null;
       gsap.killTweensOf(uniforms.uKenBurns);
       gsap.killTweensOf(uniforms.uKenBurnsNext);
       gsap.killTweensOf(uniforms.uProgress);
-      gsap.globalTimeline.getChildren(true, false, true).forEach((t) => {
-        if ((t as gsap.core.Tween).vars?.onComplete === runTransition) t.kill();
-      });
-      renderer.gl.getExtension("WEBGL_lose_context")?.loseContext();
+      delayedCallRef.current?.kill();
+      // gsap.globalTimeline.getChildren(true, false, true).forEach((t) => {
+      //   if ((t as gsap.core.Tween).vars?.onComplete === runTransition) t.kill();
+      // });
+      // renderer.gl.getExtension("WEBGL_lose_context")?.loseContext();
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("resize", onResize);
     };

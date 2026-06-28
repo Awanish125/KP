@@ -41,7 +41,7 @@ export function HomeLayout({ children }: HomeLayoutProps) {
             <ThemeToggle />
           </div>
         </header>
-        <main className="flex flex-1 items-stretch">{children}</main>
+        <main className="flex flex-1 flex-col items-stretch">{children}</main>
       </div>
     </section>
   );
