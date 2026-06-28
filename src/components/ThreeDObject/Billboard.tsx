@@ -223,6 +223,11 @@ function useMediaTexture(
           tex.dispose();
           return;
         }
+        // Deliberately NOT tagged sRGB. The poster shader writes directly to
+        // gl_FragColor with no linear→sRGB step, so tagging would cause the
+        // GPU to linearize on sample and then ACES+sRGB output would double-
+        // darken the image. Leave untagged to display colours as authored.
+        tex.anisotropy = 8;
         loaded = tex;
         setTexture(tex);
       },
@@ -266,19 +271,49 @@ function applyRepeat(tex: THREE.Texture, settings: RepeatSettings) {
 
 const posterVertexShader = /* glsl */ `
   varying vec2 vUv;
+  varying vec3 vNormal;
+  varying vec3 vViewDir;
   void main() {
     vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vNormal = normalize(normalMatrix * normal);
+    vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+    vViewDir = normalize(-mvPos.xyz);
+    gl_Position = projectionMatrix * mvPos;
   }
 `;
 
+// Canvas/vinyl weave grain that simulates ink-on-substrate printing.
+// printScale controls fiber density; printStrength controls how visible
+// the substrate texture is through the printed image.
 const posterFragmentShader = /* glsl */ `
   uniform sampler2D map;
   uniform float brightness;
   uniform float contrast;
   uniform float saturation;
   uniform float opacity;
+  uniform float printScale;
+  uniform float printStrength;
   varying vec2 vUv;
+  varying vec3 vNormal;
+  varying vec3 vViewDir;
+
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+
+  // Woven canvas/vinyl substrate pattern
+  float canvasWeave(vec2 uv, float scale) {
+    vec2 s = uv * scale;
+    float hFiber = abs(fract(s.y) - 0.5) * 2.0;
+    float vFiber = abs(fract(s.x) - 0.5) * 2.0;
+    float weave = max(
+      smoothstep(0.55, 0.75, hFiber),
+      smoothstep(0.55, 0.75, vFiber)
+    );
+    // Micro grain noise per cell to break up uniformity
+    float noise = hash(floor(s) * 0.5) * 0.45 + hash(floor(s)) * 0.55;
+    return mix(noise * 0.4, weave, 0.65);
+  }
 
   void main() {
     vec4 tex = texture2D(map, vUv);
@@ -286,6 +321,21 @@ const posterFragmentShader = /* glsl */ `
     color = (color - 0.5) * contrast + 0.5;
     float luma = dot(color, vec3(0.299, 0.587, 0.114));
     color = mix(vec3(luma), color, saturation);
+
+    // Canvas substrate: very light modulation so the grain reads without
+    // pulling down the overall image brightness
+    float grain = canvasWeave(vUv, printScale);
+    color *= (1.0 - printStrength * 0.08 + grain * printStrength * 0.12);
+
+    // Fresnel-based gloss sheen (printed vinyl has slight specular at grazing angles)
+    float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 3.5);
+    color += fresnel * 0.04;
+
+    // Barely-there vignette — just enough to frame the print edges
+    vec2 uvc = vUv * 2.0 - 1.0;
+    float vignette = 1.0 - dot(uvc, uvc) * 0.05;
+    color *= vignette;
+
     gl_FragColor = vec4(clamp(color, 0.0, 1.0), tex.a * opacity);
   }
 `;
@@ -296,6 +346,8 @@ interface PosterUniforms {
   contrast: { value: number };
   saturation: { value: number };
   opacity: { value: number };
+  printScale: { value: number };
+  printStrength: { value: number };
 }
 
 function usePosterMaterial(texture: THREE.Texture): {
@@ -309,8 +361,9 @@ function usePosterMaterial(texture: THREE.Texture): {
       contrast: { value: 1 },
       saturation: { value: 1 },
       opacity: { value: 1 },
+      printScale: { value: 180 },
+      printStrength: { value: 0.35 },
     }),
-    // texture identity changes when a new image loads in; rebuild uniforms then
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -405,7 +458,7 @@ function BoltField({
   spacing = 0.45,
 }: BoltFieldProps) {
   const geometry = useMemo(
-    () => new THREE.CylinderGeometry(0.025, 0.025, 0.04, 8),
+    () => new THREE.CylinderGeometry(0.025, 0.025, 0.04, 6),
     [],
   );
 
@@ -569,13 +622,15 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
         value: props.backImage ?? "/posters/back.jpg",
         label: "Back Image/Video",
       },
-      frontBrightness: { value: 1, min: 0, max: 2, step: 0.01 },
-      backBrightness: { value: 1, min: 0, max: 2, step: 0.01 },
+      frontBrightness: { value: 1.55, min: 0, max: 3, step: 0.01 },
+      backBrightness: { value: 1.55, min: 0, max: 3, step: 0.01 },
       frontOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
       backOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
       contrast: { value: 1, min: 0, max: 2, step: 0.01 },
       saturation: { value: 1, min: 0, max: 2, step: 0.01 },
       swapImages: false,
+      printScale: { value: 180, min: 40, max: 600, step: 10, label: "Canvas Grain Scale" },
+      printStrength: { value: 0.35, min: 0, max: 1, step: 0.01, label: "Print Texture Strength" },
     });
 
     /* ---- Leva: Materials ---- */
@@ -696,12 +751,16 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
       frontUniforms.contrast.value = posterCtl.contrast;
       frontUniforms.saturation.value = posterCtl.saturation;
       frontUniforms.opacity.value = posterCtl.frontOpacity;
+      frontUniforms.printScale.value = posterCtl.printScale;
+      frontUniforms.printStrength.value = posterCtl.printStrength;
     }, [
       frontUniforms,
       posterCtl.frontBrightness,
       posterCtl.contrast,
       posterCtl.saturation,
       posterCtl.frontOpacity,
+      posterCtl.printScale,
+      posterCtl.printStrength,
     ]);
 
     useEffect(() => {
@@ -709,12 +768,16 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
       backUniforms.contrast.value = posterCtl.contrast;
       backUniforms.saturation.value = posterCtl.saturation;
       backUniforms.opacity.value = posterCtl.backOpacity;
+      backUniforms.printScale.value = posterCtl.printScale;
+      backUniforms.printStrength.value = posterCtl.printStrength;
     }, [
       backUniforms,
       posterCtl.backBrightness,
       posterCtl.contrast,
       posterCtl.saturation,
       posterCtl.backOpacity,
+      posterCtl.printScale,
+      posterCtl.printStrength,
     ]);
 
     /* ---- frame material (memoized, disposed on change) ---- */
@@ -919,7 +982,7 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
               key={i}
               args={bar.size}
               radius={Math.min(cornerRadius, Math.min(...bar.size) * 0.3)}
-              smoothness={4}
+              smoothness={3}
               position={bar.position}
               material={frameMaterial}
               castShadow
@@ -1138,7 +1201,7 @@ function SceneContents({
     fillLight: { value: 0.4, min: 0, max: 3, step: 0.05 },
     rimLight: { value: 0.6, min: 0, max: 3, step: 0.05 },
     hdrIntensity: { value: 1, min: 0, max: 3, step: 0.05 },
-    exposure: { value: 1.1, min: 0.1, max: 3, step: 0.05 },
+    exposure: { value: 1.4, min: 0.1, max: 3, step: 0.05 },
     shadowBias: { value: -0.0005, min: -0.01, max: 0.01, step: 0.0001 },
   });
 
@@ -1194,8 +1257,8 @@ function SceneContents({
         position={[5, 6, 4]}
         intensity={lightingCtl.directionalIntensity}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
         shadow-bias={lightingCtl.shadowBias}
       />
       {/* fill light, softens shadow side */}
