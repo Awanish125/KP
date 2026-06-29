@@ -173,7 +173,6 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
       visible = true,
       wireframe: wireframeProp = false,
       cameraRef,
-      orbitRef,
       ambientLightRef,
     } = props;
 
@@ -505,13 +504,14 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
     // is behind the camera), so the billboard is naturally invisible without tricks.
     // GSAP in page.tsx uses gsap.fromTo on group.scale for the About-section entrance.
 
-    // Expose camera, controls, lighting, materials, and changePoster to the page.
+    // Expose camera, cameraTarget, controls, lighting, materials, and changePoster to the page.
     // The page (and GSAP) access these to drive all animation.
     useImperativeHandle(ref, () => ({
-      group:        groupRef.current,
-      camera:       cameraRef?.current       ?? null,
-      orbit:        orbitRef?.current        ?? null,
-      ambientLight: ambientLightRef?.current ?? null,
+      group:         groupRef.current,
+      camera:        cameraRef?.current        ?? null,
+      // cameraTarget is now managed internally by Scene.tsx's useFrame loop
+      cameraTarget:  null,
+      ambientLight:  ambientLightRef?.current  ?? null,
       frontMaterial,
       backMaterial,
       frontUniforms,

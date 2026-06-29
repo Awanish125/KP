@@ -6,7 +6,6 @@
  */
 
 import type * as THREE from "three";
-import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
 // Which kind of 1-pixel fallback texture to generate when a real file is missing.
 export type FallbackKind = "color" | "gray" | "normal";
@@ -46,9 +45,9 @@ export interface PosterUniforms {
 export interface BillboardImperativeHandle {
   group: THREE.Group | null;
   camera: THREE.PerspectiveCamera | null;
-  orbit: OrbitControlsImpl | null;
-  // Direct reference to the scene's ambient light so GSAP can animate
-  // .intensity to create per-section mood changes (hero is dim, reveal is bright, etc.)
+  // Camera look-at target. Managed internally by Scene.tsx's useFrame loop.
+  // Always null from the imperative handle; kept in the interface for forward compatibility.
+  cameraTarget: THREE.Vector3 | null;
   ambientLight: THREE.AmbientLight | null;
   frontMaterial: THREE.ShaderMaterial | null;
   backMaterial: THREE.ShaderMaterial | null;
@@ -70,11 +69,10 @@ export interface BillboardMeshProps {
   backImage?: string;
   // Driven by the Scene-level debug toggle — forces wireframe on all materials.
   wireframe?: boolean;
-  // Passed from Scene so the imperative handle can expose them to the page.
+  // Passed from Scene so the imperative handle can expose the camera to the page.
   // React 19: useRef<T>(null) returns RefObject<T | null>.
   cameraRef?: React.RefObject<THREE.PerspectiveCamera | null>;
-  orbitRef?: React.RefObject<OrbitControlsImpl | null>;
-  // The scene's ambient light — passed in so GSAP can animate its intensity.
+  // The scene's ambient light ref — passed so the handle can expose it to the page.
   ambientLightRef?: React.RefObject<THREE.AmbientLight | null>;
 }
 
