@@ -3,16 +3,27 @@
 /**
  * Billboard.tsx — The top-level Billboard component.
  *
- * Owns:
- *   - The R3F Canvas (fixed to the viewport, behind all HTML content)
- *   - The Leva debug panel gate (only mounted when showControls is true)
- *   - The fade-in reveal (avoids a flash of fallback colours on first paint)
+ * Three positioning modes:
  *
- * Children render as scrollable HTML overlaid on top of the fixed canvas.
- * This lets section content scroll past the 3D scene while the canvas stays put.
+ *   DEFAULT (fixed background)
+ *     <Billboard />
+ *     Canvas is position:fixed, full-viewport, z-0. The 3D scene is a
+ *     background layer behind all HTML content.
  *
- * The onReady callback fires once the scene has mounted and exposes the
- * imperative handle so the page can pass it to GSAP.
+ *   INLINE (fills a parent div)
+ *     <div style={{ position:'relative', width:600, height:400 }}>
+ *       <Billboard inline />
+ *     </div>
+ *     Canvas is position:absolute, inset:0. It fills whatever div you put it in.
+ *     The parent div must have position:relative (or absolute/fixed/sticky).
+ *
+ *   CONTAINER REF (overlays an external div)
+ *     const myRef = useRef<HTMLDivElement>(null);
+ *     <div ref={myRef} style={{ width:600, height:400 }}>…</div>
+ *     <Billboard containerRef={myRef} />
+ *     The canvas floats (position:fixed) over the target div, tracks its
+ *     screen position via ResizeObserver + scroll listener, and always fills
+ *     that exact rect — even when the page is scrolled.
  */
 
 import React, { useRef, useEffect, useState } from "react";
@@ -28,48 +39,81 @@ export default function Billboard({
   className,
   children,
   onReady,
+  inline = false,
+  containerRef,
 }: BillboardProps) {
-  const internalRef = useRef<BillboardImperativeHandle>(null);
-  const onReadyRef = useRef(onReady);
-  onReadyRef.current = onReady;
+  const internalRef   = useRef<BillboardImperativeHandle>(null);
+  const onReadyRef    = useRef(onReady);
+  onReadyRef.current  = onReady;
 
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
-  return (
-    <div className={className} style={{ position: "relative" }}>
+  /* ── containerRef mode: sync canvas position to external div ────────────── */
+  useEffect(() => {
+    const wrap = canvasWrapRef.current;
+    const target = containerRef?.current;
+    if (!wrap || !target) return;
 
-      {/* Only mount the Leva panel when explicitly requested.
-          Previously it was always mounted (just hidden), which still cost
-          DOM nodes and JS. Now it truly doesn't exist in production. */}
+    const sync = () => {
+      const r = target.getBoundingClientRect();
+      wrap.style.top    = `${r.top}px`;
+      wrap.style.left   = `${r.left}px`;
+      wrap.style.width  = `${r.width}px`;
+      wrap.style.height = `${r.height}px`;
+    };
+
+    const ro = new ResizeObserver(sync);
+    ro.observe(target);
+    window.addEventListener("scroll", sync, { passive: true });
+    window.addEventListener("resize", sync);
+    sync();
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+    };
+  }, [containerRef]);
+
+  /* ── Canvas wrapper style ─────────────────────────────────────────────────
+     inline     → absolute, fills parent div
+     containerRef → fixed, tracks target div (updated by the effect above)
+     default    → fixed, full viewport
+  */
+  const wrapStyle: React.CSSProperties = inline
+    ? { position: "absolute", inset: 0, zIndex: 0,
+        opacity: visible ? 1 : 0, transition: "opacity 0.6s ease" }
+    : containerRef
+    ? { position: "fixed", top: 0, left: 0,
+        width: "100%", height: "100%",          // overwritten by sync()
+        zIndex: 0,
+        opacity: visible ? 1 : 0, transition: "opacity 0.6s ease" }
+    : { position: "fixed", top: 0, left: 0,
+        width: "100%", height,
+        zIndex: 0,
+        opacity: visible ? 1 : 0, transition: "opacity 0.6s ease" };
+
+  /* ── Outer wrapper ────────────────────────────────────────────────────────
+     In inline mode the outer wrapper needs position:relative so the absolute
+     canvas sits inside it. In other modes position:relative is harmless.     */
+  const outerStyle: React.CSSProperties = inline
+    ? { position: "relative", width: "100%", height: "100%" }
+    : { position: "relative" };
+
+  return (
+    <div className={className} style={outerStyle}>
+
       {showControls && <Leva collapsed />}
 
-      {/* Fixed canvas — stays pinned to the viewport while page content scrolls */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height,
-          zIndex: 0,
-          opacity: visible ? 1 : 0,
-          transition: "opacity 0.6s ease",
-        }}
-      >
+      {/* Canvas wrapper — see wrapStyle comment above */}
+      <div ref={canvasWrapRef} style={wrapStyle}>
         <Canvas
-          dpr={[1, 1.25]} // ceiling at 1.25x — AdaptiveDpr handles dropping it further under load
-          gl={{
-            antialias: true,
-            alpha: true,
-            powerPreference: "high-performance",
-          }}
-          camera={{ position: [5.5, 1.2, 9.5], fov: 38 }}
-          style={{ background: "transparent" }}
+          dpr={[1, 1.25]}
+          gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+          camera={{ position: [6, 2, 11], fov: 45 }}
+          style={{ background: "transparent", width: "100%", height: "100%" }}
           onCreated={() => {
-            // Two rAF ticks gives textures time to start uploading to the GPU
-            // before we reveal the canvas. We also fire onReady here (not on
-            // component mount) because camera and orbit refs are only populated
-            // after the Canvas renders its first frame.
             requestAnimationFrame(() =>
               requestAnimationFrame(() => {
                 setVisible(true);
@@ -88,9 +132,10 @@ export default function Billboard({
         </Canvas>
       </div>
 
-      {/* Scrollable HTML content renders above the fixed canvas */}
-      <div style={{ position: "relative", zIndex: 1 }}>{children}</div>
-
+      {/* Scrollable HTML content (used in default mode only) */}
+      {children && (
+        <div style={{ position: "relative", zIndex: 1 }}>{children}</div>
+      )}
     </div>
   );
 }

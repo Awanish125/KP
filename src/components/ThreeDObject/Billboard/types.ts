@@ -84,4 +84,27 @@ export interface BillboardProps {
   className?: string;
   children?: React.ReactNode;
   onReady?: (billboard: BillboardImperativeHandle) => void;
+
+  /**
+   * INLINE MODE — canvas fills its parent div.
+   * The parent must have position: relative (or absolute / fixed / sticky).
+   *
+   *   <div style={{ position: "relative", width: 600, height: 400 }}>
+   *     <Billboard inline />
+   *   </div>
+   */
+  inline?: boolean;
+
+  /**
+   * CONTAINER REF MODE — canvas floats (position: fixed) over the target div
+   * and tracks its screen position as the page scrolls or resizes.
+   *
+   *   const boxRef = useRef<HTMLDivElement>(null);
+   *   <div ref={boxRef} style={{ width: 600, height: 400 }}>...</div>
+   *   <Billboard containerRef={boxRef} />
+   *
+   * The div itself is not modified — you can put any content inside it as
+   * long as you want the 3D scene to appear on top of it.
+   */
+  containerRef?: React.RefObject<HTMLElement | null>;
 }
