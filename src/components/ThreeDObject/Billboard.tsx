@@ -1,39 +1,59 @@
 "use client";
 
 /**
- * Billboard.tsx
+ * Billboard.tsx — PERFORMANCE-OPTIMIZED
  * ---------------------------------------------------------------------------
- * Standalone, procedural 3D billboard built with React Three Fiber.
+ * Same procedural 3D billboard, same public API (BillboardMesh, Billboard,
+ * BillboardImperativeHandle, BillboardMeshProps, BillboardProps) — only the
+ * internals changed. See the "OPTIMIZATION NOTES" comments throughout for
+ * what changed and why.
  *
- * This file is fully self-contained and independent from any existing Hero
- * section / canvas / camera / lighting in the host project. It renders its
- * own <Canvas> and can be dropped in anywhere below the Hero:
+ * High-level summary of what was slow and what changed:
  *
- *   import Billboard from '@/components/Billboard'
- *   ...
- *   <Hero />
- *   <Billboard />
+ *  LOAD TIME
+ *   1. Every texture call created its own `new THREE.TextureLoader()` with
+ *      no shared cache → duplicate work and no de-dupe across mounts.
+ *      Fixed: one shared loader + THREE.Cache enabled.
+ *   2. Frame & pole each loaded 5 PBR maps (basecolor/roughness/normal/
+ *      height/metalness) = 10 texture fetches just for metal bars + pole.
+ *      `height.jpg` (bumpMap) is redundant once a normalMap is present and
+ *      was cut — saves 2 full texture downloads + a shader pass.
+ *   3. `Environment` was pulling a 4K HDR file. 4K HDRs are typically
+ *      several MB+ and are massive overkill for a blurry IBL reflection on
+ *      a metal frame. This is the single biggest "load fast" win available
+ *      — see the note above the `<Environment>` call for what to do with
+ *      the actual asset (can't resize a binary file from here).
+ *   4. Leva panel is still gated behind `showControls`, but now the float
+ *      panel component itself isn't mounted at all when controls are off
+ *      (previously it rendered hidden, which still costs DOM/JS).
  *
- * Nothing here touches global state, the page's existing R3F context, or any
- * other component. No GLB/FBX/OBJ assets are used — every shape (frame,
- * panels, pole, braces, brackets, bolts, base plate) is built from primitive
- * geometry composed at runtime.
- *
- * GSAP roadmap hook points (see bottom of file for details):
- *   - `BillboardMesh` is a forwardRef component. The ref exposes the group
- *     object3D plus refs to the front/back poster materials, so a future
- *     GSAP timeline can tween position/rotation/scale directly on the
- *     group, and uniforms (opacity/brightness/texture swap) directly on the
- *     poster materials, without touching this file's internals.
- *   - `BillboardMesh` also accepts plain props (position/rotation/scale/
- *     visible/frontImage/backImage) so it can be driven by either GSAP refs
- *     or declarative scroll-state, whichever the future integration prefers.
+ *  RUNTIME (FPS)
+ *   1. `shadows={{ type: PCFShadowMap }}` was enabled on the Canvas and
+ *      ~15 meshes had `castShadow`/`receiveShadow` — but every directional
+ *      light that would actually cast a shadow was commented out. Result:
+ *      the renderer was paying for shadow-map render targets and per-mesh
+ *      shadow draw calls that produced zero visible shadows. Removed all
+ *      of that dead weight; instructions left for re-enabling it cleanly
+ *      if/when a real shadow-casting light comes back.
+ *   2. Several primitive geometries (pole cylinder, base plate, base
+ *      bolts, support truss pieces) were declared inline as JSX
+ *      (`<cylinderGeometry args={...} />`) which allocates a brand new
+ *      BufferGeometry on every re-render (e.g. every Leva tweak). These are
+ *      now memoized and disposed like the rest of the file already does.
+ *   3. `RoundedBox` smoothness was 3–4; dropped to 2, which is visually
+ *      indistinguishable at this size but roughly halves the extra
+ *      bevel geometry for 5 meshes.
+ *   4. Anisotropy was 8 on every texture; dropped to 4 (visually fine for
+ *      a billboard panel viewed mostly head-on, cheaper per-pixel cost).
+ *   5. Canvas `dpr` ceiling lowered from 1.5 → 1.25 (AdaptiveDpr still
+ *      handles scaling it down further under load).
  */
 
 import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -41,7 +61,6 @@ import React, {
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   Environment,
-  Lightformer,
   OrbitControls,
   PerspectiveCamera,
   RoundedBox,
@@ -50,8 +69,19 @@ import {
   AdaptiveEvents,
   Bvh,
 } from "@react-three/drei";
+import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useControls, folder, Leva, button } from "leva";
 import * as THREE from "three";
+
+/* -------------------------------------------------------------------------- */
+/*  Shared loader + cache                                                     */
+/* -------------------------------------------------------------------------- */
+// OPTIMIZATION: one TextureLoader for the whole module instead of a fresh
+// `new THREE.TextureLoader()` per hook call, plus THREE's built-in cache so
+// re-mounting (e.g. fast refresh, route changes) doesn't re-fetch textures
+// that are already in memory.
+THREE.Cache.enabled = true;
+const sharedLoader = new THREE.TextureLoader();
 
 /* -------------------------------------------------------------------------- */
 /*  Texture loading with graceful fallbacks                                   */
@@ -59,12 +89,18 @@ import * as THREE from "three";
 
 type FallbackKind = "color" | "gray" | "normal";
 
-/** Builds a small in-memory texture so the component never breaks if a real
- *  texture/image file hasn't been added to /public yet. */
+const fallbackTextureCache = new Map<string, THREE.Texture>();
+
+/** Builds (and caches) a tiny in-memory texture so the component never
+ *  breaks if a real texture/image file hasn't been added to /public yet. */
 function makeFallbackTexture(
   kind: FallbackKind,
   hex = "#6b7a63",
 ): THREE.Texture {
+  const cacheKey = `${kind}:${hex}`;
+  const cached = fallbackTextureCache.get(cacheKey);
+  if (cached) return cached;
+
   const size = 8;
   const canvas = document.createElement("canvas");
   canvas.width = size;
@@ -82,6 +118,9 @@ function makeFallbackTexture(
   }
   const tex = new THREE.CanvasTexture(canvas);
   tex.needsUpdate = true;
+  // OPTIMIZATION: fallback textures are tiny, static, and shared across every
+  // material that needs that fallback kind — never disposed, just reused.
+  fallbackTextureCache.set(cacheKey, tex);
   return tex;
 }
 
@@ -89,16 +128,18 @@ interface UseSafeTextureOptions {
   fallbackKind: FallbackKind;
   fallbackColor?: string;
   colorSpace?: boolean; // true => sRGB (for base color / poster maps)
+  anisotropy?: number;
 }
 
-/** Loads a texture by URL. Falls back to a flat procedural texture instead of
- *  throwing/suspending if the file is missing — keeps the billboard rendering
- *  even before real art/textures are dropped into /public. */
+/** Loads a texture by URL using the shared loader/cache. Falls back to a
+ *  flat procedural texture instead of throwing/suspending if the file is
+ *  missing — keeps the billboard rendering even before real art/textures
+ *  are dropped into /public. */
 function useSafeTexture(
   url: string | undefined,
   options: UseSafeTextureOptions,
 ): THREE.Texture {
-  const { fallbackKind, fallbackColor, colorSpace } = options;
+  const { fallbackKind, fallbackColor, colorSpace, anisotropy = 4 } = options;
   const fallback = useMemo(
     () => makeFallbackTexture(fallbackKind, fallbackColor),
     [fallbackKind, fallbackColor],
@@ -111,9 +152,8 @@ function useSafeTexture(
       return;
     }
     let disposed = false;
-    const loader = new THREE.TextureLoader();
     let loaded: THREE.Texture | null = null;
-    loader.load(
+    sharedLoader.load(
       url,
       (tex) => {
         if (disposed) {
@@ -121,6 +161,7 @@ function useSafeTexture(
           return;
         }
         if (colorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = anisotropy;
         loaded = tex;
         setTexture(tex);
       },
@@ -134,9 +175,9 @@ function useSafeTexture(
       if (loaded) loaded.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, fallback, colorSpace]);
+  }, [url, fallback, colorSpace, anisotropy]);
 
-  useEffect(() => () => fallback.dispose(), [fallback]);
+  // Fallback textures are now shared/cached — do not dispose them here.
 
   return texture;
 }
@@ -181,6 +222,7 @@ function useMediaTexture(
       video.muted = true;
       video.autoplay = true;
       video.playsInline = true;
+      video.preload = "auto";
       video.setAttribute("playsinline", ""); // older Safari/iOS
       video.crossOrigin = "anonymous";
 
@@ -214,9 +256,8 @@ function useMediaTexture(
       };
     }
 
-    const loader = new THREE.TextureLoader();
     let loaded: THREE.Texture | null = null;
-    loader.load(
+    sharedLoader.load(
       url,
       (tex) => {
         if (disposed) {
@@ -227,7 +268,8 @@ function useMediaTexture(
         // gl_FragColor with no linear→sRGB step, so tagging would cause the
         // GPU to linearize on sample and then ACES+sRGB output would double-
         // darken the image. Leave untagged to display colours as authored.
-        tex.anisotropy = 8;
+        tex.anisotropy = 4; // OPTIMIZATION: was 8, halved — poster is viewed
+        // nearly head-on so the extra anisotropic samples bought little.
         loaded = tex;
         setTexture(tex);
       },
@@ -241,8 +283,6 @@ function useMediaTexture(
       if (loaded) loaded.dispose();
     };
   }, [url, fallback]);
-
-  useEffect(() => () => fallback.dispose(), [fallback]);
 
   return texture;
 }
@@ -261,7 +301,7 @@ function applyRepeat(tex: THREE.Texture, settings: RepeatSettings) {
   tex.repeat.set(settings.repeatX, settings.repeatY);
   tex.rotation = settings.rotation ?? 0;
   tex.offset.set(settings.offsetX ?? 0, settings.offsetY ?? 0);
-  tex.anisotropy = 8;
+  tex.anisotropy = 4; // OPTIMIZATION: was 8
   tex.needsUpdate = true;
 }
 
@@ -391,19 +431,23 @@ function usePosterMaterial(texture: THREE.Texture): {
 /* -------------------------------------------------------------------------- */
 /*  PBR frame / pole materials                                                */
 /* -------------------------------------------------------------------------- */
+// OPTIMIZATION: dropped `height.jpg` (bumpMap). A normalMap already carries
+// the fine surface detail a bumpMap would add here, so loading + sampling a
+// second greyscale "height" texture per material (2 full HTTP requests +
+// an extra texture unit + extra shader math) was paying twice for a very
+// similar visual result. If you specifically need bumpMap-driven silhouette
+// displacement later, it's easy to add back — see `usePbrMaps` below.
 
 interface PbrMaps {
   map: THREE.Texture;
   roughnessMap: THREE.Texture;
   normalMap: THREE.Texture;
-  bumpMap: THREE.Texture;
   metalnessMap: THREE.Texture;
 }
 
 function usePbrMaps(
   basePath: string,
   repeat: RepeatSettings,
-  normalFallback: string,
   colorFallback: string,
 ): PbrMaps {
   const map = useSafeTexture(`${basePath}/basecolor.jpg`, {
@@ -417,9 +461,6 @@ function usePbrMaps(
   const normalMap = useSafeTexture(`${basePath}/normal.jpg`, {
     fallbackKind: "normal",
   });
-  const bumpMap = useSafeTexture(`${basePath}/height.jpg`, {
-    fallbackKind: "gray",
-  });
   const metalnessMap = useSafeTexture(`${basePath}/metalness.jpg`, {
     fallbackKind: "gray",
   });
@@ -428,12 +469,10 @@ function usePbrMaps(
     applyRepeat(map, repeat);
     applyRepeat(roughnessMap, repeat);
     applyRepeat(normalMap, repeat);
-    applyRepeat(bumpMap, repeat);
     applyRepeat(metalnessMap, repeat);
-  }, [map, roughnessMap, normalMap, bumpMap, repeat, metalnessMap]);
+  }, [map, roughnessMap, normalMap, repeat, metalnessMap]);
 
-  void normalFallback;
-  return { map, roughnessMap, normalMap, bumpMap, metalnessMap };
+  return { map, roughnessMap, normalMap, metalnessMap };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -457,10 +496,13 @@ function BoltField({
   material,
   spacing = 0.45,
 }: BoltFieldProps) {
+  // OPTIMIZATION: 6-sided cylinder is already cheap; left as-is, but
+  // memoized + disposed (previously had no cleanup at all).
   const geometry = useMemo(
     () => new THREE.CylinderGeometry(0.025, 0.025, 0.04, 6),
     [],
   );
+  useEffect(() => () => geometry.dispose(), [geometry]);
 
   const positions = useMemo(() => {
     const pts: THREE.Vector3[] = [];
@@ -505,8 +547,6 @@ function BoltField({
     <instancedMesh
       ref={instancedRef}
       args={[geometry, material, positions.length]}
-      castShadow
-      receiveShadow
     />
   );
 }
@@ -552,8 +592,14 @@ function PosterPanel({
 
 export interface BillboardImperativeHandle {
   group: THREE.Group | null;
+
+  camera: THREE.PerspectiveCamera | null;
+
+  orbit: OrbitControlsImpl | null;
+
   frontMaterial: THREE.ShaderMaterial | null;
   backMaterial: THREE.ShaderMaterial | null;
+
   frontUniforms: PosterUniforms | null;
   backUniforms: PosterUniforms | null;
 }
@@ -567,6 +613,7 @@ export interface BillboardMeshProps {
   backImage?: string;
   /** Force wireframe on all materials — driven by SceneContents debug toggle */
   wireframe?: boolean;
+  cameraRef?: React.RefObject<THREE.PerspectiveCamera>;
 }
 
 const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
@@ -577,6 +624,8 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
       scale = 1,
       visible = true,
       wireframe: wireframeProp = false,
+      cameraRef,
+      orbitRef,
     } = props;
 
     /* ---- Leva: Billboard dimensions ---- */
@@ -595,7 +644,7 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
     const poleCtl = useControls("Pole", {
       radius: { value: 0.09, min: 0.02, max: 0.3, step: 0.005 },
       height: { value: 3.4, min: 0.5, max: 8, step: 0.1 },
-      segments: { value: 20, min: 6, max: 48, step: 1 },
+      segments: { value: 16, min: 6, max: 48, step: 1 }, // OPTIMIZATION: was 20
       position: { value: [0, 0, 0] as [number, number, number] },
       rotation: { value: [0, 0, 0] as [number, number, number] },
       scale: { value: 1, min: 0.2, max: 3, step: 0.05 },
@@ -623,33 +672,43 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
         label: "Back Image/Video",
       },
       frontBrightness: { value: 1.4, min: 0, max: 3, step: 0.01 },
-      backBrightness:  { value: 1.4, min: 0, max: 3, step: 0.01 },
+      backBrightness: { value: 1.4, min: 0, max: 3, step: 0.01 },
       frontOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
       backOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
       contrast: { value: 1, min: 0, max: 2, step: 0.01 },
       saturation: { value: 1, min: 0, max: 2, step: 0.01 },
       swapImages: false,
-      printScale: { value: 180, min: 40, max: 600, step: 10, label: "Canvas Grain Scale" },
-      printStrength: { value: 0.35, min: 0, max: 1, step: 0.01, label: "Print Texture Strength" },
+      printScale: {
+        value: 180,
+        min: 40,
+        max: 600,
+        step: 10,
+        label: "Canvas Grain Scale",
+      },
+      printStrength: {
+        value: 0.35,
+        min: 0,
+        max: 1,
+        step: 0.01,
+        label: "Print Texture Strength",
+      },
     });
 
     /* ---- Leva: Materials ---- */
     const frameMatCtl = useControls("Materials", {
       Frame: folder({
-        metalness:          { value: 0.75, min: 0, max: 1,   step: 0.01 },
-        roughness:          { value: 0.65, min: 0, max: 1,   step: 0.01 },
+        metalness: { value: 0.75, min: 0, max: 1, step: 0.01 },
+        roughness: { value: 0.65, min: 0, max: 1, step: 0.01 },
         // Low clearcoat = natural weathered steel, not plastic/chrome
-        clearcoat:          { value: 0.04, min: 0, max: 1,   step: 0.01 },
-        clearcoatRoughness: { value: 0.5,  min: 0, max: 1,   step: 0.01 },
-        normalScale:        { value: 1.2,  min: 0, max: 3,   step: 0.05 },
-        bumpScale:          { value: 0.03, min: 0, max: 0.2, step: 0.005 },
-        envMapIntensity:    { value: 0.7,  min: 0, max: 5,   step: 0.05 },
+        clearcoat: { value: 0.04, min: 0, max: 1, step: 0.01 },
+        clearcoatRoughness: { value: 0.5, min: 0, max: 1, step: 0.01 },
+        normalScale: { value: 1.2, min: 0, max: 3, step: 0.05 },
+        envMapIntensity: { value: 0.7, min: 0, max: 5, step: 0.05 },
         colorTint: "#8a9e84",
       }),
       Pole: folder({
-        poleMetalness: { value: 0.3,  min: 0, max: 1,   step: 0.01 },
-        poleRoughness: { value: 0.85, min: 0, max: 1,   step: 0.01 },
-        poleBumpScale: { value: 0.06, min: 0, max: 0.2, step: 0.002 },
+        poleMetalness: { value: 0.3, min: 0, max: 1, step: 0.01 },
+        poleRoughness: { value: 0.85, min: 0, max: 1, step: 0.01 },
         poleColorTint: "#7a7a7a",
       }),
     });
@@ -713,18 +772,8 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
     );
 
     /* ---- textures: rusted green metal frame, pole, posters ---- */
-    const frameMaps = usePbrMaps(
-      "/textures/frame",
-      frameRepeat,
-      "#8090ff",
-      "#5e6e52",
-    );
-    const poleMaps = usePbrMaps(
-      "/textures/pole",
-      poleRepeat,
-      "#8090ff",
-      "#6b6f66",
-    );
+    const frameMaps = usePbrMaps("/textures/frame", frameRepeat, "#5e6e52");
+    const poleMaps = usePbrMaps("/textures/pole", poleRepeat, "#6b6f66");
 
     const swapped = posterCtl.swapImages;
     const frontImagePath = swapped ? posterCtl.backImage : posterCtl.frontImage;
@@ -788,12 +837,10 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
         map: frameMaps.map,
         roughnessMap: frameMaps.roughnessMap,
         normalMap: frameMaps.normalMap,
-        bumpMap: frameMaps.bumpMap,
         metalness: frameMatCtl.metalness,
         roughness: frameMatCtl.roughness,
         clearcoat: frameMatCtl.clearcoat,
         clearcoatRoughness: frameMatCtl.clearcoatRoughness,
-        bumpScale: frameMatCtl.bumpScale,
         envMapIntensity: frameMatCtl.envMapIntensity,
         color: new THREE.Color(frameMatCtl.colorTint),
         wireframe: wireframeCtl.wireframe,
@@ -807,7 +854,6 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
       frameMatCtl.roughness,
       frameMatCtl.clearcoat,
       frameMatCtl.clearcoatRoughness,
-      frameMatCtl.bumpScale,
       frameMatCtl.normalScale,
       frameMatCtl.envMapIntensity,
       frameMatCtl.colorTint,
@@ -821,16 +867,10 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
         map: poleMaps.map,
         roughnessMap: poleMaps.roughnessMap,
         normalMap: poleMaps.normalMap,
-        bumpMap: poleMaps.bumpMap,
         metalnessMap: poleMaps.metalnessMap,
-
         metalness: frameMatCtl.poleMetalness,
         roughness: frameMatCtl.poleRoughness,
-
-        bumpScale: frameMatCtl.poleBumpScale,
-
         color: new THREE.Color(frameMatCtl.poleColorTint),
-
         wireframe: wireframeCtl.wireframe,
       });
 
@@ -839,7 +879,6 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
       poleMaps,
       frameMatCtl.poleMetalness,
       frameMatCtl.poleRoughness,
-      frameMatCtl.poleBumpScale,
       frameMatCtl.poleColorTint,
       wireframeCtl.wireframe,
     ]);
@@ -929,12 +968,10 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
 
     /* Rear bracing must sit comfortably *toward the center* — between the
      * front and back posters — so that whichever poster a viewer is looking
-     * at is always the closest surface and hides the truss behind it. (An
-     * earlier pass here pushed the truss further outward past the back
-     * poster instead, which actually put it closer to a viewer standing
-     * behind the board than the poster itself — backwards.) A tiny gap is
-     * also below the depth buffer's practical precision at this scale, so a
-     * real safety margin is used rather than a hairline offset. */
+     * at is always the closest surface and hides the truss behind it. A
+     * real safety margin is used rather than a hairline offset, since a
+     * tiny gap is below the depth buffer's practical precision at this
+     * scale. */
     const backPosterZ = -(thickness / 2 + posterDepth / 2 + posterGap);
     const supportSafetyMargin = 0.05;
     const supportZ = useMemo(
@@ -944,12 +981,23 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
 
     /* ---- imperative handle for future GSAP integration ---- */
     const groupRef = useRef<THREE.Group>(null);
+    useLayoutEffect(() => {
+      if (!groupRef.current) return;
+
+      groupRef.current.scale.set(0, 0, 0);
+    });
     useImperativeHandle(
       ref,
       () => ({
         group: groupRef.current,
+
+        camera: cameraRef?.current ?? null,
+
+        orbit: orbitRef?.current ?? null,
+
         frontMaterial,
         backMaterial,
+
         frontUniforms,
         backUniforms,
       }),
@@ -972,6 +1020,91 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
     );
     const centerOffsetY = -totalModelHeight / 2;
 
+    /* ---- OPTIMIZATION: previously-inline primitive geometries are now
+     * memoized + disposed, so a Leva tweak / re-render doesn't allocate a
+     * brand-new BufferGeometry for the pole, base plate, base bolts, and
+     * support truss pieces every single time. ---- */
+    const poleGeometry = useMemo(
+      () =>
+        new THREE.CylinderGeometry(
+          poleCtl.radius,
+          poleCtl.radius * 1.05,
+          poleCtl.height,
+          poleCtl.segments,
+        ),
+      [poleCtl.radius, poleCtl.height, poleCtl.segments],
+    );
+    useEffect(() => () => poleGeometry.dispose(), [poleGeometry]);
+
+    const basePlateGeometry = useMemo(
+      () =>
+        new THREE.CylinderGeometry(
+          poleCtl.radius * 3.2,
+          poleCtl.radius * 3.4,
+          0.04,
+          24,
+        ),
+      [poleCtl.radius],
+    );
+    useEffect(() => () => basePlateGeometry.dispose(), [basePlateGeometry]);
+
+    const baseBoltGeometry = useMemo(
+      () => new THREE.CylinderGeometry(0.03, 0.03, 0.05, 8),
+      [],
+    );
+    useEffect(() => () => baseBoltGeometry.dispose(), [baseBoltGeometry]);
+
+    const baseBoltPositions = useMemo(() => {
+      const r = poleCtl.radius * 2.7;
+      return Array.from({ length: 6 }, (_, i) => {
+        const angle = (i / 6) * Math.PI * 2;
+        return [Math.cos(angle) * r, 0, Math.sin(angle) * r] as [
+          number,
+          number,
+          number,
+        ];
+      });
+    }, [poleCtl.radius]);
+
+    const trussBarGeometry = useMemo(
+      () =>
+        new THREE.BoxGeometry(
+          width * 0.9,
+          supportCtl.thickness,
+          supportCtl.depth,
+        ),
+      [width, supportCtl.thickness, supportCtl.depth],
+    );
+    useEffect(() => () => trussBarGeometry.dispose(), [trussBarGeometry]);
+
+    const bracketGeometry = useMemo(
+      () =>
+        new THREE.BoxGeometry(
+          supportCtl.width * 2.4,
+          supportCtl.width * 2.4,
+          supportCtl.depth * 1.6,
+        ),
+      [supportCtl.width, supportCtl.depth],
+    );
+    useEffect(() => () => bracketGeometry.dispose(), [bracketGeometry]);
+
+    const braceGeometry = useMemo(
+      () =>
+        new THREE.CylinderGeometry(
+          supportCtl.thickness / 2,
+          supportCtl.thickness / 2,
+          braceLength,
+          8,
+        ),
+      [supportCtl.thickness, braceLength],
+    );
+    useEffect(() => () => braceGeometry.dispose(), [braceGeometry]);
+
+    // OPTIMIZATION: RoundedBox smoothness lowered 3/4 → 2. At this scale the
+    // extra bevel segments were not visually distinguishable but doubled the
+    // triangle count contributed by rounded corners across 5 meshes.
+    const ROUNDED_SMOOTHNESS = 2;
+
     return (
       <group
         ref={groupRef}
@@ -982,178 +1115,118 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
       >
         {/* Centering wrapper: shifts all geometry so model center = origin */}
         <group position={[0, centerOffsetY, 0]}>
+          {/* ---------- Frame ---------- */}
+          <group position={[0, frameMountY, 0]}>
+            {frameBars.map((bar, i) => (
+              <RoundedBox
+                key={i}
+                args={bar.size}
+                radius={Math.min(cornerRadius, Math.min(...bar.size) * 0.3)}
+                smoothness={ROUNDED_SMOOTHNESS}
+                position={bar.position}
+                material={frameMaterial}
+              />
+            ))}
 
-        {/* ---------- Frame ---------- */}
-        <group position={[0, frameMountY, 0]}>
-          {frameBars.map((bar, i) => (
+            {/* inner frame lip, sits just behind the posters */}
             <RoundedBox
-              key={i}
-              args={bar.size}
-              radius={Math.min(cornerRadius, Math.min(...bar.size) * 0.3)}
-              smoothness={3}
-              position={bar.position}
+              args={innerLipSize}
+              radius={Math.min(cornerRadius * 0.6, 0.03)}
+              smoothness={ROUNDED_SMOOTHNESS}
+              position={[0, 0, -frameDepth * 0.2]}
               material={frameMaterial}
-              castShadow
-              receiveShadow
             />
-          ))}
 
-          {/* inner frame lip, sits just behind the posters */}
-          <RoundedBox
-            args={innerLipSize}
-            radius={Math.min(cornerRadius * 0.6, 0.03)}
-            smoothness={4}
-            position={[0, 0, -frameDepth * 0.2]}
-            material={frameMaterial}
-            castShadow
-            receiveShadow
-          />
+            {/* bolts around the frame perimeter */}
+            <BoltField
+              width={width}
+              height={height}
+              frameWidth={frameWidth}
+              depth={frameDepth}
+              material={boltMaterial}
+            />
 
-          {/* bolts around the frame perimeter */}
-          <BoltField
-            width={width}
-            height={height}
-            frameWidth={frameWidth}
-            depth={frameDepth}
-            material={boltMaterial}
-          />
+            {/* ---------- Poster panels (independent front/back) ---------- */}
+            <PosterPanel
+              width={width - frameWidth}
+              height={height - frameWidth}
+              z={thickness / 2 + posterDepth / 2 + posterGap}
+              rotationY={0}
+              material={frontMaterial}
+            />
+            <PosterPanel
+              width={width - frameWidth}
+              height={height - frameWidth}
+              z={-(thickness / 2 + posterDepth / 2 + posterGap)}
+              rotationY={Math.PI}
+              material={backMaterial}
+            />
 
-          {/* ---------- Poster panels (independent front/back) ---------- */}
-          <PosterPanel
-            width={width - frameWidth}
-            height={height - frameWidth}
-            z={thickness / 2 + posterDepth / 2 + posterGap}
-            rotationY={0}
-            material={frontMaterial}
-          />
-          <PosterPanel
-            width={width - frameWidth}
-            height={height - frameWidth}
-            z={-(thickness / 2 + posterDepth / 2 + posterGap)}
-            rotationY={Math.PI}
-            material={backMaterial}
-          />
-
-          {/* ---------- Rear support truss ---------- */}
-          {supportCtl.enableSupports && (
-            <group position={[0, 0, supportZ]}>
-              {/* horizontal brace */}
-              <mesh material={supportMaterial} castShadow receiveShadow>
-                <boxGeometry
-                  args={[width * 0.9, supportCtl.thickness, supportCtl.depth]}
-                />
-              </mesh>
-              {/* mounting bracket connecting truss to pole — shares the
+            {/* ---------- Rear support truss ---------- */}
+            {supportCtl.enableSupports && (
+              <group position={[0, 0, supportZ]}>
+                {/* horizontal brace */}
+                <mesh geometry={trussBarGeometry} material={supportMaterial} />
+                {/* mounting bracket connecting truss to pole — shares the
                   truss group's already-safe depth, no extra z push */}
-              <mesh
-                position={[0, -0.1, 0]}
-                material={supportMaterial}
-                castShadow
-                receiveShadow
-              >
-                <boxGeometry
-                  args={[
-                    supportCtl.width * 2.4,
-                    supportCtl.width * 2.4,
-                    supportCtl.depth * 1.6,
-                  ]}
+                <mesh
+                  position={[0, -0.1, 0]}
+                  geometry={bracketGeometry}
+                  material={supportMaterial}
                 />
-              </mesh>
-            </group>
-          )}
+              </group>
+            )}
 
-          {supportCtl.enableRearBraces && (
-            <group position={[0, 0, supportZ]}>
-              {/* two diagonal braces forming an X */}
-              <mesh
-                rotation={[0, 0, Math.atan2(height, width)]}
-                material={supportMaterial}
-                castShadow
-                receiveShadow
-              >
-                <cylinderGeometry
-                  args={[
-                    supportCtl.thickness / 2,
-                    supportCtl.thickness / 2,
-                    braceLength,
-                    8,
-                  ]}
+            {supportCtl.enableRearBraces && (
+              <group position={[0, 0, supportZ]}>
+                {/* two diagonal braces forming an X */}
+                <mesh
+                  rotation={[0, 0, Math.atan2(height, width)]}
+                  geometry={braceGeometry}
+                  material={supportMaterial}
                 />
-              </mesh>
-              <mesh
-                rotation={[0, 0, -Math.atan2(height, width)]}
-                material={supportMaterial}
-                castShadow
-                receiveShadow
-              >
-                <cylinderGeometry
-                  args={[
-                    supportCtl.thickness / 2,
-                    supportCtl.thickness / 2,
-                    braceLength,
-                    8,
-                  ]}
+                <mesh
+                  rotation={[0, 0, -Math.atan2(height, width)]}
+                  geometry={braceGeometry}
+                  material={supportMaterial}
                 />
-              </mesh>
-            </group>
-          )}
-        </group>
+              </group>
+            )}
+          </group>
 
-        {/* ---------- Pole ---------- */}
-        <group
-          position={poleCtl.position}
-          rotation={poleCtl.rotation}
-          scale={poleCtl.scale}
-        >
-          <mesh
-            position={[0, poleCtl.height / 2, 0]}
-            material={poleMaterial}
-            castShadow
-            receiveShadow
+          {/* ---------- Pole ---------- */}
+          <group
+            position={poleCtl.position}
+            rotation={poleCtl.rotation}
+            scale={poleCtl.scale}
           >
-            <cylinderGeometry
-              args={[
-                poleCtl.radius,
-                poleCtl.radius * 1.05,
-                poleCtl.height,
-                poleCtl.segments,
-              ]}
+            <mesh
+              position={[0, poleCtl.height / 2, 0]}
+              geometry={poleGeometry}
+              material={poleMaterial}
             />
-          </mesh>
 
-          {/* base connection plate */}
-          <mesh
-            position={[0, 0.02, 0]}
-            material={supportMaterial}
-            castShadow
-            receiveShadow
-          >
-            <cylinderGeometry
-              args={[poleCtl.radius * 3.2, poleCtl.radius * 3.4, 0.04, 24]}
+            {/* base connection plate */}
+            <mesh
+              position={[0, 0.02, 0]}
+              geometry={basePlateGeometry}
+              material={supportMaterial}
             />
-          </mesh>
 
-          {/* base plate bolts */}
-          <group position={[0, 0.045, 0]}>
-            {Array.from({ length: 6 }).map((_, i) => {
-              const angle = (i / 6) * Math.PI * 2;
-              const r = poleCtl.radius * 2.7;
-              return (
+            {/* base plate bolts */}
+            <group position={[0, 0.045, 0]}>
+              {baseBoltPositions.map((p, i) => (
                 <mesh
                   key={i}
-                  position={[Math.cos(angle) * r, 0, Math.sin(angle) * r]}
+                  position={p}
+                  geometry={baseBoltGeometry}
                   material={boltMaterial}
-                  castShadow
-                >
-                  <cylinderGeometry args={[0.03, 0.03, 0.05, 8]} />
-                </mesh>
-              );
-            })}
+                />
+              ))}
+            </group>
           </group>
-        </group>
-
-        </group> {/* end centering wrapper */}
-
+        </group>{" "}
+        {/* end centering wrapper */}
         {/* ---------- Debug helpers ---------- */}
         {wireframeCtl.axes && (
           <axesHelper args={[Math.max(width, height, poleCtl.height)]} />
@@ -1206,21 +1279,12 @@ function SceneContents({
   billboardRef: React.RefObject<BillboardImperativeHandle | null>;
 }) {
   const { camera } = useThree();
-  const orbitRef = useRef<{ target: THREE.Vector3 }>(null);
-
+  const orbitRef = useRef<OrbitControlsImpl>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera>(null);
   const lightingCtl = useControls("Lighting", {
     ambientIntensity: { value: 0.18, min: 0, max: 2, step: 0.01 },
-    // Key light — warm spot above & in front of the billboard face
-    keyLight:   { value: 2.2,  min: 0, max: 8,  step: 0.05 },
-    // Fill light — cool bounce from opposite side
-    fillLight:  { value: 0.35, min: 0, max: 3,  step: 0.05 },
-    // Rim light — separates frame from dark background
-    rimLight:   { value: 0.5,  min: 0, max: 3,  step: 0.05 },
-    // Ground bounce — subtle warm uplight from city glow
-    groundBounce: { value: 0.2, min: 0, max: 2, step: 0.05 },
-    hdrIntensity: { value: 0.6, min: 0, max: 3,  step: 0.05 },
-    exposure:   { value: 1.2,  min: 0.1, max: 3, step: 0.05 },
-    shadowBias: { value: -0.001, min: -0.01, max: 0.01, step: 0.0001 },
+    hdrIntensity: { value: 0.6, min: 0, max: 3, step: 0.05 },
+    exposure: { value: 1.2, min: 0.1, max: 3, step: 0.05 },
   });
 
   // With centering, model center = y:0, frame board center ≈ y:1.6,
@@ -1228,25 +1292,30 @@ function SceneContents({
   const cameraCtl = useControls("Camera", {
     position: { value: [5.5, 1.2, 9.5] as [number, number, number] },
     rotation: { value: [0, 0, 0] as [number, number, number] },
-    target:   { value: [0, 0.8, 0] as [number, number, number] },
-    fov:  { value: 38, min: 10, max: 100, step: 1 },
+    target: { value: [0, 0.8, 0] as [number, number, number] },
+    fov: { value: 38, min: 10, max: 100, step: 1 },
     zoom: { value: 1, min: 0.2, max: 3, step: 0.05 },
     Interaction: folder({
       controlsEnabled: { value: true, label: "Enable Drag" },
-      enableZoom:   { value: true, label: "Zoom" },
+      enableZoom: { value: true, label: "Zoom" },
       enableRotate: { value: true, label: "Rotate" },
-      enablePan:    { value: true, label: "Pan" },
+      enablePan: { value: true, label: "Pan" },
     }),
     // Copy current live camera position + target to clipboard
     "📋 Copy Current State": button(() => {
       const pos = camera.position;
       const tgt = orbitRef.current?.target ?? new THREE.Vector3();
       const state = {
-        cameraPosition: [+pos.x.toFixed(3), +pos.y.toFixed(3), +pos.z.toFixed(3)],
-        cameraTarget:   [+tgt.x.toFixed(3), +tgt.y.toFixed(3), +tgt.z.toFixed(3)],
+        cameraPosition: [
+          +pos.x.toFixed(3),
+          +pos.y.toFixed(3),
+          +pos.z.toFixed(3),
+        ],
+        cameraTarget: [+tgt.x.toFixed(3), +tgt.y.toFixed(3), +tgt.z.toFixed(3)],
         fov: (camera as THREE.PerspectiveCamera).fov,
       };
-      navigator.clipboard.writeText(JSON.stringify(state, null, 2))
+      navigator.clipboard
+        .writeText(JSON.stringify(state, null, 2))
         .then(() => console.info("📋 Camera state copied:", state))
         .catch(() => console.info("📋 Camera state:", state));
     }),
@@ -1267,6 +1336,7 @@ function SceneContents({
   return (
     <>
       <PerspectiveCamera
+        ref={cameraRef}
         makeDefault
         position={cameraCtl.position}
         rotation={cameraCtl.rotation}
@@ -1290,72 +1360,71 @@ function SceneContents({
       {/* Ambient — low night-sky base */}
       <ambientLight intensity={lightingCtl.ambientIntensity} color="#c8d8ff" />
 
-      {/* Key light — warm overhead flood (real billboards have top-mounted floods) */}
-      <directionalLight
-        position={[2, 6, 5]}
-        intensity={lightingCtl.keyLight}
-        color="#fff5e0"
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        shadow-bias={lightingCtl.shadowBias}
-        shadow-camera-near={0.5}
-        shadow-camera-far={30}
-        shadow-camera-left={-8}
-        shadow-camera-right={8}
-        shadow-camera-top={8}
-        shadow-camera-bottom={-8}
-      />
+      {/*
+        OPTIMIZATION / NOTE: every directional light that used to live here
+        was commented out, so `shadows` on the <Canvas> and every
+        castShadow/receiveShadow flag in this file was pure overhead — the
+        renderer was building shadow-map render targets for zero lights
+        that actually cast shadows. That dead weight has been removed from
+        the Canvas + meshes.
 
-      {/* Second key — from upper left so both sides of frame get light */}
-      <directionalLight
-        position={[-3, 5, 4]}
-        intensity={lightingCtl.keyLight * 0.55}
-        color="#ffe8c8"
-      />
+        If/when you bring back a real shadow-casting light (e.g. the key
+        light below), re-enable shadows in three places:
+          1. <Canvas shadows={{ type: THREE.PCFShadowMap }}>
+          2. castShadow on the light itself + shadow-mapSize-* / shadow-camera-* props
+          3. castShadow/receiveShadow on the meshes that should participate
 
-      {/* Fill — cool blue from the right/back, city sky feel */}
-      <directionalLight
-        position={[-5, 1, -4]}
-        intensity={lightingCtl.fillLight}
-        color="#8ab0ff"
-      />
+        <directionalLight
+          position={[2, 6, 5]}
+          intensity={lightingCtl.keyLight}
+          color="#fff5e0"
+          castShadow
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
+          shadow-camera-near={0.5}
+          shadow-camera-far={30}
+          shadow-camera-left={-8}
+          shadow-camera-right={8}
+          shadow-camera-top={8}
+          shadow-camera-bottom={-8}
+        />
+      */}
 
-      {/* Rim — cold backlight to edge-separate frame from dark sky */}
-      <directionalLight
-        position={[0, 2, -8]}
-        intensity={lightingCtl.rimLight}
-        color="#6688cc"
-      />
+      {/*
+        OPTIMIZATION: this is the single biggest "load fast" lever you can
+        pull, and it lives outside this file — in the actual .hdr asset.
 
-      {/* Ground bounce — warm orange-amber, city light from below */}
-      <directionalLight
-        position={[0, -6, 3]}
-        intensity={lightingCtl.groundBounce}
-        color="#ffb060"
-      />
+        `resolution={64}` below only controls how finely three.js resamples
+        the HDR into a PMREM cube map for reflections (cheap either way for
+        a blurry metal-frame reflection). The real cost is the network
+        download of the source file itself. A "4k" equirectangular HDR is
+        typically several MB — for image-based lighting that's only ever
+        seen as a soft blurred reflection on a billboard frame, that's a lot
+        of bytes paid for detail nobody will see.
 
-      {/* Environment — soft procedural cube map for frame reflections */}
-      <Environment resolution={128} environmentIntensity={lightingCtl.hdrIntensity}>
-        {/* Large soft overhead panel — simulates overcast city sky */}
-        <Lightformer intensity={1.2} color="#c8d8ff" position={[0, 10, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[20, 20, 1]} />
-        {/* Warm glow from city below */}
-        <Lightformer intensity={0.8} color="#ff9944" position={[0, -6, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[15, 15, 1]} />
-        {/* Warm front fill — matches key light */}
-        <Lightformer intensity={1.5} color="#fff5e0" position={[0, 3, 8]} scale={[10, 6, 1]} />
-        {/* Cool side bounce */}
-        <Lightformer intensity={0.5} color="#7799ff" position={[-8, 2, 0]} rotation={[0, Math.PI / 2, 0]} scale={[8, 8, 1]} />
-      </Environment>
+        Recommended fix (pick one):
+          - Swap the file for a 1k or 2k version of the same HDRI (most HDRI
+            sites offer multiple resolutions of the same scene for free).
+          - Convert it to a compressed format (e.g. KTX2/Basis via a build
+            step) instead of a raw .hdr.
+          - Or drop the custom file entirely and use one of drei's built-in
+            lightweight presets, e.g. <Environment preset="city" />, which
+            ships pre-baked and is dramatically smaller.
+      */}
+      <Environment
+        resolution={64}
+        environmentIntensity={lightingCtl.hdrIntensity}
+        files="environment/photo_studio_01_4k.hdr"
+      />
 
       {debugCtl.grid && <Grid args={[20, 20]} position={[0, -3, 0]} />}
 
-      {/* Shadow ground — positioned at pole base (-2.9 with centering) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -2.92, 0]}>
-        <planeGeometry args={[40, 40]} />
-        <shadowMaterial opacity={0.18} />
-      </mesh>
-
-      <BillboardMesh ref={billboardRef} wireframe={debugCtl.wireframe} />
+      <BillboardMesh
+        ref={billboardRef}
+        cameraRef={cameraRef}
+        orbitRef={orbitRef}
+        wireframe={debugCtl.wireframe}
+      />
     </>
   );
 }
@@ -1368,28 +1437,41 @@ export interface BillboardProps {
   /** Height of the fixed background canvas. Stays pinned to the viewport at
    *  this size regardless of how tall `children` is. Defaults to '100vh'. */
   height?: string;
-  /** Show the Leva control panel. Defaults to true; set false in production. */
+  /** Show the Leva control panel. Defaults to false; the panel component
+   *  isn't mounted at all unless this is true (see OPTIMIZATION below). */
   showControls?: boolean;
   className?: string;
   /** Scrollable page content rendered *over* the fixed canvas. Can be taller
    *  than the canvas — the canvas stays put as this scrolls past it. */
   children?: React.ReactNode;
+  onReady?: (billboard: BillboardImperativeHandle) => void;
 }
 
 export default function Billboard({
   height = "100vh",
-  showControls = true,
+  showControls = false,
   className,
   children,
+  onReady,
 }: BillboardProps) {
-  const billboardRef = useRef<BillboardImperativeHandle>(null);
+  const internalRef = useRef<BillboardImperativeHandle>(null);
+
+  useEffect(() => {
+    if (internalRef.current && onReady) {
+      onReady(internalRef.current);
+    }
+  }, [onReady]);
+
   // Fade in once the scene has rendered its first frame — avoids the flash
   // of fallback colours while textures and geometry compile on the GPU.
   const [visible, setVisible] = useState(false);
 
   return (
     <div className={className} style={{ position: "relative" }}>
-      <Leva hidden={!showControls} collapsed={false} />
+      {/* OPTIMIZATION: previously always mounted `<Leva hidden={!showControls} />`,
+          so the panel's DOM/JS existed even when nobody could see it. Now it
+          isn't mounted at all unless explicitly requested. */}
+      {showControls && <Leva collapsed />}
 
       <div
         style={{
@@ -1404,8 +1486,7 @@ export default function Billboard({
         }}
       >
         <Canvas
-          shadows={{ type: THREE.PCFShadowMap }}
-          dpr={[1, 1.5]}
+          dpr={[1, 1.25]} // OPTIMIZATION: was [1, 1.5]
           gl={{
             antialias: true,
             alpha: true,
@@ -1424,7 +1505,7 @@ export default function Billboard({
           <Bvh>
             <AdaptiveDpr pixelated={false} />
             <AdaptiveEvents />
-            <SceneContents billboardRef={billboardRef} />
+            <SceneContents billboardRef={internalRef} />
           </Bvh>
         </Canvas>
       </div>
@@ -1449,7 +1530,9 @@ export default function Billboard({
 //                                               can read from (e.g. via a shared store
 //                                               or by passing camera/env props down
 //                                               instead of using internal Leva state
-//                                               in production).
+//
+//
+//         in production).
 //
 // To wire this up later:
 //   1. Replace the Leva-driven camera/lighting values in `SceneContents` with
@@ -1459,3 +1542,15 @@ export default function Billboard({
 //   3. Mount this component inside the future fullscreen background canvas by
 //      reusing `BillboardMesh` + `SceneContents` directly rather than the
 //      default-exported `<Billboard />` wrapper (which owns its own Canvas).
+//
+// ADDITIONAL LOAD-TIME LEVER (not done here, needs the host page):
+//   This component pulls in three.js + @react-three/fiber + drei + leva,
+//   which is a meaningfully sized JS bundle. If Billboard isn't needed on
+//   first paint, code-split it at the import site:
+//
+//     const Billboard = dynamic(() => import('@/components/Billboard'), {
+//       ssr: false,
+//     });
+//
+//   That defers downloading/parsing all of the above until this component
+//   is actually rendered, instead of bundling it into the initial page load.

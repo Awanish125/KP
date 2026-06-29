@@ -1,10 +1,14 @@
 "use client";
 
+import Billboard, {
+  BillboardImperativeHandle,
+} from "@/components/ThreeDObject/Billboard";
+import { HeroSection, Loading } from "@/components/ui";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
 import { useRef } from "react";
-import { HeroSection } from "@/components/ui";
-import { useBillboardScroll } from "@/hooks/useBillboardScroll";
-import BillboardScrollScene from "@/components/ThreeDObject/BillboardScrollScene";
-import type { BillboardSceneHandle } from "@/components/ThreeDObject/BillboardScrollScene";
+gsap.registerPlugin(ScrollTrigger);
 
 const IMAGES = [
   "/homepage/herosection/1.png",
@@ -16,55 +20,51 @@ const IMAGES = [
 ];
 
 function HomeContent() {
-  /**
-   * triggerRef wraps Hero + spacer (200vh total).
-   * ScrollTrigger runs from top to end of spacer — no pin needed,
-   * so Lenis smooth scroll stays uninterrupted.
-   */
-  const triggerRef = useRef<HTMLDivElement | null>(null);
-  const sceneRef = useRef<BillboardSceneHandle | null>(null);
+  const billboard = useRef<BillboardImperativeHandle | null>(null);
+  useGSAP(() => {
+    const board = billboard.current?.group;
 
-  useBillboardScroll({ triggerRef, sceneRef });
+    if (!board) return;
 
+    gsap.set(board.scale, {
+      x: 0,
+      y: 0,
+      z: 0,
+    });
+
+    gsap.set(board.position, {
+      x: 0,
+      y: -2,
+      z: 0,
+    });
+  });
   return (
     <>
-      {/* Billboard canvas: fixed overlay, z-index below content section */}
-      <BillboardScrollScene
-        ref={sceneRef}
-        frontImage="/homepage/herosection/1.png"
-        backImage="/homepage/herosection/kp.png"
-      />
-
-      {/*
-       * Trigger zone: Hero (100vh) + animation spacer (100vh) = 200vh.
-       * As user scrolls through this zone, ScrollTrigger drives the
-       * billboard animation. No pin — page scrolls normally.
-       */}
-      <div ref={triggerRef}>
-        {/* Hero occupies first viewport */}
-        <div style={{ height: "100vh", position: "relative", zIndex: 5 }}>
-          <HeroSection images={IMAGES} />
-        </div>
-
-        {/* Spacer: gives scroll room for billboard to complete its animation */}
-        <div style={{ height: "100vh", position: "relative" }} aria-hidden="true" />
-      </div>
-
-      {/* Content sits above the fixed billboard */}
-      <div
-        style={{
-          position: "relative",
-          zIndex: 20,
-          background: "var(--background)",
-          minHeight: "100vh",
-          padding: "4rem 2rem",
+      <Loading />
+      <Billboard
+        className="fixed top-0 left-0"
+        onReady={(instance) => {
+          billboard.current = instance;
         }}
-      >
-        <h2 style={{ fontSize: "2rem", fontWeight: 700 }}>Our Work</h2>
-        <p style={{ marginTop: "1rem", opacity: 0.7 }}>
-          Billboard advertising across the city — reaching millions of eyes daily.
-        </p>
-        <div style={{ height: "200vh" }} />
+      />
+      <div style={{ height: "100vh", position: "relative", zIndex: 5 }}>
+        <HeroSection images={IMAGES} />
+      </div>
+      <div className="bg-red h-screen flex">
+        <div className="w-1/2 h-full">
+          Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis
+          repellendus dolore quo vero aut est voluptates voluptas accusamus et
+          facilis commodi, nemo ad maiores omnis, a ipsum eum laborum tenetur.
+        </div>
+        <div className="w-1/2 h-full bg-amber-200"></div>
+      </div>
+      <div className="bg-red  flex">
+        <div className="w-1/2 h-screen bg-amber-200"></div>
+        <div className="w-1/2 h-screen">
+          Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis
+          repellendus dolore quo vero aut est voluptates voluptas accusamus et
+          facilis commodi, nemo ad maiores omnis, a ipsum eum laborum tenetur.
+        </div>
       </div>
     </>
   );
