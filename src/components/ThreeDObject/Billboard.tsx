@@ -559,14 +559,14 @@ export interface BillboardImperativeHandle {
 }
 
 export interface BillboardMeshProps {
-  /** Declarative transform overrides — future scroll/GSAP-driven layouts can
-   *  pass these in directly instead of (or in addition to) using the ref. */
   position?: [number, number, number];
   rotation?: [number, number, number];
   scale?: number | [number, number, number];
   visible?: boolean;
   frontImage?: string;
   backImage?: string;
+  /** Force wireframe on all materials — driven by SceneContents debug toggle */
+  wireframe?: boolean;
 }
 
 const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
@@ -576,6 +576,7 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
       rotation = [0, 0, 0],
       scale = 1,
       visible = true,
+      wireframe: wireframeProp = false,
     } = props;
 
     /* ---- Leva: Billboard dimensions ---- */
@@ -610,20 +611,19 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
       depth: { value: 0.06, min: 0.01, max: 0.2, step: 0.005 },
     });
 
-    /* ---- Leva: Posters ----
-     * frontImage/backImage accept either a still image path or a video
-     * path (.mp4/.webm/.mov/etc). Videos autoplay muted and loop. */
+    /* ---- Leva: Posters ---- */
     const posterCtl = useControls("Posters", {
       frontImage: {
-        value: props.frontImage ?? "/posters/front.jpg",
+        value: props.frontImage ?? "/homepage/herosection/1.png",
         label: "Front Image/Video",
       },
       backImage: {
-        value: props.backImage ?? "/posters/back.jpg",
+        // Default back to kp.png (logo/brand); or same as front if neither provided
+        value: props.backImage ?? "/homepage/herosection/kp.png",
         label: "Back Image/Video",
       },
-      frontBrightness: { value: 1.55, min: 0, max: 3, step: 0.01 },
-      backBrightness: { value: 1.55, min: 0, max: 3, step: 0.01 },
+      frontBrightness: { value: 1.4, min: 0, max: 3, step: 0.01 },
+      backBrightness:  { value: 1.4, min: 0, max: 3, step: 0.01 },
       frontOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
       backOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
       contrast: { value: 1, min: 0, max: 2, step: 0.01 },
@@ -636,20 +636,21 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
     /* ---- Leva: Materials ---- */
     const frameMatCtl = useControls("Materials", {
       Frame: folder({
-        metalness: { value: 0.85, min: 0, max: 1, step: 0.01 },
-        roughness: { value: 0.4, min: 0, max: 1, step: 0.01 },
-        clearcoat: { value: 0.15, min: 0, max: 1, step: 0.01 },
-        clearcoatRoughness: { value: 0.3, min: 0, max: 1, step: 0.01 },
-        normalScale: { value: 1, min: 0, max: 3, step: 0.05 },
-        bumpScale: { value: 0.02, min: 0, max: 0.2, step: 0.005 },
-        envMapIntensity: { value: 1, min: 0, max: 5, step: 0.05 },
-        colorTint: "#9fb39a",
+        metalness:          { value: 0.75, min: 0, max: 1,   step: 0.01 },
+        roughness:          { value: 0.65, min: 0, max: 1,   step: 0.01 },
+        // Low clearcoat = natural weathered steel, not plastic/chrome
+        clearcoat:          { value: 0.04, min: 0, max: 1,   step: 0.01 },
+        clearcoatRoughness: { value: 0.5,  min: 0, max: 1,   step: 0.01 },
+        normalScale:        { value: 1.2,  min: 0, max: 3,   step: 0.05 },
+        bumpScale:          { value: 0.03, min: 0, max: 0.2, step: 0.005 },
+        envMapIntensity:    { value: 0.7,  min: 0, max: 5,   step: 0.05 },
+        colorTint: "#8a9e84",
       }),
       Pole: folder({
-        poleMetalness: { value: 0.18, min: 0, max: 1, step: 0.01 },
-        poleRoughness: { value: 1, min: 0, max: 1, step: 0.01 },
-        poleBumpScale: { value: 0.10, min: 0, max: 0.1, step: 0.002 },
-        poleColorTint: "#939393",
+        poleMetalness: { value: 0.3,  min: 0, max: 1,   step: 0.01 },
+        poleRoughness: { value: 0.85, min: 0, max: 1,   step: 0.01 },
+        poleBumpScale: { value: 0.06, min: 0, max: 0.2, step: 0.002 },
+        poleColorTint: "#7a7a7a",
       }),
     });
 
@@ -669,7 +670,8 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
     });
 
     const wireframeCtl = useControls("Debug", {
-      wireframe: false,
+      // wireframe is also driven by the prop from SceneContents' debug toggle
+      wireframe: wireframeProp,
       boundingBox: false,
       axes: false,
     });
@@ -954,18 +956,21 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
       [frontMaterial, backMaterial, frontUniforms, backUniforms],
     );
 
-    /* ---- frame mount height ----
-     * The pole's round shaft always terminates at (and tucks slightly into)
-     * the bottom-back of the frame — it never reaches anywhere near the top.
-     * This isn't a clamp or a fraction that can break with different slider
-     * values; it's true by construction, the same way a real billboard pole
-     * only carries the sign from below while a separate rear lattice/truss
-     * (already modeled below) bridges up the back for rigidity. */
-    const poleEmbed = frameWidth * 0.5; // how far the pole tucks into the bottom bar
+    /* ---- frame mount height & vertical centering ----
+     * Pole base sits at y=0. Frame top = poleHeight - poleEmbed + height + frameWidth/2.
+     * centerOffsetY shifts everything down so the model's geometric center
+     * lands exactly at the group's origin — position [0,0,0] = model center. */
+    const poleEmbed = frameWidth * 0.5;
     const frameMountY = useMemo(
       () => poleCtl.height - poleEmbed + height / 2,
       [poleCtl.height, poleEmbed, height],
     );
+    // Total model height: from pole base (y=0) to top of frame border
+    const totalModelHeight = useMemo(
+      () => poleCtl.height - poleEmbed + height + frameWidth / 2,
+      [poleCtl.height, poleEmbed, height, frameWidth],
+    );
+    const centerOffsetY = -totalModelHeight / 2;
 
     return (
       <group
@@ -975,6 +980,9 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
         scale={scale}
         visible={visible}
       >
+        {/* Centering wrapper: shifts all geometry so model center = origin */}
+        <group position={[0, centerOffsetY, 0]}>
+
         {/* ---------- Frame ---------- */}
         <group position={[0, frameMountY, 0]}>
           {frameBars.map((bar, i) => (
@@ -1144,6 +1152,8 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
           </group>
         </group>
 
+        </group> {/* end centering wrapper */}
+
         {/* ---------- Debug helpers ---------- */}
         {wireframeCtl.axes && (
           <axesHelper args={[Math.max(width, height, poleCtl.height)]} />
@@ -1195,32 +1205,55 @@ function SceneContents({
 }: {
   billboardRef: React.RefObject<BillboardImperativeHandle | null>;
 }) {
+  const { camera } = useThree();
+  const orbitRef = useRef<{ target: THREE.Vector3 }>(null);
+
   const lightingCtl = useControls("Lighting", {
-    ambientIntensity: { value: 0.35, min: 0, max: 2, step: 0.01 },
-    directionalIntensity: { value: 1.4, min: 0, max: 5, step: 0.05 },
-    fillLight: { value: 0.4, min: 0, max: 3, step: 0.05 },
-    rimLight: { value: 0.6, min: 0, max: 3, step: 0.05 },
-    hdrIntensity: { value: 1, min: 0, max: 3, step: 0.05 },
-    exposure: { value: 1.4, min: 0.1, max: 3, step: 0.05 },
-    shadowBias: { value: -0.0005, min: -0.01, max: 0.01, step: 0.0001 },
+    ambientIntensity: { value: 0.18, min: 0, max: 2, step: 0.01 },
+    // Key light — warm spot above & in front of the billboard face
+    keyLight:   { value: 2.2,  min: 0, max: 8,  step: 0.05 },
+    // Fill light — cool bounce from opposite side
+    fillLight:  { value: 0.35, min: 0, max: 3,  step: 0.05 },
+    // Rim light — separates frame from dark background
+    rimLight:   { value: 0.5,  min: 0, max: 3,  step: 0.05 },
+    // Ground bounce — subtle warm uplight from city glow
+    groundBounce: { value: 0.2, min: 0, max: 2, step: 0.05 },
+    hdrIntensity: { value: 0.6, min: 0, max: 3,  step: 0.05 },
+    exposure:   { value: 1.2,  min: 0.1, max: 3, step: 0.05 },
+    shadowBias: { value: -0.001, min: -0.01, max: 0.01, step: 0.0001 },
   });
 
+  // With centering, model center = y:0, frame board center ≈ y:1.6,
+  // pole base ≈ y:-2.9. Camera targets the board face, not the pole base.
   const cameraCtl = useControls("Camera", {
-    position: { value: [4.5, 2.2, 6] as [number, number, number] },
+    position: { value: [5.5, 1.2, 9.5] as [number, number, number] },
     rotation: { value: [0, 0, 0] as [number, number, number] },
-    target: { value: [0, 1.6, 0] as [number, number, number] },
-    fov: { value: 42, min: 10, max: 100, step: 1 },
+    target:   { value: [0, 0.8, 0] as [number, number, number] },
+    fov:  { value: 38, min: 10, max: 100, step: 1 },
     zoom: { value: 1, min: 0.2, max: 3, step: 0.05 },
     Interaction: folder({
-      controlsEnabled: { value: true, label: "Enable Controls" },
-      enableZoom: { value: true, label: "Zoom" },
+      controlsEnabled: { value: true, label: "Enable Drag" },
+      enableZoom:   { value: true, label: "Zoom" },
       enableRotate: { value: true, label: "Rotate" },
-      enablePan: { value: true, label: "Pan" },
+      enablePan:    { value: true, label: "Pan" },
+    }),
+    // Copy current live camera position + target to clipboard
+    "📋 Copy Current State": button(() => {
+      const pos = camera.position;
+      const tgt = orbitRef.current?.target ?? new THREE.Vector3();
+      const state = {
+        cameraPosition: [+pos.x.toFixed(3), +pos.y.toFixed(3), +pos.z.toFixed(3)],
+        cameraTarget:   [+tgt.x.toFixed(3), +tgt.y.toFixed(3), +tgt.z.toFixed(3)],
+        fov: (camera as THREE.PerspectiveCamera).fov,
+      };
+      navigator.clipboard.writeText(JSON.stringify(state, null, 2))
+        .then(() => console.info("📋 Camera state copied:", state))
+        .catch(() => console.info("📋 Camera state:", state));
     }),
   });
 
   const debugCtl = useControls("Debug", {
-    helpers: false,
+    wireframe: false,
     grid: false,
   });
 
@@ -1230,8 +1263,6 @@ function SceneContents({
     gl.toneMappingExposure = lightingCtl.exposure;
     gl.outputColorSpace = THREE.SRGBColorSpace;
   }, [gl, lightingCtl.exposure]);
-
-  const dirLightRef = useRef<THREE.DirectionalLight>(null);
 
   return (
     <>
@@ -1243,84 +1274,88 @@ function SceneContents({
         zoom={cameraCtl.zoom}
       />
       <OrbitControls
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ref={orbitRef as any}
         target={cameraCtl.target}
         enabled={cameraCtl.controlsEnabled}
         enableZoom={cameraCtl.enableZoom}
         enableRotate={cameraCtl.enableRotate}
         enablePan={cameraCtl.enablePan}
         enableDamping
+        dampingFactor={0.08}
+        minDistance={3}
+        maxDistance={30}
       />
 
-      <ambientLight intensity={lightingCtl.ambientIntensity} />
+      {/* Ambient — low night-sky base */}
+      <ambientLight intensity={lightingCtl.ambientIntensity} color="#c8d8ff" />
+
+      {/* Key light — warm overhead flood (real billboards have top-mounted floods) */}
       <directionalLight
-        ref={dirLightRef}
-        position={[5, 6, 4]}
-        intensity={lightingCtl.directionalIntensity}
+        position={[2, 6, 5]}
+        intensity={lightingCtl.keyLight}
+        color="#fff5e0"
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
         shadow-bias={lightingCtl.shadowBias}
-      />
-      {/* fill light, softens shadow side */}
-      <directionalLight
-        position={[-4, 2, -3]}
-        intensity={lightingCtl.fillLight}
-      />
-      {/* rim light, separates silhouette from background */}
-      <directionalLight
-        position={[0, 3, -6]}
-        intensity={lightingCtl.rimLight}
+        shadow-camera-near={0.5}
+        shadow-camera-far={30}
+        shadow-camera-left={-8}
+        shadow-camera-right={8}
+        shadow-camera-top={8}
+        shadow-camera-bottom={-8}
       />
 
-      {/* Procedural environment map — built entirely from in-scene light
-          panels, so there is no network fetch (no remote .hdr file) and the
-          billboard still gets soft, realistic reflections/lighting. */}
-      <Environment
-        resolution={256}
-        environmentIntensity={lightingCtl.hdrIntensity}
-      >
-        <Lightformer
-          intensity={2.5}
-          color="#ffffff"
-          position={[0, 6, -6]}
-          scale={[12, 6, 1]}
-        />
-        <Lightformer
-          intensity={1.2}
-          color="#bcd4ff"
-          position={[-6, 3, 4]}
-          rotation={[0, Math.PI / 3, 0]}
-          scale={[6, 6, 1]}
-        />
-        <Lightformer
-          intensity={1.2}
-          color="#ffdfb0"
-          position={[6, 3, 4]}
-          rotation={[0, -Math.PI / 3, 0]}
-          scale={[6, 6, 1]}
-        />
-        <Lightformer
-          intensity={0.6}
-          color="#ffffff"
-          position={[0, -5, 2]}
-          rotation={[Math.PI / 2, 0, 0]}
-          scale={[10, 10, 1]}
-        />
+      {/* Second key — from upper left so both sides of frame get light */}
+      <directionalLight
+        position={[-3, 5, 4]}
+        intensity={lightingCtl.keyLight * 0.55}
+        color="#ffe8c8"
+      />
+
+      {/* Fill — cool blue from the right/back, city sky feel */}
+      <directionalLight
+        position={[-5, 1, -4]}
+        intensity={lightingCtl.fillLight}
+        color="#8ab0ff"
+      />
+
+      {/* Rim — cold backlight to edge-separate frame from dark sky */}
+      <directionalLight
+        position={[0, 2, -8]}
+        intensity={lightingCtl.rimLight}
+        color="#6688cc"
+      />
+
+      {/* Ground bounce — warm orange-amber, city light from below */}
+      <directionalLight
+        position={[0, -6, 3]}
+        intensity={lightingCtl.groundBounce}
+        color="#ffb060"
+      />
+
+      {/* Environment — soft procedural cube map for frame reflections */}
+      <Environment resolution={128} environmentIntensity={lightingCtl.hdrIntensity}>
+        {/* Large soft overhead panel — simulates overcast city sky */}
+        <Lightformer intensity={1.2} color="#c8d8ff" position={[0, 10, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[20, 20, 1]} />
+        {/* Warm glow from city below */}
+        <Lightformer intensity={0.8} color="#ff9944" position={[0, -6, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[15, 15, 1]} />
+        {/* Warm front fill — matches key light */}
+        <Lightformer intensity={1.5} color="#fff5e0" position={[0, 3, 8]} scale={[10, 6, 1]} />
+        {/* Cool side bounce */}
+        <Lightformer intensity={0.5} color="#7799ff" position={[-8, 2, 0]} rotation={[0, Math.PI / 2, 0]} scale={[8, 8, 1]} />
       </Environment>
 
-      {debugCtl.grid && <Grid args={[20, 20]} position={[0, 0.001, 0]} />}
-      {debugCtl.helpers && dirLightRef.current && (
-        <primitive
-          object={new THREE.DirectionalLightHelper(dirLightRef.current, 1)}
-        />
-      )}
+      {debugCtl.grid && <Grid args={[20, 20]} position={[0, -3, 0]} />}
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0, 0]}>
-        <planeGeometry args={[60, 60]} />
-        <shadowMaterial opacity={0.25} />
+      {/* Shadow ground — positioned at pole base (-2.9 with centering) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -2.92, 0]}>
+        <planeGeometry args={[40, 40]} />
+        <shadowMaterial opacity={0.18} />
       </mesh>
 
-      <BillboardMesh ref={billboardRef} />
+      <BillboardMesh ref={billboardRef} wireframe={debugCtl.wireframe} />
     </>
   );
 }
@@ -1348,13 +1383,14 @@ export default function Billboard({
   children,
 }: BillboardProps) {
   const billboardRef = useRef<BillboardImperativeHandle>(null);
+  // Fade in once the scene has rendered its first frame — avoids the flash
+  // of fallback colours while textures and geometry compile on the GPU.
+  const [visible, setVisible] = useState(false);
 
   return (
     <div className={className} style={{ position: "relative" }}>
-      <Leva hidden={!showControls} collapsed />
+      <Leva hidden={!showControls} collapsed={false} />
 
-      {/* Pinned background canvas — fixed to the viewport, always `height`
-          tall, stays in place while the content below scrolls over it. */}
       <div
         style={{
           position: "fixed",
@@ -1363,18 +1399,27 @@ export default function Billboard({
           width: "100%",
           height,
           zIndex: 0,
+          opacity: visible ? 1 : 0,
+          transition: "opacity 0.6s ease",
         }}
       >
         <Canvas
           shadows={{ type: THREE.PCFShadowMap }}
-          dpr={[1, 2]}
+          dpr={[1, 1.5]}
           gl={{
             antialias: true,
             alpha: true,
             powerPreference: "high-performance",
           }}
-          camera={{ position: [4.5, 2.2, 6], fov: 42 }}
+          camera={{ position: [5.5, 1.2, 9.5], fov: 38 }}
           style={{ background: "transparent" }}
+          // Reveal the canvas once the first frame is drawn
+          onCreated={() => {
+            // Wait two rAF ticks so textures have started uploading to GPU
+            requestAnimationFrame(() =>
+              requestAnimationFrame(() => setVisible(true)),
+            );
+          }}
         >
           <Bvh>
             <AdaptiveDpr pixelated={false} />
@@ -1384,7 +1429,6 @@ export default function Billboard({
         </Canvas>
       </div>
 
-      {/* Scrollable content — can be any height, sits above the canvas. */}
       <div style={{ position: "relative", zIndex: 1 }}>{children}</div>
     </div>
   );
