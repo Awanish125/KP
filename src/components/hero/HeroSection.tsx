@@ -408,7 +408,7 @@ function HeroDebug({ uniformsRef, timingsRef }: HeroDebugProps) {
           },
         },
         offsetX: {
-          value: 0.0,
+          value: -0.25,
           min: -2.0,
           max: 2.0,
           step: 0.01,
@@ -943,7 +943,7 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
       uZoom: { value: 0.9 },
       uScaleX: { value: 1.0 },
       uScaleY: { value: 1.0 },
-      uOffsetX: { value: 0.0 },
+      uOffsetX: { value: -0.25 },
       uOffsetY: { value: 0.0 },
       uRotation: { value: 0.0 },
       uAspectCompensation: { value: 1 },

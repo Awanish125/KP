@@ -46,7 +46,6 @@ export function Navbar() {
         duration: 1.05,
         ease:    'power3.out',
         delay:   0.1,
-        force3D: true,
         onComplete() {
           /* ── Idle float loop ─────────────────────────────────────────────── */
           gsap.to(nav, {
@@ -56,7 +55,6 @@ export function Navbar() {
             ease:    'sine.inOut',
             yoyo:    true,
             repeat:  -1,
-            force3D: true,
           });
         },
       }
@@ -80,7 +78,6 @@ export function Navbar() {
         duration:  0.55,
         ease:     'power2.out',
         overwrite: 'auto',
-        force3D:  true,
       });
     };
 
@@ -91,7 +88,6 @@ export function Navbar() {
         duration:  0.9,
         ease:     'elastic.out(1, 0.45)',
         overwrite: 'auto',
-        force3D:  true,
       });
     };
 

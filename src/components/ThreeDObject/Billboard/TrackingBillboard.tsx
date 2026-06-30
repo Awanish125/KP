@@ -27,6 +27,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
   MutableRefObject,
+  Suspense,
 } from "react";
 import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, AdaptiveEvents, Bvh } from "@react-three/drei";
@@ -98,11 +99,10 @@ export interface TrackingBillboardHandle {
 interface TrackingBillboardProps {
   initialImage?: string;
   cameraAngle?:  CameraAngle;
-  /**
-   * When false (default) leva is not loaded at all — no bundle cost, no
-   * floating panel.  Set to true during development to see the Leva panel.
-   */
   showLeva?: boolean;
+  /** Controls the R3F render loop. Use "demand" to suspend rendering (no GPU
+   *  cost) while the canvas is invisible; switch to "always" when it should render. */
+  frameloop?: 'always' | 'demand' | 'never';
 }
 
 /* ── component ──────────────────────────────────────────────────────────── */
@@ -110,7 +110,7 @@ interface TrackingBillboardProps {
 export const TrackingBillboard = forwardRef<
   TrackingBillboardHandle,
   TrackingBillboardProps
->(function TrackingBillboard({ initialImage, cameraAngle = "front", showLeva = false }, ref) {
+>(function TrackingBillboard({ initialImage, cameraAngle = "front", showLeva = false, frameloop = 'always' }, ref) {
   const wrapRef  = useRef<HTMLDivElement>(null);
   const billRef  = useRef<BillboardImperativeHandle>(null);
   const rotObj   = useRef<{ y: number }>({ y: 0 });
@@ -185,16 +185,17 @@ export const TrackingBillboard = forwardRef<
       style={{
         position:      "fixed",
         top:           0,
-        left:          "50%",
+        left:          0,
         width:         "50%",
         height:        "100vh",
         zIndex:        2,
         opacity:       0,
         pointerEvents: "none",
-        willChange:    "top, left, width, height, opacity, transform",
+        willChange:    "opacity, transform",
       }}
     >
       <Canvas
+        frameloop={frameloop}
         dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         camera={{ position: camConfig.position, fov: camConfig.fov, near: 0.1, far: 200 }}
@@ -212,11 +213,13 @@ export const TrackingBillboard = forwardRef<
         <Bvh>
           <AdaptiveDpr pixelated={false} />
           <AdaptiveEvents />
-          <DivScene
-            billboardRef={billRef}
-            rotationObjRef={rotObj}
-            image={initialImage}
-          />
+          <Suspense fallback={null}>
+            <DivScene
+              billboardRef={billRef}
+              rotationObjRef={rotObj}
+              image={initialImage}
+            />
+          </Suspense>
         </Bvh>
       </Canvas>
     </div>

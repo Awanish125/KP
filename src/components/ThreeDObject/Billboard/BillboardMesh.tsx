@@ -289,8 +289,8 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
     const frontImagePath = swapped ? posterCtl.backImage  : posterCtl.frontImage;
     const backImagePath  = swapped ? posterCtl.frontImage : posterCtl.backImage;
 
-    const frontTexture = useMediaTexture(frontImagePath, "#c94f4f");
-    const backTexture  = useMediaTexture(backImagePath,  "#4f7fc9");
+    const frontTexture = useMediaTexture(frontImagePath, "#070a13");
+    const backTexture  = useMediaTexture(backImagePath,  "#070a13");
 
     const { material: frontMaterial, uniforms: frontUniforms } = usePosterMaterial(frontTexture);
     const { material: backMaterial,  uniforms: backUniforms  } = usePosterMaterial(backTexture);

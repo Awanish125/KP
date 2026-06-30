@@ -46,7 +46,6 @@ export function MobileSidebar({ isOpen, onClose }: Props) {
       x:       '110%',
       rotateY:  28,
       opacity:  0,
-      force3D:  true,
     });
   }, [portalMounted]);
 
@@ -65,7 +64,6 @@ export function MobileSidebar({ isOpen, onClose }: Props) {
       opacity:  1,
       duration: 0.52,
       ease:    'back.out(1.15)',
-      force3D:  true,
     }, '-=0.14');
 
     // Close button pops in
@@ -79,7 +77,7 @@ export function MobileSidebar({ isOpen, onClose }: Props) {
     tl.fromTo(
       itemsRef.current.filter(Boolean),
       { x: 20, opacity: 0, rotateX: 22, transformOrigin: '0% 50%' },
-      { x: 0,  opacity: 1, rotateX:  0, duration: 0.3, stagger: 0.055, ease: 'power2.out', force3D: true },
+      { x: 0,  opacity: 1, rotateX:  0, duration: 0.3, stagger: 0.055, ease: 'power2.out' },
       '-=0.24'
     );
 
@@ -97,7 +95,7 @@ export function MobileSidebar({ isOpen, onClose }: Props) {
 
     tl.to(toggleRef.current, { opacity: 0, y: 6, scale: 0.9, duration: 0.14 });
     tl.to(itemsRef.current.filter(Boolean), {
-      x: 16, opacity: 0, rotateX: 18, stagger: 0.035, duration: 0.16, ease: 'power2.in', force3D: true,
+      x: 16, opacity: 0, rotateX: 18, stagger: 0.035, duration: 0.16, ease: 'power2.in',
     }, '-=0.08');
     tl.to(closeRef.current, { scale: 0.4, opacity: 0, rotate: 90, duration: 0.18 }, '-=0.1');
     tl.to(panelRef.current, {
@@ -106,7 +104,6 @@ export function MobileSidebar({ isOpen, onClose }: Props) {
       opacity:  0,
       duration: 0.36,
       ease:    'power2.in',
-      force3D:  true,
     }, '-=0.06');
     tl.to(backdropRef.current, { autoAlpha: 0, duration: 0.24 }, '-=0.2');
   }, [onClose]);

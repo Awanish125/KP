@@ -13,7 +13,7 @@
  * S-4  Pinned 360°  — slot on RIGHT  (left: 50%, sticky)
  */
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -22,7 +22,7 @@ import {
   TrackingBillboard,
   type TrackingBillboardHandle,
 } from "@/components/ThreeDObject/Billboard/TrackingBillboard";
-import { HeroSection } from "@/components/hero";
+import { HeroSection,HeroSectionContent } from "@/components/hero";
 import { Loading } from "@/components/ui";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -64,6 +64,22 @@ export default function Home() {
   const billRef     = useRef<TrackingBillboardHandle>(null);
   const stepRefs    = useRef<(HTMLDivElement | null)[]>([]);
   const counterRefs = useRef<(HTMLSpanElement | null)[]>([]);
+
+  /* ── Deferred Three.js mount ─────────────────────────────────────────── */
+  // The Three.js canvas is NOT mounted during the loading animation.
+  // WebGL context creation + shader compilation happen on the main thread
+  // and would compete with GSAP, causing frame drops. Instead we mount
+  // TrackingBillboard only after kp:loaded fires (animation fully done).
+  const [billboardMounted, setBillboardMounted] = useState(false);
+  useEffect(() => {
+    // Preload billboard images so the browser has cache hits when Three.js
+    // requests them immediately after mount.
+    Object.values(IMG).forEach(url => {
+      const img = new Image();
+      img.src = url;
+    });
+    window.addEventListener('kp:loaded', () => setBillboardMounted(true), { once: true });
+  }, []);
 
   /* ── Lenis + section snap ────────────────────────────────────────────── */
   useEffect(() => {
@@ -130,6 +146,9 @@ export default function Home() {
   }, []);
 
   /* ── GSAP ─────────────────────────────────────────────────────────────── */
+  // Deps include billboardMounted so this re-runs once the canvas is in the DOM.
+  // The first run (billboardMounted=false) exits early; the second run wires
+  // all ScrollTriggers with a valid billRef.
   useGSAP(() => {
     const bill = billRef.current;
     if (!bill) return;
@@ -156,12 +175,11 @@ export default function Home() {
         scrub: 0.5,
         onUpdate(self) {
           const p = self.progress;
-          // Horizontal slide
+          // Horizontal slide — x uses element-relative %, element is 50vw wide,
+          // so x:200% = left:100vw. Multiply left% by 2 to convert.
           const left  = fromPct + (toPct - fromPct) * p;
-          // Scale: bell-curve pulse — larger mid-flight, back to 1 on landing
           const scale = 1 + (peakScale - 1) * Math.sin(p * Math.PI);
-          gsap.set(wrap, { left: `${left}%`, scale });
-          // Model spins during transit (scroll-synced, no easing lag)
+          gsap.set(wrap, { x: `${left * 2}%`, scale });
           bill?.setRotationDirect(fromDeg + (toDeg - fromDeg) * p);
         },
       });
@@ -176,7 +194,7 @@ export default function Home() {
       onUpdate(self) {
         const p = self.progress;
         gsap.set(wrap, {
-          left:    `${50 + (1 - p) * 20}%`,    // 70% → 50%
+          x:       `${(50 + (1 - p) * 20) * 2}%`,    // translateX 140% → 100%
           opacity: p,
           scale:   0.85 + 0.15 * p,
         });
@@ -191,7 +209,7 @@ export default function Home() {
       trigger: "#s2",
       start: "top top",
       onEnter() {
-        gsap.set(wrap, { left: "50%", width: "50%", opacity: 1, scale: 1 });
+        gsap.set(wrap, { x: "100%", opacity: 1, scale: 1 });
         bill.changePoster("front", IMG.i1);
         // Rotate 180° with poster swap at 90°
         bill.rotateTo(180, {
@@ -218,7 +236,7 @@ export default function Home() {
       start: "top top",
       onEnter() {
         // Transit scrub already set rotation to 360° — snap canvas to final slot
-        gsap.set(wrap, { left: "0%", width: "50%", scale: 1 });
+        gsap.set(wrap, { x: "0%", scale: 1 });
         bill.changePoster("front", IMG.i2);
         // Gentle settle spin: continue from 360° to 400° and ease back to 360°
         bill.rotateTo(400, { duration: 0.6, ease: "power2.out" });
@@ -227,7 +245,7 @@ export default function Home() {
       onLeaveBack() {
         bill.stopScrollRotation();
         // Return to S-2 position
-        gsap.set(wrap, { left: "50%", width: "50%" });
+        gsap.set(wrap, { x: "100%" });
         bill.changePoster("front", IMG.i1);
         bill.resetRotation({ duration: 0.5 });
       },
@@ -241,7 +259,7 @@ export default function Home() {
       trigger: "#s4-wrapper",
       start: "top top",
       onEnter() {
-        gsap.set(wrap, { left: "50%", width: "50%", opacity: 1 });
+        gsap.set(wrap, { x: "100%", opacity: 1 });
         bill.changePoster("front", STEPS[0].image);
         bill.startScrollRotation(
           360,
@@ -252,7 +270,7 @@ export default function Home() {
       onLeaveBack() {
         bill.stopScrollRotation();
         // Return to S-3 position
-        gsap.set(wrap, { left: "0%", width: "50%" });
+        gsap.set(wrap, { x: "0%" });
         bill.changePoster("front", IMG.i2);
       },
     });
@@ -312,24 +330,30 @@ export default function Home() {
       opacity: 1, x: 0, stagger: 0.07, duration: 0.7, ease: "power3.out",
       scrollTrigger: { trigger: "#s3", start: "top 65%" },
     });
-  }, []);
+  }, [billboardMounted]);
 
   /* ── JSX ──────────────────────────────────────────────────────────────── */
   return (
     <div className="bg-[#070a13]">
       <Loading />
 
-      {/* Single fixed canvas — positioned by GSAP above */}
-      <TrackingBillboard
-        ref={billRef}
-        initialImage={IMG.i1}
-        cameraAngle="front"
-        showLeva={false}
-      />
+      {/* Mount after kp:loaded so Three.js shader compilation never competes
+          with the loading animation. The canvas is invisible (opacity:0) until
+          the S-1→S-2 scroll trigger fires. */}
+      {billboardMounted && (
+        <TrackingBillboard
+          ref={billRef}
+          initialImage={IMG.i1}
+          cameraAngle="front"
+          showLeva={false}
+        />
+      )}
 
       {/* ── S-1: Hero ────────────────────────────────────────────────────── */}
       <section id="s1" className="relative h-screen">
-        <HeroSection images={[IMG.i1, IMG.kp, IMG.i2, IMG.kp, IMG.i3, IMG.kp]} />
+        <HeroSection images={[IMG.i1, IMG.kp, IMG.i2, IMG.kp, IMG.i3, IMG.kp]}>
+          <HeroSectionContent/>
+        </HeroSection>
       </section>
 
       {/* ── S-2: About content (left) | Billboard slot (right) ───────────── */}
@@ -358,12 +382,12 @@ export default function Home() {
                     >0</span>
                     <span className="text-lg font-light text-orange-400">{s.suffix}</span>
                   </div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mt-1 whitespace-pre-line">{s.label}</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/55 mt-1 whitespace-pre-line">{s.label}</p>
                 </div>
               ))}
             </div>
 
-            <p className="text-sm text-white/40 leading-relaxed">
+            <p className="text-sm text-white/60 leading-relaxed">
               For over two decades, Kiran Publicity has been transforming cityscapes
               into powerful brand narratives — from highways to high streets, across Maharashtra.
             </p>
@@ -395,10 +419,10 @@ export default function Home() {
             <ul className="divide-y divide-white/[0.06]">
               {SERVICES.map((s) => (
                 <li key={s.num} className="group flex items-start gap-4 py-3.5">
-                  <span className="text-[10px] font-mono text-white/20 mt-0.5 w-5 flex-shrink-0">{s.num}</span>
+                  <span className="text-[10px] font-mono text-white/55 mt-0.5 w-5 flex-shrink-0">{s.num}</span>
                   <div>
                     <p className="text-sm font-light text-white/80 group-hover:text-white transition-colors">{s.title}</p>
-                    <p className="text-[11px] text-white/25 mt-0.5 leading-snug">{s.desc}</p>
+                    <p className="text-[11px] text-white/55 mt-0.5 leading-snug">{s.desc}</p>
                   </div>
                 </li>
               ))}
@@ -434,7 +458,7 @@ export default function Home() {
                   <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.15] text-white mb-6 whitespace-pre-line">
                     {step.heading}
                   </h2>
-                  <p className="text-sm text-white/40 leading-relaxed max-w-xs">{step.body}</p>
+                  <p className="text-sm text-white/60 leading-relaxed max-w-xs">{step.body}</p>
                   <div className="flex gap-2 mt-8">
                     {STEPS.map((_, j) => (
                       <span key={j} className={`block h-px w-6 transition-colors duration-300 ${j === i ? "bg-orange-400" : "bg-white/15"}`} />

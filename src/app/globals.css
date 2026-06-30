@@ -3,17 +3,10 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ── Page reveal — triggered by Loading.tsx adding .page-revealed to <html> ── */
-html:not(.page-revealed) body > *:not([style*="z-index: 9999"]):not(#__next) {
-  opacity: 0;
-}
-html.page-revealed body {
-  animation: pageReveal 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-@keyframes pageReveal {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* ── Page reveal — .page-revealed added to <html> by Loading.tsx on exit ──── */
+/* The KP mask-grow animation already reveals the page cinematically;          */
+/* .page-revealed is kept as a semantic hook for any component-level CSS.      */
+/* No body animation needed — the mask reveal IS the entrance.                  */
 
 /* ============================================================
    TAILWIND DESIGN TOKENS  (@theme = static utility classes)
@@ -148,7 +141,7 @@ html.page-revealed body {
     0 2px 8px  rgba(0, 0, 0, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.07);
   --navbar-text:        #FFFFFF;           /* 17.2:1 on eff. dark ✓ AAA */
-  --navbar-text-muted:  #B3B3B3;           /* 8.21:1 on eff. dark ✓ AAA */
+  --navbar-text-muted:  #FFFFFF;           /* 8.21:1 on eff. dark ✓ AAA */
   --navbar-hover-text:  #FFBA00;           /* spec hover; 9.5:1 ✓ AAA */
   --navbar-icon-bg:     rgba(255, 255, 255, 0.15); /* spec dark icon bg */
 
