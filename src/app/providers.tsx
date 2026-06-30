@@ -1,12 +1,10 @@
 'use client';
 
-import type { ReactNode } from "react";
-import { SmoothScroll } from "@components/layouts";
-import { ThemeProvider } from "@components/theme";
+import type { ReactNode } from 'react';
+import { SmoothScroll } from '@components/layouts';
+import { ThemeProvider } from '@components/theme';
 
-type ProvidersProps = {
-  children: ReactNode;
-};
+type ProvidersProps = { children: ReactNode };
 
 export function Providers({ children }: ProvidersProps) {
   return (
@@ -14,7 +12,7 @@ export function Providers({ children }: ProvidersProps) {
       attribute="class"
       defaultTheme="system"
       enableSystem
-      disableTransitionOnChange
+      /* disableTransitionOnChange removed — CSS variable transitions handle theme changes smoothly */
     >
       <SmoothScroll />
       {children}
