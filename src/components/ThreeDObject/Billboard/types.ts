@@ -76,6 +76,93 @@ export interface BillboardMeshProps {
   ambientLightRef?: React.RefObject<THREE.AmbientLight | null>;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   BillboardBlock — in-div 3D billboard (new component)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** One image swap during a rotation. `atDegrees` is measured from the START
+ *  of the current rotation call (not from absolute 0°). */
+export interface RotationImage {
+  atDegrees: number;
+  front?: string;
+  back?: string;
+}
+
+export interface RotateOptions {
+  duration?: number;
+  ease?: string;
+  /** Swap posters at these degree marks during this rotation. */
+  images?: RotationImage[];
+}
+
+/** Camera preset or a custom [x, y, z] world-space position.
+ *  The camera always looks at [0, 0, 0] (model origin). */
+export type CameraAngle = "front" | "quarter" | [number, number, number];
+
+/** Ref handle returned by BillboardBlock for imperative control. */
+export interface BillboardBlockHandle {
+  /** Rotate to an absolute angle (degrees). GSAP eases the movement. */
+  rotateTo: (degrees: number, options?: RotateOptions) => void;
+  /** Animate back to 0°. */
+  resetRotation: (options?: { duration?: number; ease?: string }) => void;
+  /** Swap a poster image with a crossfade. */
+  changePoster: (face: "front" | "back", imageUrl: string, duration?: number) => void;
+  /** Returns current rotation in degrees. */
+  getRotation: () => number;
+}
+
+export interface BillboardBlockProps {
+  // ── Sizing ──────────────────────────────────────────────────────────────
+  /** CSS className — size the component like any div. */
+  className?: string;
+  /** Inline style — size the component like any div. */
+  style?: React.CSSProperties;
+
+  // ── Poster images ────────────────────────────────────────────────────────
+  image?: string;
+  backImage?: string;
+
+  // ── Camera ──────────────────────────────────────────────────────────────
+  /** 'front' (default) | 'quarter' (3/4 angle) | [x,y,z] custom world pos */
+  cameraAngle?: CameraAngle;
+  /** Starting rotation in degrees. Default 0 (front-facing). */
+  defaultRotation?: number;
+
+  // ── Enter-viewport rotation ──────────────────────────────────────────────
+  /** Total degrees to rotate when the component scrolls into view. */
+  rotateOnEnter?: number;
+  /** Duration of rotateOnEnter animation. Default 1.5s. */
+  rotateDuration?: number;
+  /** GSAP ease for rotateOnEnter. Default 'power2.inOut'. */
+  rotateEase?: string;
+  /** Poster swaps that happen at degree milestones during rotateOnEnter. */
+  rotateImages?: RotationImage[];
+
+  // ── Scroll-driven rotation (pinned section) ──────────────────────────────
+  /** Total degrees to rotate across the full scroll of scrollTrigger. */
+  scrollRotate?: number;
+  /** CSS selector (or Element) of the tall wrapper div that drives scroll. */
+  scrollTrigger?: string | Element;
+  /** Poster swaps that happen at degree milestones during scroll rotation. */
+  scrollImages?: RotationImage[];
+
+  // ── Mobile layout ─────────────────────────────────────────────────────────
+  /**
+   * 'stack'   (default) — component is a normal inline div, stacks on mobile.
+   * 'behind'  — when the div scrolls off the bottom of the viewport on mobile,
+   *             the canvas switches to a fixed strip at the bottom so the model
+   *             stays visible behind the HTML content above it.
+   */
+  mobileLayout?: "stack" | "behind";
+
+  // ── Events ──────────────────────────────────────────────────────────────
+  onEnter?: () => void;
+  onLeave?: () => void;
+
+  // ── Dev ─────────────────────────────────────────────────────────────────
+  showControls?: boolean;
+}
+
 export interface BillboardProps {
   // Height of the fixed background canvas. Defaults to "100vh".
   height?: string;

@@ -8,21 +8,19 @@
  *   ② Ambient light intensity            (mood per section)
  *   ③ Poster images (front face)         (changePoster called once per section change)
  *   ④ Billboard Y rotation               (360° in the pinned section)
+ *   ⑤ Model position + scale             (Leva sliders → outer wrapper group)
  *
- * Moving all of these into useFrame eliminates the GSAP-ScrollTrigger-Lenis
- * timing race that plagued the earlier approach.
- *
- * Leva "Camera" panel gives full manual override in dev:
- *   • Toggle "Manual Override" → sliders control camera, scroll is ignored
- *   • Drag Position / Target / FOV sliders to find good angles
- *   • "📋 Copy Current State" → copies JSON to clipboard for pasting into KEYFRAMES
+ * Model position is applied to a wrapper <group ref={modelGroupRef}> that OWNS
+ * the position/scale. This prevents R3F from resetting it via BillboardMesh's
+ * default position prop on every re-render.
  */
 
 import React, { useRef, useEffect } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
-import { Environment, Grid } from "@react-three/drei";
+import { Environment, Grid, OrbitControls } from "@react-three/drei";
 import { useControls, button, folder } from "leva";
 import * as THREE from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { CameraController } from "./CameraController";
 import { BillboardMesh } from "./BillboardMesh";
 import type { BillboardImperativeHandle } from "./types";
@@ -40,14 +38,6 @@ const POSTER = {
 /* ── Camera keyframes ──────────────────────────────────────────────────────────
    `scroll` is in units of viewport heights (scrollY / window.innerHeight).
    Total scroll = 7 vh  (800vh page − 100vh viewport).
-
-   Section scroll ranges:
-     0–1   hero        camera at start position
-     1–2   about       camera swings in from right
-     2–3   services    camera slides far left
-     3–4   why us      camera swings far right
-     4–5   campaign    tight close-up, light dims
-     5–7   pinned      3/4 angle + 360° Y rotation
 */
 const KEYFRAMES = [
   { scroll: 0, pos: [6,  2,   11 ] as [number,number,number], target: [0, 0.5, 0] as [number,number,number], fov: 45, light: 0.18 },
@@ -55,7 +45,7 @@ const KEYFRAMES = [
   { scroll: 2, pos: [-8, 1.5, 6  ] as [number,number,number], target: [0, 0,   0] as [number,number,number], fov: 42, light: 0.28 },
   { scroll: 3, pos: [8,  1.5, 6  ] as [number,number,number], target: [0, 0,   0] as [number,number,number], fov: 42, light: 0.28 },
   { scroll: 4, pos: [0,  0.5, 4.5] as [number,number,number], target: [0, 0.2, 0] as [number,number,number], fov: 30, light: 0.12 },
-  { scroll: 7, pos: [3,  1.2, 7  ] as [number,number,number], target: [0, 0,   0] as [number,number,number], fov: 38, light: 0.08 },
+  { scroll: 7, pos: [-0.767,  1.194,12.091  ] as [number,number,number], target: [0, 0.5,   0] as [number,number,number], fov: 38, light: 0.08 },
 ] as const;
 
 const TOTAL_VH = 7;
@@ -84,25 +74,32 @@ function getKeyframeAt(svh: number) {
 
 /* ── Props ───────────────────────────────────────────────────────────────────── */
 interface SceneProps {
-  billboardRef: React.RefObject<BillboardImperativeHandle | null>;
+  billboardRef:      React.RefObject<BillboardImperativeHandle | null>;
+  onManualOverride?: (active: boolean) => void;
 }
 
 /* ── Scene ───────────────────────────────────────────────────────────────────── */
-export function Scene({ billboardRef }: SceneProps) {
+export function Scene({ billboardRef, onManualOverride }: SceneProps) {
   const cameraRef       = useRef<THREE.PerspectiveCamera>(null);
   const ambientLightRef = useRef<THREE.AmbientLight>(null);
+  const orbitRef        = useRef<OrbitControlsImpl>(null);
 
-  // Smooth state — lerped every frame toward the keyframe target
+  // ── Outer wrapper group — owns model position + scale ────────────────────────
+  // BillboardMesh is nested inside this group. We set position/scale HERE in
+  // useFrame so R3F's reconciler never touches it (no position prop passed).
+  const modelGroupRef = useRef<THREE.Group>(null);
+
+  // Smooth camera state
   const curPos    = useRef(new THREE.Vector3(6, 2, 11));
   const curTarget = useRef(new THREE.Vector3(0, 0.5, 0));
   const curFov    = useRef(45);
   const curRotY   = useRef(0);
 
-  // Pre-allocated vectors (avoid per-frame allocations)
+  // Pre-allocated vectors
   const _wPos = useRef(new THREE.Vector3());
   const _wTgt = useRef(new THREE.Vector3());
 
-  // Poster change tracking — only call changePoster when the section changes
+  // Poster change tracking
   const activePoster = useRef<string>("");
 
   /* ── Leva: Lighting ──────────────────────────────────────────────────────── */
@@ -111,9 +108,9 @@ export function Scene({ billboardRef }: SceneProps) {
     exposure:     { value: 1.2,  min: 0.1, max: 3, step: 0.05, label: "Exposure"      },
   });
 
-  /* ── Leva: Camera full control ───────────────────────────────────────────── */
+  /* ── Leva: Camera ────────────────────────────────────────────────────────── */
   const camCtl = useControls("Camera", {
-    manualOverride: { value: false, label: "Manual Override (disable scroll)" },
+    manualOverride: { value: false, label: "🖱 Manual Override — drag mouse to orbit" },
     Position: folder({
       posX: { value: 6,   min: -30, max: 30, step: 0.1, label: "X" },
       posY: { value: 2,   min: -10, max: 20, step: 0.1, label: "Y" },
@@ -129,11 +126,13 @@ export function Scene({ billboardRef }: SceneProps) {
       damping: { value: 0.005, min: 0.0001,max: 0.5, step: 0.0001, label: "Damping (lower = slower)" },
     }),
     "📋 Copy State": button(() => {
-      const cam = cameraRef.current;
+      const cam   = cameraRef.current;
+      const orbit = orbitRef.current;
       if (!cam) return;
+      const tgt = orbit?.enabled ? orbit.target : curTarget.current;
       const s = {
         pos:    [+cam.position.x.toFixed(3), +cam.position.y.toFixed(3), +cam.position.z.toFixed(3)],
-        target: [+curTarget.current.x.toFixed(3), +curTarget.current.y.toFixed(3), +curTarget.current.z.toFixed(3)],
+        target: [+tgt.x.toFixed(3),          +tgt.y.toFixed(3),          +tgt.z.toFixed(3)         ],
         fov:    +cam.fov.toFixed(1),
       };
       navigator.clipboard
@@ -143,9 +142,53 @@ export function Scene({ billboardRef }: SceneProps) {
     }),
   });
 
-  // Mirror to ref so useFrame can read without stale closures
   const camCtlRef = useRef(camCtl);
   camCtlRef.current = camCtl;
+
+  // Notify parent when manualOverride changes (canvas z-index)
+  const onManualOverrideRef = useRef(onManualOverride);
+  onManualOverrideRef.current = onManualOverride;
+  useEffect(() => {
+    onManualOverrideRef.current?.(camCtl.manualOverride);
+  }, [camCtl.manualOverride]);
+
+  // When manual override turns ON, set OrbitControls target to the model's
+  // current world position so the camera orbits around the billboard,
+  // not the origin. This is done imperatively because setting `target` as a
+  // JSX prop resets it on EVERY React render (discovered from drei source).
+  useEffect(() => {
+    if (camCtl.manualOverride && orbitRef.current && modelGroupRef.current) {
+      const g = modelGroupRef.current;
+      orbitRef.current.target.set(g.position.x, g.position.y + 0.5, g.position.z);
+      orbitRef.current.update();
+    }
+  }, [camCtl.manualOverride]);
+
+  /* ── Leva: Model ─────────────────────────────────────────────────────────────
+     Position + scale applied to modelGroupRef (outer wrapper) in useFrame.
+     Never set as JSX props — that would let R3F reset them on re-render.
+  */
+  const modelCtl = useControls("Model", {
+    x:     { value: 0,   min: -10, max: 10, step: 0.05, label: "Position X (left ↔ right)" },
+    y:     { value: 0,   min: -5,  max: 5,  step: 0.05, label: "Position Y (down ↕ up)"    },
+    z:     { value: 0,   min: -10, max: 10, step: 0.05, label: "Position Z (back ↔ front)"  },
+    scale: { value: 1,   min: 0.1, max: 5,  step: 0.05, label: "Scale"                      },
+    "📋 Copy Model Transform": button(() => {
+      const g = modelGroupRef.current;
+      if (!g) return;
+      const s = {
+        position: [+g.position.x.toFixed(3), +g.position.y.toFixed(3), +g.position.z.toFixed(3)],
+        scale:    +g.scale.x.toFixed(3),
+      };
+      navigator.clipboard
+        .writeText(JSON.stringify(s))
+        .then(() => console.info("📋 Model transform:", s))
+        .catch(() => console.info("📋 Model transform:", s));
+    }),
+  });
+
+  const modelCtlRef = useRef(modelCtl);
+  modelCtlRef.current = modelCtl;
 
   /* ── Leva: Debug ─────────────────────────────────────────────────────────── */
   const debugCtl = useControls("Debug", {
@@ -161,55 +204,56 @@ export function Scene({ billboardRef }: SceneProps) {
     gl.outputColorSpace    = THREE.SRGBColorSpace;
   }, [gl, lightCtl.exposure]);
 
-  /* ── Animation loop ──────────────────────────────────────────────────────────
-     Single useFrame handles all animation:
-       ① Camera position + look-at + FOV
-       ② Ambient light intensity
-       ③ Poster image per section
-       ④ Billboard Y rotation (360° in pinned section)
-  */
+  /* ── Animation loop ─────────────────────────────────────────────────────── */
   useFrame(({ camera }, delta) => {
-    const cam = camera as THREE.PerspectiveCamera;
-    const ctl = camCtlRef.current;
-    const factor = 1 - Math.pow(ctl.damping, delta); // frame-rate independent
+    const cam   = camera as THREE.PerspectiveCamera;
+    const ctl   = camCtlRef.current;
+    const orbit = orbitRef.current;
+    const factor = 1 - Math.pow(ctl.damping, delta);
 
-    // ── Scroll position ──────────────────────────────────────────────────────
     const vh        = window.innerHeight || 1;
     const maxScroll = Math.max(1, document.documentElement.scrollHeight - vh);
     const scrollVH  = (window.scrollY / maxScroll) * TOTAL_VH;
 
     // ── ① Camera ─────────────────────────────────────────────────────────────
-    let wantFov   = ctl.fov;
-    let wantLight = 0.18;
-
     if (ctl.manualOverride) {
-      _wPos.current.set(ctl.posX, ctl.posY, ctl.posZ);
-      _wTgt.current.set(ctl.tgtX, ctl.tgtY, ctl.tgtZ);
+      // OrbitControls owns camera movement. Sync smooth-state so switching back
+      // to scroll animation is seamless.
+      if (orbit) {
+        curPos.current.copy(cam.position);
+        curTarget.current.copy(orbit.target);
+      }
     } else {
       const kf = getKeyframeAt(scrollVH);
-      _wPos.current.set(...kf.pos);
-      _wTgt.current.set(...kf.target);
-      wantFov   = kf.fov;
-      wantLight = kf.light;
-    }
+      const m  = modelCtlRef.current;
+      // Offset both camera position AND lookAt by model world position so the
+      // camera always frames the billboard regardless of where the Leva sliders
+      // have moved it. Without this, moving the model off-center causes
+      // perspective distortion (viewed from the side) and the Y-rotation appears
+      // to happen around the wrong pivot.
+      _wPos.current.set(kf.pos[0] + m.x, kf.pos[1] + m.y, kf.pos[2] + m.z);
+      _wTgt.current.set(kf.target[0] + m.x, kf.target[1] + m.y, kf.target[2] + m.z);
 
-    curPos.current.lerp(_wPos.current, factor);
-    cam.position.copy(curPos.current);
+      curPos.current.lerp(_wPos.current, factor);
+      cam.position.copy(curPos.current);
 
-    curTarget.current.lerp(_wTgt.current, factor);
-    cam.lookAt(curTarget.current);
+      curTarget.current.lerp(_wTgt.current, factor);
+      cam.lookAt(curTarget.current);
 
-    curFov.current += (wantFov - curFov.current) * factor;
-    if (Math.abs(cam.fov - curFov.current) > 0.01) {
-      cam.fov = curFov.current;
-      cam.updateProjectionMatrix();
+      const wantFov = kf.fov;
+      curFov.current += (wantFov - curFov.current) * factor;
+      if (Math.abs(cam.fov - curFov.current) > 0.01) {
+        cam.fov = curFov.current;
+        cam.updateProjectionMatrix();
+      }
     }
 
     // ── ② Ambient light ───────────────────────────────────────────────────────
+    const wantLight = ctl.manualOverride ? 0.18 : getKeyframeAt(scrollVH).light;
     const light = ambientLightRef.current;
     if (light) light.intensity += (wantLight - light.intensity) * factor;
 
-    // ── ③ Poster images (only call changePoster when section changes) ──────────
+    // ── ③ Poster images ───────────────────────────────────────────────────────
     if (!ctl.manualOverride) {
       let wantPoster: string;
       if      (scrollVH <  1) wantPoster = POSTER.default;
@@ -224,9 +268,23 @@ export function Scene({ billboardRef }: SceneProps) {
       }
     }
 
-    // ── ④ Billboard Y rotation (360° through the pinned section) ─────────────
-    //     Pinned section occupies scrollVH 5–7 (300vh section starting at 500vh).
-    //     As the user scrolls from 5 to 7, the billboard rotates 0 → 360°.
+    // ── ④ Model position + scale (Leva → outer wrapper group) ─────────────────
+    // We set position/scale on modelGroupRef — the <group> wrapping BillboardMesh
+    // in JSX. Because that group has NO position/scale prop in JSX, R3F never
+    // calls position.set() on it during reconciliation, so our values stick.
+    const mg = modelGroupRef.current;
+    if (mg) {
+      const m = modelCtlRef.current;
+
+      // Responsive scale: smaller on mobile so the model fits the screen
+      const vw = window.innerWidth;
+      const vpFactor = vw < 640 ? 0.5 : vw < 1024 ? 0.75 : 1;
+
+      mg.position.set(m.x, m.y, m.z);
+      mg.scale.setScalar(m.scale * vpFactor);
+    }
+
+    // ── ⑤ Billboard Y rotation (360° through pinned section scrollVH 5–7) ────
     const bill = billboardRef.current;
     if (bill?.group) {
       let wantRotY = 0;
@@ -245,6 +303,25 @@ export function Scene({ billboardRef }: SceneProps) {
         initialPosition={[6, 2, 11]}
       />
 
+      {/*
+        OrbitControls — enabled by React prop (camCtl.manualOverride).
+        NO `target` prop here: drei's source applies all restProps to the
+        underlying OrbitControls instance on every React render via primitive,
+        which would reset the target after every pan. Instead we set target
+        imperatively in the useEffect above when manual override turns on.
+        enablePan={false} prevents accidental orbit-circumference drift —
+        use the X/Y/Z Leva sliders to reposition the model instead.
+      */}
+      <OrbitControls
+        ref={orbitRef}
+        enabled={camCtl.manualOverride}
+        enableDamping
+        dampingFactor={0.08}
+        enablePan={false}
+        minDistance={2}
+        maxDistance={25}
+      />
+
       <ambientLight ref={ambientLightRef} intensity={0.18} color="#c8d8ff" />
 
       <Environment
@@ -255,12 +332,21 @@ export function Scene({ billboardRef }: SceneProps) {
 
       {debugCtl.grid && <Grid args={[20, 20]} position={[0, -3, 0]} />}
 
-      <BillboardMesh
-        ref={billboardRef}
-        cameraRef={cameraRef}
-        ambientLightRef={ambientLightRef}
-        wireframe={debugCtl.wireframe}
-      />
+      {/*
+        Outer wrapper group — owned entirely by useFrame.
+        No position/scale props → R3F reconciler never calls position.set() here.
+        This is the key fix: previously we set position on bill.group (inside
+        BillboardMesh) which got reset because BillboardMesh's <group> had a
+        default position prop that R3F re-applied on every Leva re-render.
+      */}
+      <group ref={modelGroupRef}>
+        <BillboardMesh
+          ref={billboardRef}
+          cameraRef={cameraRef}
+          ambientLightRef={ambientLightRef}
+          wireframe={debugCtl.wireframe}
+        />
+      </group>
     </>
   );
 }

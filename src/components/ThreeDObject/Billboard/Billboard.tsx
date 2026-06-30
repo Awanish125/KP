@@ -47,7 +47,8 @@ export default function Billboard({
   onReadyRef.current  = onReady;
 
   const canvasWrapRef = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible,        setVisible]        = useState(false);
+  const [manualOverride, setManualOverride] = useState(false);
 
   /* ── containerRef mode: sync canvas position to external div ────────────── */
   useEffect(() => {
@@ -81,18 +82,26 @@ export default function Billboard({
      containerRef → fixed, tracks target div (updated by the effect above)
      default    → fixed, full viewport
   */
+  // When Manual Override is on, the canvas must sit ABOVE the HTML sections
+  // (sections use z-10 / z-index:10) so it can receive mouse events for OrbitControls.
+  // z-20 puts it on top; cursor changes to grab so it's obvious drag mode is active.
+  const activeZ = manualOverride ? 20 : 0;
+
   const wrapStyle: React.CSSProperties = inline
-    ? { position: "absolute", inset: 0, zIndex: 0,
-        opacity: visible ? 1 : 0, transition: "opacity 0.6s ease" }
+    ? { position: "absolute", inset: 0, zIndex: activeZ,
+        opacity: visible ? 1 : 0, transition: "opacity 0.6s ease",
+        cursor: manualOverride ? "grab" : "auto" }
     : containerRef
     ? { position: "fixed", top: 0, left: 0,
-        width: "100%", height: "100%",          // overwritten by sync()
-        zIndex: 0,
-        opacity: visible ? 1 : 0, transition: "opacity 0.6s ease" }
+        width: "100%", height: "100%",
+        zIndex: activeZ,
+        opacity: visible ? 1 : 0, transition: "opacity 0.6s ease",
+        cursor: manualOverride ? "grab" : "auto" }
     : { position: "fixed", top: 0, left: 0,
         width: "100%", height,
-        zIndex: 0,
-        opacity: visible ? 1 : 0, transition: "opacity 0.6s ease" };
+        zIndex: activeZ,
+        opacity: visible ? 1 : 0, transition: "opacity 0.6s ease",
+        cursor: manualOverride ? "grab" : "auto" };
 
   /* ── Outer wrapper ────────────────────────────────────────────────────────
      In inline mode the outer wrapper needs position:relative so the absolute
@@ -127,7 +136,7 @@ export default function Billboard({
           <Bvh>
             <AdaptiveDpr pixelated={false} />
             <AdaptiveEvents />
-            <Scene billboardRef={internalRef} />
+            <Scene billboardRef={internalRef} onManualOverride={setManualOverride} />
           </Bvh>
         </Canvas>
       </div>

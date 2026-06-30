@@ -6,10 +6,16 @@
  */
 
 export { default } from "./Billboard";
+export { default as BillboardBlock } from "./BillboardBlock";
 export type {
   BillboardImperativeHandle,
   BillboardProps,
   BillboardMeshProps,
   PosterUniforms,
+  BillboardBlockHandle,
+  BillboardBlockProps,
+  RotationImage,
+  RotateOptions,
+  CameraAngle,
 } from "./types";
 export { BillboardMesh } from "./BillboardMesh";
