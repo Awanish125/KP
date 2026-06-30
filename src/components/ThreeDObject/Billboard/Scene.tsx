@@ -95,6 +95,21 @@ export function Scene({ billboardRef, onManualOverride }: SceneProps) {
   const curFov    = useRef(45);
   const curRotY   = useRef(0);
 
+  // Pause the useFrame loop while the mobile sidebar is animating open/closed.
+  // This frees the GPU from rendering a 60fps Three.js scene beneath the sidebar
+  // glass panel, eliminating the primary source of animation lag on mobile.
+  const renderPaused = useRef(false);
+  useEffect(() => {
+    const pause  = () => { renderPaused.current = true;  };
+    const resume = () => { renderPaused.current = false; };
+    window.addEventListener('kp:sidebarOpen',  pause);
+    window.addEventListener('kp:sidebarClose', resume);
+    return () => {
+      window.removeEventListener('kp:sidebarOpen',  pause);
+      window.removeEventListener('kp:sidebarClose', resume);
+    };
+  }, []);
+
   // Pre-allocated vectors
   const _wPos = useRef(new THREE.Vector3());
   const _wTgt = useRef(new THREE.Vector3());
@@ -206,6 +221,10 @@ export function Scene({ billboardRef, onManualOverride }: SceneProps) {
 
   /* ── Animation loop ─────────────────────────────────────────────────────── */
   useFrame(({ camera }, delta) => {
+    // Skip all updates while the sidebar is open — the scene renders a frozen
+    // last frame (essentially free) instead of a fully-animated 60fps scene.
+    if (renderPaused.current) return;
+
     const cam   = camera as THREE.PerspectiveCamera;
     const ctl   = camCtlRef.current;
     const orbit = orbitRef.current;

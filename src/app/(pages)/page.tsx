@@ -324,6 +324,7 @@ export default function Home() {
         ref={billRef}
         initialImage={IMG.i1}
         cameraAngle="front"
+        showLeva={false}
       />
 
       {/* ── S-1: Hero ────────────────────────────────────────────────────── */}

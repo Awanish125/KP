@@ -6,90 +6,132 @@ const FINAL_TEXT = "KIRAN";
 const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 export default function Loading() {
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
+  const overlayRef  = useRef<HTMLDivElement>(null);
+  const panelRef    = useRef<HTMLDivElement>(null);
+  const titleRef    = useRef<HTMLHeadingElement>(null);
   const subtitleRef = useRef<HTMLParagraphElement>(null);
+  const lineRef     = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const title = titleRef.current;
-    const overlay = overlayRef.current;
+    const title    = titleRef.current;
+    const overlay  = overlayRef.current;
+    const subtitle = subtitleRef.current;
+    const line     = lineRef.current;
 
     if (!title || !overlay) return;
 
     document.body.style.overflow = "hidden";
 
+    /* ── Smart gate: exit only when BOTH conditions are true ────────────────
+       1. Minimum 1 000 ms has passed (so the loader is never jarring-fast)
+       2. The 3-D WebGL scene has fired kp:sceneReady
+       Fallback cap: exit after 3 000 ms no matter what (slow connections).
+    ─────────────────────────────────────────────────────────────────────── */
+    let sceneReady   = false;
+    let minTimerDone = false;
+    let exitCalled   = false;
+
+    const tryExit = () => {
+      if (exitCalled) return;
+      if (sceneReady && minTimerDone) {
+        exitCalled = true;
+        exitSequence();
+      }
+    };
+
+    const onSceneReady = () => { sceneReady = true;   tryExit(); };
+    const minTimer     = setTimeout(() => { minTimerDone = true; tryExit(); }, 1000);
+    const capTimer     = setTimeout(() => {
+      if (!exitCalled) { exitCalled = true; exitSequence(); }
+    }, 3000);
+
+    window.addEventListener('kp:sceneReady', onSceneReady, { once: true });
+
+    /* ── Scramble text reveal ───────────────────────────────────────────── */
     let frame = 0;
     let reveal = 0;
     let animationId = 0;
 
     const scramble = () => {
       let output = "";
-
       for (let i = 0; i < FINAL_TEXT.length; i++) {
-        if (i < reveal) {
-          output += FINAL_TEXT[i];
-        } else {
-          output += CHARS[Math.floor(Math.random() * CHARS.length)];
-        }
+        output += i < reveal
+          ? FINAL_TEXT[i]
+          : CHARS[Math.floor(Math.random() * CHARS.length)];
       }
-
       title.textContent = output;
-
       frame++;
 
-      if (frame % 6 === 0) {
-        reveal++;
-      }
+      // Reveal one character every 3 frames (~50ms at 60fps)
+      if (frame % 3 === 0) reveal++;
 
       if (reveal <= FINAL_TEXT.length) {
         animationId = requestAnimationFrame(scramble);
       } else {
         title.textContent = FINAL_TEXT;
-
-        gsap.timeline({ delay: 2 })
-          .to(title, {
-            letterSpacing: "0.6em",
-            scale: 1.05,
-            duration: 1.5,
-            ease: "power2.out",
-          })
-          .to(
-            [title, subtitleRef.current],
-            {
-              opacity: 0,
-              y: -30,
-              duration: 0.5,
-            },
-            "<"
-          )
-          .to(overlay, {
-            yPercent: -100,
-            duration: 1.2,
-            ease: "power4.inOut",
-            onComplete: () => {
-              document.body.style.overflow = "";
-            },
-          });
+        // Scramble done — now wait for the smart gate
       }
     };
 
-    gsap.from(title, {
+    /* ── Exit sequence ──────────────────────────────────────────────────── */
+    const exitSequence = () => {
+      const tl = gsap.timeline({
+        delay: 0.12,
+        onComplete: () => {
+          document.body.style.overflow = "";
+          document.documentElement.classList.add("page-revealed");
+        },
+      });
+
+      // Accent line sweeps out
+      tl.to(line, {
+        scaleX: 0,
+        transformOrigin: "center",
+        duration: 0.28,
+        ease: "power3.in",
+      });
+
+      // Title letterspace expands + fades simultaneously
+      tl.to(
+        title,
+        { letterSpacing: "0.65em", opacity: 0, y: -18, duration: 0.38, ease: "power2.in" },
+        "<0.05"
+      );
+      tl.to(
+        subtitle,
+        { opacity: 0, y: -10, duration: 0.28, ease: "power2.in" },
+        "<"
+      );
+
+      // Overlay splits and slides up — buttery power4.inOut
+      tl.to(overlay, {
+        yPercent: -100,
+        duration: 0.82,
+        ease: "power4.inOut",
+      }, "-=0.05");
+    };
+
+    /* ── Entrance — total budget: ~0.55s ────────────────────────────────── */
+    const tl = gsap.timeline({ onComplete: scramble });
+
+    tl.from(title, {
       opacity: 0,
-      y: 30,
-      duration: 0.8,
+      y: 22,
+      duration: 0.38,
       ease: "power3.out",
-      onComplete: scramble,
     });
 
-    gsap.from(subtitleRef.current, {
-      opacity: 0,
-      y: 15,
-      delay: 0.8,
-      duration: 0.6,
-    });
+    tl.from(
+      [subtitle, line],
+      { opacity: 0, y: 10, duration: 0.30, ease: "power2.out", stagger: 0.06 },
+      "-=0.1"
+    );
 
     return () => {
       cancelAnimationFrame(animationId);
+      clearTimeout(minTimer);
+      clearTimeout(capTimer);
+      window.removeEventListener('kp:sceneReady', onSceneReady);
       document.body.style.overflow = "";
     };
   }, []);
@@ -97,32 +139,64 @@ export default function Loading() {
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[9999] overflow-hidden bg-black"
+      className="fixed inset-0 z-[9999] overflow-hidden"
+      style={{ background: "linear-gradient(160deg, #09090f 0%, #111120 60%, #0c0c18 100%)" }}
     >
-      {/* Background grid */}
-      <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(circle_at_center,white_1px,transparent_1px)] [background-size:24px_24px]" />
+      {/* Subtle dot grid */}
+      <div
+        className="absolute inset-0 opacity-[0.035]"
+        style={{
+          backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
+      />
 
-      {/* Animated scan line */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-full left-0 h-full w-full bg-gradient-to-b from-transparent via-white/5 to-transparent animate-[scan_3s_linear_infinite]" />
-      </div>
+      {/* Radial centre vignette / glow */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "radial-gradient(ellipse at 50% 52%, rgba(255,120,30,0.07) 0%, transparent 62%)",
+        }}
+      />
 
-      <div className="flex h-full flex-col items-center justify-center">
+      {/* Content */}
+      <div className="flex h-full flex-col items-center justify-center gap-0">
         <h1
           ref={titleRef}
-          className="font-mono text-6xl font-light tracking-[0.45em] text-white select-none"
+          className="font-mono text-7xl font-extralight select-none text-white"
+          style={{ letterSpacing: "0.45em", paddingLeft: "0.45em" }}
+        />
+
+        {/* Accent underline */}
+        <div
+          ref={lineRef}
+          style={{
+            width: 48,
+            height: 2,
+            marginTop: 16,
+            marginBottom: 14,
+            borderRadius: 9999,
+            background: "linear-gradient(90deg, transparent, #FF8A00, transparent)",
+            boxShadow: "0 0 12px rgba(255,138,0,0.6)",
+          }}
         />
 
         <p
           ref={subtitleRef}
-          className="mt-6 text-xs uppercase tracking-[0.8em] text-white/45"
+          className="text-[10px] uppercase select-none"
+          style={{ letterSpacing: "0.75em", paddingLeft: "0.75em", color: "rgba(255,255,255,0.38)" }}
         >
           OUTDOOR PUBLICITY
         </p>
       </div>
 
-      {/* Film grain */}
-      <div className="pointer-events-none absolute inset-0 opacity-[0.03] bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:100%_4px]" />
+      {/* Scanline texture */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.012) 3px, rgba(255,255,255,0.012) 4px)",
+        }}
+      />
     </div>
   );
 }

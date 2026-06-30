@@ -30,6 +30,7 @@ import React, {
 } from "react";
 import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, AdaptiveEvents, Bvh } from "@react-three/drei";
+import { Leva } from "leva";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { DivScene } from "./DivScene";
@@ -96,7 +97,12 @@ export interface TrackingBillboardHandle {
 
 interface TrackingBillboardProps {
   initialImage?: string;
-  cameraAngle?: CameraAngle;
+  cameraAngle?:  CameraAngle;
+  /**
+   * When false (default) leva is not loaded at all — no bundle cost, no
+   * floating panel.  Set to true during development to see the Leva panel.
+   */
+  showLeva?: boolean;
 }
 
 /* ── component ──────────────────────────────────────────────────────────── */
@@ -104,7 +110,7 @@ interface TrackingBillboardProps {
 export const TrackingBillboard = forwardRef<
   TrackingBillboardHandle,
   TrackingBillboardProps
->(function TrackingBillboard({ initialImage, cameraAngle = "front" }, ref) {
+>(function TrackingBillboard({ initialImage, cameraAngle = "front", showLeva = false }, ref) {
   const wrapRef  = useRef<HTMLDivElement>(null);
   const billRef  = useRef<BillboardImperativeHandle>(null);
   const rotObj   = useRef<{ y: number }>({ y: 0 });
@@ -169,7 +175,11 @@ export const TrackingBillboard = forwardRef<
   }));
 
   return (
-    /* Canvas wrapper — page.tsx GSAP controls top/left/width/height/opacity */
+    <>
+      {/* hidden=true suppresses the auto-show triggered by useControls hooks in Scene/BillboardMesh */}
+      <Leva hidden={!showLeva} collapsed />
+
+    {/* Canvas wrapper — page.tsx GSAP controls top/left/width/height/opacity */}
     <div
       ref={wrapRef}
       style={{
@@ -190,6 +200,14 @@ export const TrackingBillboard = forwardRef<
         camera={{ position: camConfig.position, fov: camConfig.fov, near: 0.1, far: 200 }}
         style={{ background: "transparent", width: "100%", height: "100%" }}
         resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
+        onCreated={() => {
+          // Two rAF frames so the first rendered frame is actually on screen
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() =>
+              window.dispatchEvent(new Event('kp:sceneReady'))
+            )
+          );
+        }}
       >
         <Bvh>
           <AdaptiveDpr pixelated={false} />
@@ -202,6 +220,7 @@ export const TrackingBillboard = forwardRef<
         </Bvh>
       </Canvas>
     </div>
+    </>
   );
 });
 
