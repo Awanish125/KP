@@ -3,71 +3,35 @@
 /**
  * page.tsx — Kiran Publicity home page.
  *
+ * All copy / content lives in src/data/home.json.
+ * Edit that file to change text, images, stats, or brand names.
+ *
  * The 3D billboard is fully isolated in BillboardController.
  * To disable it (no WebGL, no Three.js loaded at all):
  *   1. Comment out the BillboardController import below
  *   2. Comment out <BillboardController stepRefs={stepRefs} /> in JSX
  */
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, Fragment } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
-//import { BillboardController } from "@/components/ThreeDObject/Billboard/BillboardController"; // ← comment to disable billboard
+//import { BillboardController } from "@/components/ThreeDObject/Billboard/BillboardController";
 import { HeroSection, HeroSectionContent } from "@/components/hero";
 import { Loading } from "@/components/ui";
 import { PremiumMarquee } from "@/components/PremiumMarquee";
+import { PremiumRevealSection } from "@/components/PremiumRevealSection";
+import data from "@/data/home.json";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* ── Brand clients marquee ───────────────────────────────────────────────── */
-const BRANDS = [
-  "Hero",
-  "Honda",
-  "TVS",
-  "Royal Enfield",
-  "Ather",
-  "Senco Tanishq",
-  "Mia By Tanishq",
-  "Kalyan Jewellars",
-  "Birla Gold Cement",
-  "Style Bazar",
-  "Vmart",
-].map((text) => ({ type: "text" as const, text }));
+// Transform brands list into the shape PremiumMarquee expects.
+const BRANDS = data.brands.map((text) => ({ type: "text" as const, text }));
 
-/* ── Images (hero section) ───────────────────────────────────────────────── */
-const IMG = {
-  kp: "/homepage/herosection/kp.png",
-  i1: "/homepage/herosection/1.png",
-  i2: "/homepage/herosection/2.png",
-  i3: "/homepage/herosection/3.png",
-} as const;
-
-/* ── S-4 content steps ───────────────────────────────────────────────────── */
-const STEPS = [
-  { label: "Prime Locations",       heading: "Hand-curated\nSites",     body: "Highest-traffic junctions, highways, and corridors across Maharashtra." },
-  { label: "Creative Partnership",  heading: "Concept to\nCampaign",    body: "In-house design team handles artwork, print files and production."       },
-  { label: "72-Hour Installation",  heading: "Approval\nto Live",       body: "From artwork sign-off to live billboard in 72 hours, guaranteed."        },
-  { label: "End-to-End Management", heading: "One Roof,\nAll Services", body: "Site scouting, permits, installation, maintenance and reports."          },
-] as const;
-
-const STATS = [
-  { value: 20,  suffix: "+", label: "Years of\nExcellence" },
-  { value: 500, suffix: "+", label: "Prime\nLocations"     },
-  { value: 100, suffix: "+", label: "Brands\nServed"       },
-] as const;
-
-const SERVICES = [
-  { num: "01", title: "Billboards & Hoardings",  desc: "Large-format roadside displays at premium traffic junctions."  },
-  { num: "02", title: "Unipoles & Gantries",      desc: "Sky-high single-pole structures and highway arch gantries."    },
-  { num: "03", title: "Digital LED Displays",     desc: "Dynamic full-colour LED screens with real-time content."       },
-  { num: "04", title: "Transit Advertising",      desc: "Bus, auto and fleet wraps that move your brand city-wide."     },
-  { num: "05", title: "Bus Shelter Branding",     desc: "Eye-level panels at high-dwell commuter shelters."            },
-  { num: "06", title: "Wall Wraps & Murals",      desc: "Large-scale building wraps and hand-painted murals."           },
-] as const;
-
-/* ════════════════════════════════════════════════════════════════════════════ */
+// Module-level constant so the reference is always stable.
+// The images come from home.json and never change at runtime.
+const SHOWCASE_IMAGES = data.showcase.images;
 
 export default function Home() {
   const stepRefs    = useRef<(HTMLDivElement | null)[]>([]);
@@ -76,21 +40,19 @@ export default function Home() {
   /* ── Lenis smooth scroll ─────────────────────────────────────────────── */
   useEffect(() => {
     const lenis = new Lenis({ lerp: 0.08, smoothWheel: true, syncTouch: false });
-
     lenis.on("scroll", () => ScrollTrigger.update());
     const tick = (t: number) => lenis.raf(t * 1000);
     gsap.ticker.add(tick);
     gsap.ticker.lagSmoothing(0);
-
     return () => {
       gsap.ticker.remove(tick);
       lenis.destroy();
     };
   }, []);
 
-  /* ── Non-billboard scroll animations (counters + text reveals) ───────── */
+  /* ── Scroll animations (counters + text reveals) ────────────────────── */
   useGSAP(() => {
-    STATS.forEach((stat, i) => {
+    data.about.stats.forEach((stat, i) => {
       const el = counterRefs.current[i];
       if (!el) return;
       const obj = { val: 0 };
@@ -113,24 +75,25 @@ export default function Home() {
 
   /* ── JSX ──────────────────────────────────────────────────────────────── */
   return (
-    <div className="bg-white dark:bg-secondary" style={{ overflowX: 'clip' }}>
+    <div className="bg-white dark:bg-secondary" style={{ overflowX: "clip" }}>
       <Loading />
 
-      {/* ↓ Comment this out to disable the 3D billboard entirely */}
       {/* <BillboardController stepRefs={stepRefs} /> */}
 
-      {/* ── S-1: Hero ────────────────────────────────────────────────────── */}
+      {/* ── S-1: Hero ──────────────────────────────────────────────────── */}
       <section id="s1" className="relative h-screen">
-        <HeroSection images={[IMG.i1, IMG.kp, IMG.i2, IMG.kp, IMG.i3, IMG.kp]}>
-          <HeroSectionContent />
+        <HeroSection images={data.hero.images}>
+          <HeroSectionContent
+            subtitle={data.hero.subtitle}
+            line1={data.hero.line1}
+            line2={data.hero.line2}
+            line3={data.hero.line3}
+            gradientColors={data.hero.gradientColors}
+          />
         </HeroSection>
       </section>
 
-      {/* ── Brands marquee — full-width strip below hero ──────────────────── */}
-      {/* bgColor must match the page background so fade-edge gradients blend in. */}
-      {/* In light mode the page is white; in dark mode it is #14181D (secondary). */}
-      {/* Use two separate marquees with the same bgColor so the shared border    */}
-      {/* appears only once (showBottomDivider on first, showTopDivider on second).*/}
+      {/* ── Brands marquee ─────────────────────────────────────────────── */}
       <PremiumMarquee
         items={BRANDS}
         speed={60}
@@ -144,6 +107,31 @@ export default function Home() {
         bgColor="var(--bg)"
         fadeWidth="7rem"
         showTopDivider
+        // showBottomDivider
+        showScrollSpeedEffect
+        showHoverLift
+        showGradientSweep
+        showFadeEdges
+        showEntranceAnimation
+        entranceDirection="top"
+        entranceRepeat={true}
+        showVelocityStretch
+        showSeparatorAnimation
+        pauseOnHover
+      />
+<PremiumMarquee
+        items={BRANDS}
+        speed={60}
+        direction="left"
+        gap={52}
+        itemPadding="px-0 py-5"
+        borderRadius="rounded-none"
+        separatorIcon="diamond"
+        separatorPosition="before"
+        separatorSpacing={14}
+        bgColor="var(--bg)"
+        fadeWidth="7rem"
+        // showTopDivider
         showBottomDivider
         showScrollSpeedEffect
         showHoverLift
@@ -156,23 +144,30 @@ export default function Home() {
         showSeparatorAnimation
         pauseOnHover
       />
-      {/* ── S-2: About content (left) | Billboard slot (right) ───────────── */}
+      {/* ── S-2: About ─────────────────────────────────────────────────── */}
       <section id="s2" className="relative flex h-screen">
         <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
           <div id="s2-content" className="w-full max-w-md">
 
             <div className="flex items-center gap-3 mb-8">
               <span className="block w-6 h-px bg-kp-orange/60" />
-              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">About Us</span>
+              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
+                {data.about.sectionLabel}
+              </span>
             </div>
 
             <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.1] text-secondary dark:text-white mb-8">
-              India&apos;s Premier<br />Outdoor<br />
-              <em className="not-italic text-secondary/40 dark:text-white/40">Advertising</em> Network
+              {data.about.heading.split("\n").map((line, i) => (
+                <Fragment key={i}>{line}<br /></Fragment>
+              ))}
+              <em className="not-italic text-secondary/40 dark:text-white/40">
+                {data.about.headingEmphasis}
+              </em>
+              {data.about.headingSuffix}
             </h2>
 
             <div className="grid grid-cols-3 gap-4 mb-8 pt-6 border-t border-secondary/8 dark:border-white/8">
-              {STATS.map((s, i) => (
+              {data.about.stats.map((s, i) => (
                 <div key={i}>
                   <div className="flex items-baseline gap-0.5">
                     <span
@@ -181,26 +176,24 @@ export default function Home() {
                     >0</span>
                     <span className="text-lg font-light text-kp-orange">{s.suffix}</span>
                   </div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-secondary/55 dark:text-white/55 mt-1 whitespace-pre-line">{s.label}</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-secondary/55 dark:text-white/55 mt-1 whitespace-pre-line">
+                    {s.label}
+                  </p>
                 </div>
               ))}
             </div>
 
             <p className="text-sm text-secondary/60 dark:text-white/60 leading-relaxed">
-              For over two decades, Kiran Publicity has been transforming cityscapes
-              into powerful brand narratives — from highways to high streets, across Maharashtra.
+              {data.about.paragraph}
             </p>
           </div>
         </div>
 
-        {/* Invisible slot — marks right half for the floating canvas */}
         <div className="hidden md:block w-1/2 h-full" aria-hidden="true" />
       </section>
 
-      {/* ── S-3: Billboard slot (left) | Services content (right) ────────── */}
+      {/* ── S-3: Services ──────────────────────────────────────────────── */}
       <section id="s3" className="relative flex h-screen">
-
-        {/* Invisible slot — left half */}
         <div className="hidden md:block w-1/2 h-full" aria-hidden="true" />
 
         <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
@@ -208,20 +201,31 @@ export default function Home() {
 
             <div className="flex items-center gap-3 mb-8">
               <span className="block w-6 h-px bg-kp-orange/60" />
-              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">What We Do</span>
+              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
+                {data.services.sectionLabel}
+              </span>
             </div>
 
             <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.1] text-secondary dark:text-white mb-10">
-              Advertising<br /><em className="not-italic text-secondary/40 dark:text-white/40">Solutions</em>
+              {data.services.heading}<br />
+              <em className="not-italic text-secondary/40 dark:text-white/40">
+                {data.services.headingEmphasis}
+              </em>
             </h2>
 
             <ul className="divide-y divide-secondary/8 dark:divide-white/6">
-              {SERVICES.map((s) => (
-                <li key={s.num} className="group flex items-start gap-4 py-3.5">
-                  <span className="text-[10px] font-mono text-secondary/55 dark:text-white/55 mt-0.5 w-5 flex-shrink-0">{s.num}</span>
+              {data.services.items.map((s, i) => (
+                <li key={i} className="group flex items-start gap-4 py-3.5">
+                  <span className="text-[10px] font-mono text-secondary/55 dark:text-white/55 mt-0.5 w-5 flex-shrink-0">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
                   <div>
-                    <p className="text-sm font-light text-secondary/80 dark:text-white/80 group-hover:text-secondary dark:group-hover:text-white transition-colors">{s.title}</p>
-                    <p className="text-[11px] text-secondary/55 dark:text-white/55 mt-0.5 leading-snug">{s.desc}</p>
+                    <p className="text-sm font-light text-secondary/80 dark:text-white/80 group-hover:text-secondary dark:group-hover:text-white transition-colors">
+                      {s.title}
+                    </p>
+                    <p className="text-[11px] text-secondary/55 dark:text-white/55 mt-0.5 leading-snug">
+                      {s.description}
+                    </p>
                   </div>
                 </li>
               ))}
@@ -230,20 +234,80 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── S-4: Pinned 400vh — content steps (left) | Billboard slot (right) */}
+      {/* ── S-5: Showcase (image reveal) ───────────────────────────────── */}
+      <PremiumRevealSection
+        images={SHOWCASE_IMAGES}
+        animationStyle="cameraZoom"
+        repeatOnScroll={true}
+        scrollStart="top 75%"
+        minHeight="100vh"
+        backgroundColorClass="bg-white dark:bg-secondary"
+        animationEnabled
+        showEntranceAnimation
+        showBlurEffect
+        showScaleAnimation
+        showFadeAnimation
+        showRotation
+        showStaggerAnimation
+        staggerAmount={0.9}
+        showOvershoot={true}
+        showBounceEffect={true}
+        showFloatingAnimation
+        showMouseParallax
+        showScrollParallax
+        showDepthEffect
+        showHoverInteraction
+        showBackgroundGradient
+        showNoiseTexture={true}
+        showGlow={false}
+      >
+        {/* Centred content sits above the floating images */}
+        <div className="relative flex items-center justify-center min-h-screen px-6">
+          <div className="text-center max-w-lg">
+            <div className="flex items-center justify-center gap-3 mb-8">
+              <span className="block w-6 h-px bg-kp-orange/60" />
+              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
+                {data.showcase.sectionLabel}
+              </span>
+              <span className="block w-6 h-px bg-kp-orange/60" />
+            </div>
+
+            <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.1] text-secondary dark:text-white mb-6">
+              {data.showcase.heading.split("\n").map((line, i) => (
+                <Fragment key={i}>{line}<br /></Fragment>
+              ))}
+              <em className="not-italic text-secondary/35 dark:text-white/35">
+                {data.showcase.headingEmphasis}
+              </em>
+            </h2>
+
+            <p className="text-sm text-secondary/60 dark:text-white/60 leading-relaxed mb-10 max-w-sm mx-auto">
+              {data.showcase.body}
+            </p>
+
+            <button className="group inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.35em] text-secondary/70 dark:text-white/70 hover:text-kp-orange dark:hover:text-kp-orange transition-colors duration-300">
+              {data.showcase.cta}
+              <span className="block w-5 h-px bg-current transition-all duration-300 group-hover:w-8" />
+            </button>
+          </div>
+        </div>
+      </PremiumRevealSection>
+
+      {/* ── S-4: Process (pinned scroll) ───────────────────────────────── */}
       <div id="s4-wrapper" style={{ height: "400vh" }}>
         <section className="sticky top-0 h-screen flex overflow-hidden">
 
-          {/* S-4 — Changing content steps */}
           <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
 
             <div className="absolute top-8 left-8 md:left-16 lg:left-20 flex items-center gap-3">
               <span className="block w-6 h-px bg-kp-orange/60" />
-              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">Scroll to explore</span>
+              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
+                {data.process.sectionLabel}
+              </span>
             </div>
 
             <div className="relative w-full max-w-md" style={{ minHeight: 280 }}>
-              {STEPS.map((step, i) => (
+              {data.process.steps.map((step, i) => (
                 <div
                   key={i}
                   ref={(el) => { stepRefs.current[i] = el; }}
@@ -252,15 +316,24 @@ export default function Home() {
                 >
                   <div className="flex items-center gap-3 mb-6">
                     <span className="block w-6 h-px bg-kp-orange/60" />
-                    <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">{step.label}</span>
+                    <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
+                      {step.label}
+                    </span>
                   </div>
                   <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.15] text-secondary dark:text-white mb-6 whitespace-pre-line">
                     {step.heading}
                   </h2>
-                  <p className="text-sm text-secondary/60 dark:text-white/60 leading-relaxed max-w-xs">{step.body}</p>
+                  <p className="text-sm text-secondary/60 dark:text-white/60 leading-relaxed max-w-xs">
+                    {step.body}
+                  </p>
                   <div className="flex gap-2 mt-8">
-                    {STEPS.map((_, j) => (
-                      <span key={j} className={`block h-px w-6 transition-colors duration-300 ${j === i ? "bg-kp-orange" : "bg-secondary/20 dark:bg-white/20"}`} />
+                    {data.process.steps.map((_, j) => (
+                      <span
+                        key={j}
+                        className={`block h-px w-6 transition-colors duration-300 ${
+                          j === i ? "bg-kp-orange" : "bg-secondary/20 dark:bg-white/20"
+                        }`}
+                      />
                     ))}
                   </div>
                 </div>
@@ -268,7 +341,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Invisible slot — right half */}
           <div className="hidden md:block w-1/2 h-full" aria-hidden="true" />
         </section>
       </div>

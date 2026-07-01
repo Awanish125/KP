@@ -53,8 +53,8 @@ export function useScrollSpeed(
         gsap.killTweensOf(state);
         gsap.to(state, {
           factor:     1,
-          duration:   1.6,
-          ease:       'power3.out',
+          duration:   0.7,
+          ease:       'power2.inOut',
           onUpdate:   apply,
           onComplete: () => {
             // Clear cache so next scroll re-reads rfm's current --duration,
@@ -69,10 +69,14 @@ export function useScrollSpeed(
       if (baseDurations.length === 0) readBase();
       if (baseDurations.length === 0) return; // rfm not ready
 
-      const mag    = Math.min(Math.abs(e.deltaY) / 60, 3);
-      const target = e.deltaY > 0
-        ? 1 / (1 + mag * 0.7)   // up to ~3.3× faster on scroll down
-        : 1 + mag * 0.45;        // up to ~2.35× slower on scroll up
+      // Only react to downward scroll — speeding up on scroll-down is intuitive.
+      // Scroll-up used to slow the marquee down, but that caused a noticeable
+      // speed-increase animation after the user stopped scrolling up (the return
+      // tween would ramp speed back up, looking like another scroll event).
+      if (e.deltaY <= 0) return;
+
+      const mag    = Math.min(e.deltaY / 60, 3);
+      const target = 1 / (1 + mag * 0.7); // up to ~3.3× faster on scroll down
 
       gsap.killTweensOf(state);
       gsap.to(state, {

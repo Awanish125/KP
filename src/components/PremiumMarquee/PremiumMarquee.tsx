@@ -24,10 +24,12 @@ import {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+export type MarqueeDirection = 'left' | 'right' | 'up' | 'down';
+
 export interface MarqueeLayer {
   items:      MarqueeItemData[];
   speed?:     number;
-  direction?: 'left' | 'right';
+  direction?: MarqueeDirection;
   gap?:       number;
 }
 
@@ -37,15 +39,24 @@ export interface PremiumMarqueeProps {
   loading?:       boolean;
   skeletonCount?: number;
 
-  // ── Marquee behaviour
-  // speed: pixels per second the strip scrolls (react-fast-marquee unit).
-  // Higher = faster. showScrollSpeedEffect will modulate this on scroll.
-  speed?:        number;
-  direction?:    'left' | 'right';
-  pauseOnHover?: boolean;
-  pauseOnClick?: boolean;
-  loop?:         number;
-  autoFill?:     boolean;
+  // ── react-fast-marquee core props (full library API)
+  // speed: pixels per second. Higher = faster. showScrollSpeedEffect modulates this on scroll.
+  speed?:           number;
+  // 'up' / 'down' are experimental in rfm — set an explicit height for those.
+  direction?:       MarqueeDirection;
+  play?:            boolean;
+  pauseOnHover?:    boolean;
+  pauseOnClick?:    boolean;
+  loop?:            number;
+  autoFill?:        boolean;
+  delay?:           number;
+  // Built-in rfm gradient (alternative to showFadeEdges custom overlay).
+  gradient?:        boolean;
+  gradientColor?:   string;
+  gradientWidth?:   number | string;
+  onFinish?:        () => void;
+  onCycleComplete?: () => void;
+  onMount?:         () => void;
 
   // ── Item appearance
   gap?:           number;
@@ -56,31 +67,27 @@ export interface PremiumMarqueeProps {
   itemTextColor?: string;
 
   // ── Strip styling
+  // Height of the strip. Required for direction='up'|'down' (vertical marquees).
+  height?:     string | number;
   // Background colour of the marquee strip.
-  // Also used as the colour the left/right edge gradients fade FROM.
-  // If omitted, no background is applied and edges fade from the CSS --bg var.
+  // Also used as the colour the fade-edge gradients fade FROM.
   bgColor?:    string;
-  // Width of the left and right fade-edge gradient overlays. Default '5rem'.
+  // Size of the fade-edge gradient overlays. Default '5rem'.
+  // For horizontal: controls width. For vertical: controls height.
   fadeWidth?:  string;
 
   // ── Separator
   separator?:         boolean;
   separatorIcon?:     string;
   separatorSpacing?:  number;
-  // Colour of the separator character. Default is theme-aware (20% opacity).
   separatorColor?:    string;
-  // Where the separator appears relative to each item:
-  //   'between' — only between items (default, classic behaviour)
-  //   'before'  — separator before every item
-  //   'after'   — separator after every item
-  //   'both'    — separator before AND after every item
+  // 'between' | 'before' | 'after' | 'both'
   separatorPosition?: 'between' | 'before' | 'after' | 'both';
 
   // ── Divider lines (top/bottom border)
-  // Control each border independently so stacked marquees share no duplicate lines.
   showTopDivider?:    boolean;
   showBottomDivider?: boolean;
-  dividerColor?:      string;  // any CSS color
+  dividerColor?:      string;
 
   // ── Multi-layer mode
   showMultiLayer?: boolean;
@@ -105,10 +112,11 @@ export interface PremiumMarqueeProps {
   showMouseRipple?:        boolean;
   showSeparatorAnimation?: boolean;
 
-  // Entrance animation direction: 'top' | 'bottom' | 'none'. Default 'bottom'.
+  // Entrance animation: direction items arrive from. 'top' | 'bottom' | 'none'.
+  // For vertical marquees (up/down) 'top'/'bottom' map to the visual leading/trailing edge.
   entranceDirection?: 'top' | 'bottom' | 'none';
-  // Replay full entrance animation every time strip enters viewport.
-  // When false (default), only blur→unblur happens on re-entry.
+  // true → full animation replays on every viewport re-entry.
+  // false (default) → plays once; subsequent entries only blur→unblur.
   entranceRepeat?: boolean;
 
   className?: string;
@@ -122,13 +130,21 @@ export function PremiumMarquee({
   loading       = false,
   skeletonCount = 6,
 
-  // Marquee behaviour
-  speed        = DEFAULT_SPEED,
-  direction    = 'left',
-  pauseOnHover = true,
-  pauseOnClick = false,
-  loop         = 0,
-  autoFill     = true,
+  // rfm core
+  speed           = DEFAULT_SPEED,
+  direction       = 'left',
+  play            = true,
+  pauseOnHover    = true,
+  pauseOnClick    = false,
+  loop            = 0,
+  autoFill        = true,
+  delay           = 0,
+  gradient        = false,
+  gradientColor   = 'white',
+  gradientWidth   = 200,
+  onFinish,
+  onCycleComplete,
+  onMount,
 
   // Item appearance
   gap           = DEFAULT_GAP,
@@ -137,6 +153,7 @@ export function PremiumMarquee({
   itemTextColor,
 
   // Strip styling
+  height,
   bgColor,
   fadeWidth = '5rem',
 
@@ -182,10 +199,11 @@ export function PremiumMarquee({
 }: PremiumMarqueeProps) {
   injectMarqueeStyles();
 
-  const containerRef   = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const prefersReduced = useReducedMotion();
   const motion         = !prefersReduced;
   const isVisible      = useIntersection(containerRef);
+  const isVertical     = direction === 'up' || direction === 'down';
 
   // ── Animation hooks ───────────────────────────────────────────────────────
   useScrollSpeed(containerRef,  motion && showScrollSpeedEffect);
@@ -196,6 +214,7 @@ export function PremiumMarquee({
     tilt:        motion && showPerspectiveTilt,
     compression: motion && showScrollCompression,
     rotation:    motion && showDirectionRotation,
+    isVertical,
   });
   useMouseRipple(containerRef,   motion && showMouseRipple);
   useEntranceAnimation(
@@ -204,6 +223,7 @@ export function PremiumMarquee({
     isVisible,
     entranceDirection,
     entranceRepeat,
+    isVertical,
   );
 
   // ── Separator ─────────────────────────────────────────────────────────────
@@ -214,7 +234,6 @@ export function PremiumMarquee({
       key={key}
       className={cx(
         'inline-block shrink-0 select-none',
-        // Only apply theme class when no explicit colour is set
         !separatorColor && 'text-secondary/20 dark:text-white/20',
         motion && showSeparatorAnimation && 'pm-sep-pulse',
       )}
@@ -245,10 +264,8 @@ export function PremiumMarquee({
       }
 
       const nodes: React.ReactNode[] = [];
-      const last = sourceItems.length - 1;
 
       sourceItems.forEach((item, i) => {
-        // Before item
         if (separator && (separatorPosition === 'before' || separatorPosition === 'both')) {
           nodes.push(renderSeparator(`sep-before-${i}`));
         }
@@ -269,7 +286,6 @@ export function PremiumMarquee({
           />,
         );
 
-        // After item
         if (separator && (separatorPosition === 'after' || separatorPosition === 'both')) {
           nodes.push(renderSeparator(`sep-after-${i}`));
         }
@@ -286,17 +302,41 @@ export function PremiumMarquee({
   );
 
   // ── Divider styles ────────────────────────────────────────────────────────
-  // Resolve divider border as inline style so any CSS color works.
   const dividerStyle = dividerColor ? { borderColor: dividerColor } : undefined;
   const defaultDividerClass = 'border-secondary/8 dark:border-white/6';
 
   // ── Edge gradient overlays ────────────────────────────────────────────────
-  // Uses actual color-to-transparent gradients (not mask-image) so the fade is
-  // visible regardless of background. fadeFromColor is the strip background.
+  // Color-to-transparent gradients (not mask-image) so the fade works on any bg.
+  // For horizontal: left/right overlays. For vertical: top/bottom overlays.
   const fadeFromColor = bgColor || 'var(--bg, white)';
 
-  const renderFadeEdges = () =>
-    showFadeEdges ? (
+  const renderFadeEdges = () => {
+    if (!showFadeEdges) return null;
+
+    if (isVertical) {
+      return (
+        <>
+          <div
+            className="absolute top-0 inset-x-0 z-20 pointer-events-none"
+            style={{
+              height:     fadeWidth,
+              background: `linear-gradient(to bottom, ${fadeFromColor}, transparent)`,
+            }}
+            aria-hidden="true"
+          />
+          <div
+            className="absolute bottom-0 inset-x-0 z-20 pointer-events-none"
+            style={{
+              height:     fadeWidth,
+              background: `linear-gradient(to top, ${fadeFromColor}, transparent)`,
+            }}
+            aria-hidden="true"
+          />
+        </>
+      );
+    }
+
+    return (
       <>
         <div
           className="absolute left-0 inset-y-0 z-20 pointer-events-none"
@@ -315,7 +355,8 @@ export function PremiumMarquee({
           aria-hidden="true"
         />
       </>
-    ) : null;
+    );
+  };
 
   // ── Shared overlays ───────────────────────────────────────────────────────
   const renderOverlays = () => (
@@ -337,7 +378,28 @@ export function PremiumMarquee({
   );
 
   // ── Container style ───────────────────────────────────────────────────────
-  const containerStyle: React.CSSProperties = bgColor ? { backgroundColor: bgColor } : {};
+  const containerStyle: React.CSSProperties = {
+    ...(bgColor ? { backgroundColor: bgColor } : {}),
+    // Vertical marquees need an explicit height on the wrapper; rfm uses 100vh
+    // internally (its container width maps to the visible height after rotation).
+    ...(isVertical && height ? { height } : {}),
+  };
+
+  // ── Shared rfm props ──────────────────────────────────────────────────────
+  const rfmProps = {
+    play,
+    pauseOnHover,
+    pauseOnClick,
+    loop,
+    autoFill,
+    delay,
+    gradient,
+    gradientColor,
+    gradientWidth,
+    onFinish,
+    onCycleComplete,
+    onMount,
+  };
 
   // ── Multi-layer rendering ─────────────────────────────────────────────────
   if (showMultiLayer) {
@@ -366,11 +428,7 @@ export function PremiumMarquee({
               key={li}
               speed={layer.speed ?? speed}
               direction={layer.direction ?? (li % 2 === 0 ? 'left' : 'right')}
-              pauseOnHover={pauseOnHover}
-              pauseOnClick={pauseOnClick}
-              loop={loop}
-              autoFill={autoFill}
-              gradient={false}
+              {...rfmProps}
             >
               {buildItems(layer.items, layer.gap ?? gap)}
             </Marquee>
@@ -400,11 +458,7 @@ export function PremiumMarquee({
       <Marquee
         speed={speed}
         direction={direction}
-        pauseOnHover={pauseOnHover}
-        pauseOnClick={pauseOnClick}
-        loop={loop}
-        autoFill={autoFill}
-        gradient={false}
+        {...rfmProps}
       >
         {buildItems(items, gap)}
       </Marquee>

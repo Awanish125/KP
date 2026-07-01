@@ -3,17 +3,18 @@ import gsap from 'gsap';
 import { STRETCH_MAX, TILT_MAX, ROTATE_MAX, COMPRESS_MAX } from '../constants';
 
 interface Options {
-  stretch:     boolean; // scaleX items on fast scroll
-  tilt:        boolean; // rotateX the inner container on scroll direction
-  compression: boolean; // compress scaleX of the inner container
+  stretch:     boolean; // scale items in the scroll direction
+  tilt:        boolean; // tilt the inner container on scroll
+  compression: boolean; // compress the inner container in the scroll direction
   rotation:    boolean; // rotate items slightly in scroll direction
+  isVertical:  boolean; // true when direction='up'|'down' — swaps X↔Y axes
 }
 
-// All four velocity-driven effects share one wheel listener so the velocity
-// calculation and decay timer are applied consistently without duplication.
+// All four velocity-driven effects share one wheel listener so velocity
+// calculation and decay are applied consistently without duplication.
 export function useVelocityEffects(
   containerRef: RefObject<HTMLElement | null>,
-  { stretch, tilt, compression, rotation }: Options,
+  { stretch, tilt, compression, rotation, isVertical }: Options,
 ): void {
   const anyEnabled = stretch || tilt || compression || rotation;
 
@@ -27,15 +28,15 @@ export function useVelocityEffects(
     const innerWrap = () => container.querySelector<HTMLElement>('.rfm-marquee-container');
 
     const onWheel = (e: WheelEvent) => {
-      // Normalise to 0–1 regardless of device deltaMode
       const v   = Math.min(Math.abs(e.deltaY) / 100, 1);
       const dir = Math.sign(e.deltaY);
 
       if (stretch) {
+        // Horizontal → stretch width; vertical → stretch height.
         gsap.to(items(), {
-          scaleX: 1 + v * STRETCH_MAX,
-          duration: 0.14,
-          ease: 'power2.out',
+          [isVertical ? 'scaleY' : 'scaleX']: 1 + v * STRETCH_MAX,
+          duration:  0.14,
+          ease:      'power2.out',
           overwrite: 'auto',
         });
       }
@@ -43,18 +44,21 @@ export function useVelocityEffects(
       const wrap = innerWrap();
       if (wrap) {
         if (tilt) {
+          // Horizontal strip → tip forward/back (rotateX).
+          // Vertical strip   → tip left/right (rotateY).
           gsap.to(wrap, {
-            rotateX: dir * v * -TILT_MAX,
-            duration: 0.2,
-            ease: 'power2.out',
+            [isVertical ? 'rotateY' : 'rotateX']: dir * v * -TILT_MAX,
+            duration:  0.2,
+            ease:      'power2.out',
             overwrite: 'auto',
           });
         }
         if (compression) {
+          // Compress in the direction of movement.
           gsap.to(wrap, {
-            scaleX: 1 - v * COMPRESS_MAX,
-            duration: 0.2,
-            ease: 'power2.out',
+            [isVertical ? 'scaleY' : 'scaleX']: 1 - v * COMPRESS_MAX,
+            duration:  0.2,
+            ease:      'power2.out',
             overwrite: 'auto',
           });
         }
@@ -62,9 +66,9 @@ export function useVelocityEffects(
 
       if (rotation) {
         gsap.to(items(), {
-          rotate: dir * v * ROTATE_MAX,
-          duration: 0.18,
-          ease: 'power2.out',
+          rotate:    dir * v * ROTATE_MAX,
+          duration:  0.18,
+          ease:      'power2.out',
           overwrite: 'auto',
         });
       }
@@ -72,24 +76,27 @@ export function useVelocityEffects(
       // Return everything to rest after scroll ceases.
       if (decayTimer) clearTimeout(decayTimer);
       decayTimer = setTimeout(() => {
+        const scaleAxis = isVertical ? 'scaleY' : 'scaleX';
+        const tiltAxis  = isVertical ? 'rotateY' : 'rotateX';
+
         if (stretch) {
           gsap.to(items(), {
-            scaleX: 1,
-            duration: 0.75,
-            ease: 'elastic.out(1, 0.5)',
+            [scaleAxis]: 1,
+            duration: 0.45,
+            ease:     'power3.out',
           });
         }
         if (rotation) {
           gsap.to(items(), {
-            rotate: 0,
-            duration: 0.55,
-            ease: 'power3.out',
+            rotate:   0,
+            duration: 0.45,
+            ease:     'power3.out',
           });
         }
         const w = innerWrap();
         if (w) {
-          if (tilt)        gsap.to(w, { rotateX: 0, duration: 0.85, ease: 'elastic.out(1, 0.45)' });
-          if (compression) gsap.to(w, { scaleX:  1, duration: 0.7,  ease: 'elastic.out(1, 0.5)'  });
+          if (tilt)        gsap.to(w, { [tiltAxis]:  0, duration: 0.5, ease: 'power3.out' });
+          if (compression) gsap.to(w, { [scaleAxis]: 1, duration: 0.45, ease: 'power3.out' });
         }
       }, 130);
     };
@@ -103,5 +110,5 @@ export function useVelocityEffects(
       const w = innerWrap();
       if (w) gsap.killTweensOf(w);
     };
-  }, [anyEnabled, stretch, tilt, compression, rotation]);
+  }, [anyEnabled, stretch, tilt, compression, rotation, isVertical]);
 }
