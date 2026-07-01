@@ -3,31 +3,24 @@
 /**
  * page.tsx — Kiran Publicity home page.
  *
- * ONE WebGL canvas (TrackingBillboard) — no multiple contexts.
- * Invisible "slot" divs mark where the model should appear in each section.
- * GSAP ScrollTrigger scrubs canvas left/top/opacity between slot positions.
- *
- * S-1  Hero         — no billboard
- * S-2  About        — slot on RIGHT  (left: 50%)
- * S-3  Services     — slot on LEFT   (left: 0%)
- * S-4  Pinned 360°  — slot on RIGHT  (left: 50%, sticky)
+ * The 3D billboard is fully isolated in BillboardController.
+ * To disable it (no WebGL, no Three.js loaded at all):
+ *   1. Comment out the BillboardController import below
+ *   2. Comment out <BillboardController stepRefs={stepRefs} /> in JSX
  */
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
-import {
-  TrackingBillboard,
-  type TrackingBillboardHandle,
-} from "@/components/ThreeDObject/Billboard/TrackingBillboard";
-import { HeroSection,HeroSectionContent } from "@/components/hero";
+//import { BillboardController } from "@/components/ThreeDObject/Billboard/BillboardController"; // ← comment to disable billboard
+import { HeroSection, HeroSectionContent } from "@/components/hero";
 import { Loading } from "@/components/ui";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* ── images ───────────────────────────────────────────────────────────────── */
+/* ── Images (hero section) ───────────────────────────────────────────────── */
 const IMG = {
   kp: "/homepage/herosection/kp.png",
   i1: "/homepage/herosection/1.png",
@@ -35,12 +28,12 @@ const IMG = {
   i3: "/homepage/herosection/3.png",
 } as const;
 
-/* ── S-4 content steps (one per 90° of rotation) ─────────────────────────── */
+/* ── S-4 content steps ───────────────────────────────────────────────────── */
 const STEPS = [
-  { label: "Prime Locations",       heading: "Hand-curated\nSites",     body: "Highest-traffic junctions, highways, and corridors across Maharashtra.", image: IMG.i1 },
-  { label: "Creative Partnership",  heading: "Concept to\nCampaign",    body: "In-house design team handles artwork, print files and production.",       image: IMG.i2 },
-  { label: "72-Hour Installation",  heading: "Approval\nto Live",       body: "From artwork sign-off to live billboard in 72 hours, guaranteed.",        image: IMG.i3 },
-  { label: "End-to-End Management", heading: "One Roof,\nAll Services", body: "Site scouting, permits, installation, maintenance and reports.",          image: IMG.kp },
+  { label: "Prime Locations",       heading: "Hand-curated\nSites",     body: "Highest-traffic junctions, highways, and corridors across Maharashtra." },
+  { label: "Creative Partnership",  heading: "Concept to\nCampaign",    body: "In-house design team handles artwork, print files and production."       },
+  { label: "72-Hour Installation",  heading: "Approval\nto Live",       body: "From artwork sign-off to live billboard in 72 hours, guaranteed."        },
+  { label: "End-to-End Management", heading: "One Roof,\nAll Services", body: "Site scouting, permits, installation, maintenance and reports."          },
 ] as const;
 
 const STATS = [
@@ -61,25 +54,8 @@ const SERVICES = [
 /* ════════════════════════════════════════════════════════════════════════════ */
 
 export default function Home() {
-  const billRef     = useRef<TrackingBillboardHandle>(null);
   const stepRefs    = useRef<(HTMLDivElement | null)[]>([]);
   const counterRefs = useRef<(HTMLSpanElement | null)[]>([]);
-
-  /* ── Deferred Three.js mount ─────────────────────────────────────────── */
-  // The Three.js canvas is NOT mounted during the loading animation.
-  // WebGL context creation + shader compilation happen on the main thread
-  // and would compete with GSAP, causing frame drops. Instead we mount
-  // TrackingBillboard only after kp:loaded fires (animation fully done).
-  const [billboardMounted, setBillboardMounted] = useState(false);
-  useEffect(() => {
-    // Preload billboard images so the browser has cache hits when Three.js
-    // requests them immediately after mount.
-    Object.values(IMG).forEach(url => {
-      const img = new Image();
-      img.src = url;
-    });
-    window.addEventListener('kp:loaded', () => setBillboardMounted(true), { once: true });
-  }, []);
 
   /* ── Lenis + section snap ────────────────────────────────────────────── */
   useEffect(() => {
@@ -97,7 +73,6 @@ export default function Home() {
 
       const scroll = lenis.scroll;
 
-      // Which section are we currently in?
       let currentIdx = 0;
       for (let i = 0; i < targets.length; i++) {
         if (targets[i].offsetTop <= scroll + 10) currentIdx = i;
@@ -122,11 +97,10 @@ export default function Home() {
       if (snapping) return;
       wheelAcc += e.deltaY;
       if (wheelTimer) clearTimeout(wheelTimer);
-      // Wait 100 ms after the last wheel tick, then decide
       wheelTimer = setTimeout(() => {
         const acc = wheelAcc;
         wheelAcc = 0;
-        if (Math.abs(acc) < 80) return; // tiny nudge — no snap
+        if (Math.abs(acc) < 80) return;
         snapToSection(acc > 0 ? 1 : -1);
       }, 100);
     }
@@ -145,171 +119,8 @@ export default function Home() {
     };
   }, []);
 
-  /* ── GSAP ─────────────────────────────────────────────────────────────── */
-  // Deps include billboardMounted so this re-runs once the canvas is in the DOM.
-  // The first run (billboardMounted=false) exits early; the second run wires
-  // all ScrollTriggers with a valid billRef.
+  /* ── Non-billboard scroll animations (counters + text reveals) ───────── */
   useGSAP(() => {
-    const bill = billRef.current;
-    if (!bill) return;
-    const wrap = bill.wrapRef.current;
-    if (!wrap) return;
-
-    /* ── Utility: premium scrubbed transition between section slots ───────
-         left  : scrubs fromPct → toPct
-         scale : pulses up to peakScale at mid-transit, returns to 1
-         rotation: scrubs fromDeg → toDeg so the model spins during transit
-    ─────────────────────────────────────────────────────────────────────── */
-    function scrubTransition(
-      triggerId: string,
-      fromPct: number,
-      toPct: number,
-      fromDeg: number,
-      toDeg: number,
-      peakScale = 1.12,
-    ) {
-      ScrollTrigger.create({
-        trigger: triggerId,
-        start: "top bottom",
-        end:   "top top",
-        scrub: 0.5,
-        onUpdate(self) {
-          const p = self.progress;
-          // Horizontal slide — x uses element-relative %, element is 50vw wide,
-          // so x:200% = left:100vw. Multiply left% by 2 to convert.
-          const left  = fromPct + (toPct - fromPct) * p;
-          const scale = 1 + (peakScale - 1) * Math.sin(p * Math.PI);
-          gsap.set(wrap, { x: `${left * 2}%`, scale });
-          bill?.setRotationDirect(fromDeg + (toDeg - fromDeg) * p);
-        },
-      });
-    }
-
-    /* ── S-1 → S-2 : slide in from right + fade ────────────────────────── */
-    ScrollTrigger.create({
-      trigger: "#s2",
-      start: "top bottom",
-      end:   "top top",
-      scrub: 0.4,
-      onUpdate(self) {
-        const p = self.progress;
-        gsap.set(wrap, {
-          x:       `${(50 + (1 - p) * 20) * 2}%`,    // translateX 140% → 100%
-          opacity: p,
-          scale:   0.85 + 0.15 * p,
-        });
-      },
-      onLeaveBack() {
-        gsap.set(wrap, { opacity: 0, scale: 0.85 });
-      },
-    });
-
-    /* ── S-2 fully in view ─────────────────────────────────────────────── */
-    ScrollTrigger.create({
-      trigger: "#s2",
-      start: "top top",
-      onEnter() {
-        gsap.set(wrap, { x: "100%", opacity: 1, scale: 1 });
-        bill.changePoster("front", IMG.i1);
-        // Rotate 180° with poster swap at 90°
-        bill.rotateTo(180, {
-          duration: 1.8,
-          ease: "power2.inOut",
-          images: [
-            { atDegrees: 90,  front: IMG.kp },
-            { atDegrees: 180, front: IMG.i1 },
-          ],
-        });
-      },
-      onLeaveBack() {
-        bill.stopScrollRotation();
-        bill.resetRotation({ duration: 0.5 });
-      },
-    });
-
-    /* ── S-2 → S-3 : slides left + spins 180° (model was at 180° after S-2) */
-    scrubTransition("#s3", 50, 0, 180, 360);
-
-    /* ── S-3 fully in view ─────────────────────────────────────────────── */
-    ScrollTrigger.create({
-      trigger: "#s3",
-      start: "top top",
-      onEnter() {
-        // Transit scrub already set rotation to 360° — snap canvas to final slot
-        gsap.set(wrap, { x: "0%", scale: 1 });
-        bill.changePoster("front", IMG.i2);
-        // Gentle settle spin: continue from 360° to 400° and ease back to 360°
-        bill.rotateTo(400, { duration: 0.6, ease: "power2.out" });
-        gsap.delayedCall(0.6, () => bill.rotateTo(360, { duration: 0.4, ease: "power2.inOut" }));
-      },
-      onLeaveBack() {
-        bill.stopScrollRotation();
-        // Return to S-2 position
-        gsap.set(wrap, { x: "100%" });
-        bill.changePoster("front", IMG.i1);
-        bill.resetRotation({ duration: 0.5 });
-      },
-    });
-
-    /* ── S-3 → S-4 : slides right + spins another 180° (was at 360° after S-3) */
-    scrubTransition("#s4-wrapper", 0, 50, 360, 540);
-
-    /* ── S-4 fully in view — start scroll-driven 360° rotation ─────────── */
-    ScrollTrigger.create({
-      trigger: "#s4-wrapper",
-      start: "top top",
-      onEnter() {
-        gsap.set(wrap, { x: "100%", opacity: 1 });
-        bill.changePoster("front", STEPS[0].image);
-        bill.startScrollRotation(
-          360,
-          "#s4-wrapper",
-          STEPS.map((step, i) => ({ atDegrees: i * 90, front: step.image })),
-        );
-      },
-      onLeaveBack() {
-        bill.stopScrollRotation();
-        // Return to S-3 position
-        gsap.set(wrap, { x: "0%" });
-        bill.changePoster("front", IMG.i2);
-      },
-    });
-
-    /* ── After S-4 ends : fade out ──────────────────────────────────────── */
-    ScrollTrigger.create({
-      trigger: "#s4-wrapper",
-      start: "bottom bottom",
-      onEnter() {
-        bill.stopScrollRotation();
-        gsap.to(wrap, { opacity: 0, scale: 0.85, duration: 0.5, ease: "power2.in" });
-      },
-      onLeaveBack() {
-        gsap.to(wrap, { opacity: 1, scale: 1, duration: 0.3 });
-      },
-    });
-
-    /* ── S-4 content steps sync'd to billboard rotation ─────────────────── */
-    ScrollTrigger.create({
-      trigger: "#s4-wrapper",
-      start: "top top",
-      end:   "bottom bottom",
-      scrub: true,
-      onUpdate(self) {
-        const deg = 360 * self.progress;
-        stepRefs.current.forEach((el, i) => {
-          if (!el) return;
-          const active = deg >= i * 90 && deg < (i + 1) * 90;
-          gsap.to(el, {
-            opacity: active ? 1 : 0,
-            y: active ? 0 : 16,
-            duration: 0.3,
-            overwrite: true,
-          });
-        });
-      },
-    });
-
-    /* ── About stat counters ────────────────────────────────────────────── */
     STATS.forEach((stat, i) => {
       const el = counterRefs.current[i];
       if (!el) return;
@@ -321,7 +132,6 @@ export default function Home() {
       });
     });
 
-    /* ── Text reveals ───────────────────────────────────────────────────── */
     gsap.fromTo("#s2-content > *", { opacity: 0, y: 30 }, {
       opacity: 1, y: 0, stagger: 0.12, duration: 0.9, ease: "power3.out",
       scrollTrigger: { trigger: "#s2", start: "top 65%" },
@@ -330,35 +140,25 @@ export default function Home() {
       opacity: 1, x: 0, stagger: 0.07, duration: 0.7, ease: "power3.out",
       scrollTrigger: { trigger: "#s3", start: "top 65%" },
     });
-  }, [billboardMounted]);
+  }, []);
 
   /* ── JSX ──────────────────────────────────────────────────────────────── */
   return (
     <div className="bg-[#070a13]">
       <Loading />
 
-      {/* Mount after kp:loaded so Three.js shader compilation never competes
-          with the loading animation. The canvas is invisible (opacity:0) until
-          the S-1→S-2 scroll trigger fires. */}
-      {billboardMounted && (
-        <TrackingBillboard
-          ref={billRef}
-          initialImage={IMG.i1}
-          cameraAngle="front"
-          showLeva={false}
-        />
-      )}
+      {/* ↓ Comment this out to disable the 3D billboard entirely */}
+      {/* <BillboardController stepRefs={stepRefs} /> */}
 
       {/* ── S-1: Hero ────────────────────────────────────────────────────── */}
       <section id="s1" className="relative h-screen">
         <HeroSection images={[IMG.i1, IMG.kp, IMG.i2, IMG.kp, IMG.i3, IMG.kp]}>
-          <HeroSectionContent/>
+          <HeroSectionContent />
         </HeroSection>
       </section>
 
       {/* ── S-2: About content (left) | Billboard slot (right) ───────────── */}
       <section id="s2" className="relative flex h-screen">
-
         <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
           <div id="s2-content" className="w-full max-w-md">
 
@@ -435,7 +235,7 @@ export default function Home() {
       <div id="s4-wrapper" style={{ height: "400vh" }}>
         <section className="sticky top-0 h-screen flex overflow-hidden">
 
-          {/* S-4.1 — Changing content steps */}
+          {/* S-4 — Changing content steps */}
           <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
 
             <div className="absolute top-8 left-8 md:left-16 lg:left-20 flex items-center gap-3">
