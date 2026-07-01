@@ -38,6 +38,8 @@ export interface PremiumMarqueeProps {
   skeletonCount?: number;
 
   // ── Marquee behaviour
+  // speed: pixels per second the strip scrolls (react-fast-marquee unit).
+  // Higher = faster. showScrollSpeedEffect will modulate this on scroll.
   speed?:        number;
   direction?:    'left' | 'right';
   pauseOnHover?: boolean;
@@ -46,14 +48,39 @@ export interface PremiumMarqueeProps {
   autoFill?:     boolean;
 
   // ── Item appearance
-  gap?:          number;
-  itemPadding?:  string;
-  borderRadius?: string;
+  gap?:           number;
+  itemPadding?:   string;
+  borderRadius?:  string;
+  // Overrides the default theme-aware text colour on text/imageText items.
+  // Accepts any valid CSS color: '#fff', 'rgba(0,0,0,0.8)', 'hsl(...)' etc.
+  itemTextColor?: string;
+
+  // ── Strip styling
+  // Background colour of the marquee strip.
+  // Also used as the colour the left/right edge gradients fade FROM.
+  // If omitted, no background is applied and edges fade from the CSS --bg var.
+  bgColor?:    string;
+  // Width of the left and right fade-edge gradient overlays. Default '5rem'.
+  fadeWidth?:  string;
 
   // ── Separator
-  separator?:          boolean;
-  separatorIcon?:      string;
-  separatorSpacing?:   number;
+  separator?:         boolean;
+  separatorIcon?:     string;
+  separatorSpacing?:  number;
+  // Colour of the separator character. Default is theme-aware (20% opacity).
+  separatorColor?:    string;
+  // Where the separator appears relative to each item:
+  //   'between' — only between items (default, classic behaviour)
+  //   'before'  — separator before every item
+  //   'after'   — separator after every item
+  //   'both'    — separator before AND after every item
+  separatorPosition?: 'between' | 'before' | 'after' | 'both';
+
+  // ── Divider lines (top/bottom border)
+  // Control each border independently so stacked marquees share no duplicate lines.
+  showTopDivider?:    boolean;
+  showBottomDivider?: boolean;
+  dividerColor?:      string;  // any CSS color
 
   // ── Multi-layer mode
   showMultiLayer?: boolean;
@@ -78,6 +105,12 @@ export interface PremiumMarqueeProps {
   showMouseRipple?:        boolean;
   showSeparatorAnimation?: boolean;
 
+  // Entrance animation direction: 'top' | 'bottom' | 'none'. Default 'bottom'.
+  entranceDirection?: 'top' | 'bottom' | 'none';
+  // Replay full entrance animation every time strip enters viewport.
+  // When false (default), only blur→unblur happens on re-entry.
+  entranceRepeat?: boolean;
+
   className?: string;
 }
 
@@ -98,14 +131,26 @@ export function PremiumMarquee({
   autoFill     = true,
 
   // Item appearance
-  gap          = DEFAULT_GAP,
-  itemPadding  = 'px-5 py-2.5',
-  borderRadius = 'rounded-full',
+  gap           = DEFAULT_GAP,
+  itemPadding   = 'px-5 py-2.5',
+  borderRadius  = 'rounded-full',
+  itemTextColor,
+
+  // Strip styling
+  bgColor,
+  fadeWidth = '5rem',
 
   // Separator
   separator         = true,
   separatorIcon     = DEFAULT_SEPARATOR_ICON,
   separatorSpacing  = 20,
+  separatorColor,
+  separatorPosition = 'between',
+
+  // Dividers
+  showTopDivider    = false,
+  showBottomDivider = false,
+  dividerColor,
 
   // Multi-layer
   showMultiLayer = false,
@@ -130,22 +175,19 @@ export function PremiumMarquee({
   showMouseRipple        = false,
   showSeparatorAnimation = false,
 
+  entranceDirection = 'bottom',
+  entranceRepeat    = false,
+
   className = '',
 }: PremiumMarqueeProps) {
-  // Inject CSS for keyframe-based effects (idempotent — runs once per page).
   injectMarqueeStyles();
 
   const containerRef   = useRef<HTMLDivElement>(null);
   const prefersReduced = useReducedMotion();
-
-  // Gate every effect through this flag — respects OS accessibility settings.
-  const motion = !prefersReduced;
-
-  // Used by center highlight and entrance animation to pause when off-screen.
-  const isVisible = useIntersection(containerRef);
+  const motion         = !prefersReduced;
+  const isVisible      = useIntersection(containerRef);
 
   // ── Animation hooks ───────────────────────────────────────────────────────
-  // Each hook checks its own `enabled` flag and becomes a no-op when false.
   useScrollSpeed(containerRef,  motion && showScrollSpeedEffect);
   useMouseParallax(containerRef, motion && showMouseParallax);
   useCenterHighlight(containerRef, motion && showCenterHighlight, isVisible);
@@ -160,9 +202,11 @@ export function PremiumMarquee({
     containerRef,
     motion && (showEntranceAnimation || showItemReveal),
     isVisible,
+    entranceDirection,
+    entranceRepeat,
   );
 
-  // ── Separator element ─────────────────────────────────────────────────────
+  // ── Separator ─────────────────────────────────────────────────────────────
   const sepChar = SEPARATOR_ICONS[separatorIcon] ?? separatorIcon;
 
   const renderSeparator = (key: string) => (
@@ -170,10 +214,15 @@ export function PremiumMarquee({
       key={key}
       className={cx(
         'inline-block shrink-0 select-none',
-        'text-secondary/20 dark:text-white/20',
+        // Only apply theme class when no explicit colour is set
+        !separatorColor && 'text-secondary/20 dark:text-white/20',
         motion && showSeparatorAnimation && 'pm-sep-pulse',
       )}
-      style={{ marginRight: separatorSpacing }}
+      style={{
+        marginLeft:  separatorSpacing,
+        marginRight: separatorSpacing,
+        ...(separatorColor ? { color: separatorColor } : {}),
+      }}
       aria-hidden="true"
     >
       {sepChar}
@@ -182,10 +231,7 @@ export function PremiumMarquee({
 
   // ── Content builder ───────────────────────────────────────────────────────
   const buildItems = useCallback(
-    (
-      sourceItems: MarqueeItemData[],
-      sourceGap: number,
-    ): React.ReactNode[] => {
+    (sourceItems: MarqueeItemData[], sourceGap: number): React.ReactNode[] => {
       if (loading || sourceItems.length === 0) {
         return Array.from({ length: skeletonCount }, (_, i) => (
           <MarqueeSkeleton
@@ -199,7 +245,17 @@ export function PremiumMarquee({
       }
 
       const nodes: React.ReactNode[] = [];
+      const last = sourceItems.length - 1;
+
       sourceItems.forEach((item, i) => {
+        // Before item
+        if (separator && (separatorPosition === 'before' || separatorPosition === 'both')) {
+          nodes.push(renderSeparator(`sep-before-${i}`));
+        }
+        if (separator && separatorPosition === 'between' && i > 0) {
+          nodes.push(renderSeparator(`sep-between-${i}`));
+        }
+
         nodes.push(
           <MarqueeItem
             key={`item-${i}`}
@@ -209,10 +265,13 @@ export function PremiumMarquee({
             borderRadius={borderRadius}
             showHoverLift={motion && showHoverLift}
             showGlow={motion && showGlow}
+            itemTextColor={itemTextColor}
           />,
         );
-        if (separator && i < sourceItems.length - 1) {
-          nodes.push(renderSeparator(`sep-${i}`));
+
+        // After item
+        if (separator && (separatorPosition === 'after' || separatorPosition === 'both')) {
+          nodes.push(renderSeparator(`sep-after-${i}`));
         }
       });
 
@@ -220,26 +279,52 @@ export function PremiumMarquee({
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      loading, skeletonCount, itemPadding, borderRadius,
-      separator, motion, showHoverLift, showGlow, showSeparatorAnimation,
-      separatorSpacing, sepChar,
+      loading, skeletonCount, itemPadding, borderRadius, itemTextColor,
+      separator, separatorPosition, motion, showHoverLift, showGlow, showSeparatorAnimation,
+      separatorSpacing, sepChar, separatorColor,
     ],
   );
 
-  // ── Shared overlays (gradient sweep, noise, edge effects) ─────────────────
+  // ── Divider styles ────────────────────────────────────────────────────────
+  // Resolve divider border as inline style so any CSS color works.
+  const dividerStyle = dividerColor ? { borderColor: dividerColor } : undefined;
+  const defaultDividerClass = 'border-secondary/8 dark:border-white/6';
+
+  // ── Edge gradient overlays ────────────────────────────────────────────────
+  // Uses actual color-to-transparent gradients (not mask-image) so the fade is
+  // visible regardless of background. fadeFromColor is the strip background.
+  const fadeFromColor = bgColor || 'var(--bg, white)';
+
+  const renderFadeEdges = () =>
+    showFadeEdges ? (
+      <>
+        <div
+          className="absolute left-0 inset-y-0 z-20 pointer-events-none"
+          style={{
+            width:      fadeWidth,
+            background: `linear-gradient(to right, ${fadeFromColor}, transparent)`,
+          }}
+          aria-hidden="true"
+        />
+        <div
+          className="absolute right-0 inset-y-0 z-20 pointer-events-none"
+          style={{
+            width:      fadeWidth,
+            background: `linear-gradient(to left, ${fadeFromColor}, transparent)`,
+          }}
+          aria-hidden="true"
+        />
+      </>
+    ) : null;
+
+  // ── Shared overlays ───────────────────────────────────────────────────────
   const renderOverlays = () => (
     <>
       {motion && showGradientSweep && (
-        <div
-          className="pm-gradient-sweep pointer-events-none absolute inset-0 z-10"
-          aria-hidden="true"
-        />
+        <div className="pm-gradient-sweep pointer-events-none absolute inset-0 z-10" aria-hidden="true" />
       )}
       {motion && showFloatingNoise && (
-        <div
-          className="pm-noise pointer-events-none absolute inset-0 z-10 overflow-hidden"
-          aria-hidden="true"
-        />
+        <div className="pm-noise pointer-events-none absolute inset-0 z-10 overflow-hidden" aria-hidden="true" />
       )}
       {motion && showEdgeBlur && (
         <>
@@ -247,59 +332,48 @@ export function PremiumMarquee({
           <div className="pm-edge-right" aria-hidden="true" />
         </>
       )}
+      {renderFadeEdges()}
     </>
   );
 
+  // ── Container style ───────────────────────────────────────────────────────
+  const containerStyle: React.CSSProperties = bgColor ? { backgroundColor: bgColor } : {};
+
   // ── Multi-layer rendering ─────────────────────────────────────────────────
-  // When showMultiLayer is true, render several rows with alternating directions.
-  // Caller provides `layers` for full control, or we auto-split `items` 3 ways.
   if (showMultiLayer) {
     const resolvedLayers: MarqueeLayer[] =
-      layers.length > 0
-        ? layers
-        : buildDefaultLayers(items, speed, gap);
+      layers.length > 0 ? layers : buildDefaultLayers(items, speed, gap);
 
     return (
       <div
         ref={containerRef}
         className={cx(
           'relative overflow-hidden',
+          showTopDivider    && ['border-t', !dividerColor && defaultDividerClass],
+          showBottomDivider && ['border-b', !dividerColor && defaultDividerClass],
           motion && showPerspectiveTilt && 'pm-perspective',
           className,
         )}
+        style={{ ...containerStyle, ...dividerStyle }}
         role="region"
         aria-label="Scrolling content"
         aria-live="off"
       >
         {renderOverlays()}
-
         <div className="flex flex-col gap-3">
           {resolvedLayers.map((layer, li) => (
-            <div
+            <Marquee
               key={li}
-              style={
-                showFadeEdges
-                  ? {
-                      WebkitMaskImage:
-                        'linear-gradient(to right, transparent, black 12%, black 88%, transparent)',
-                      maskImage:
-                        'linear-gradient(to right, transparent, black 12%, black 88%, transparent)',
-                    }
-                  : undefined
-              }
+              speed={layer.speed ?? speed}
+              direction={layer.direction ?? (li % 2 === 0 ? 'left' : 'right')}
+              pauseOnHover={pauseOnHover}
+              pauseOnClick={pauseOnClick}
+              loop={loop}
+              autoFill={autoFill}
+              gradient={false}
             >
-              <Marquee
-                speed={layer.speed ?? speed}
-                direction={layer.direction ?? (li % 2 === 0 ? 'left' : 'right')}
-                pauseOnHover={pauseOnHover}
-                pauseOnClick={pauseOnClick}
-                loop={loop}
-                autoFill={autoFill}
-                gradient={false}
-              >
-                {buildItems(layer.items, layer.gap ?? gap)}
-              </Marquee>
-            </div>
+              {buildItems(layer.items, layer.gap ?? gap)}
+            </Marquee>
           ))}
         </div>
       </div>
@@ -312,25 +386,17 @@ export function PremiumMarquee({
       ref={containerRef}
       className={cx(
         'relative overflow-hidden',
+        showTopDivider    && ['border-t', !dividerColor && defaultDividerClass],
+        showBottomDivider && ['border-b', !dividerColor && defaultDividerClass],
         motion && showPerspectiveTilt && 'pm-perspective',
         className,
       )}
+      style={{ ...containerStyle, ...dividerStyle }}
       role="region"
       aria-label="Scrolling content"
       aria-live="off"
-      style={
-        showFadeEdges
-          ? {
-              WebkitMaskImage:
-                'linear-gradient(to right, transparent, black 12%, black 88%, transparent)',
-              maskImage:
-                'linear-gradient(to right, transparent, black 12%, black 88%, transparent)',
-            }
-          : undefined
-      }
     >
       {renderOverlays()}
-
       <Marquee
         speed={speed}
         direction={direction}
@@ -348,19 +414,16 @@ export function PremiumMarquee({
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-// Auto-generates three marquee layers from a flat item array when the caller
-// enables showMultiLayer without providing explicit layer configs.
 function buildDefaultLayers(
-  items:  MarqueeItemData[],
-  speed:  number,
-  gap:    number,
+  items: MarqueeItemData[],
+  speed: number,
+  gap:   number,
 ): MarqueeLayer[] {
   if (items.length === 0) return [{ items: [], speed, direction: 'left' }];
-
   const third = Math.ceil(items.length / 3);
   return [
-    { items: items.slice(0, third),        speed: speed * 0.85, direction: 'left',  gap },
-    { items: items.slice(third, third * 2), speed: speed * 1.1,  direction: 'right', gap },
-    { items: items.slice(third * 2),        speed: speed * 0.95, direction: 'left',  gap },
+    { items: items.slice(0, third),         speed: speed * 0.85, direction: 'left',  gap },
+    { items: items.slice(third, third * 2),  speed: speed * 1.1,  direction: 'right', gap },
+    { items: items.slice(third * 2),         speed: speed * 0.95, direction: 'left',  gap },
   ];
 }

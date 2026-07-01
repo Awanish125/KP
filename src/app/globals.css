@@ -765,7 +765,11 @@
    ============================================================ */
 html, body { min-height: 100%; }
 
+/* clip keeps sticky children working; hidden creates a scroll container that breaks them */
+html { overflow-x: clip; }
+
 body {
+  overflow-x: clip;
   background-color: var(--bg);
   color: var(--fg);
   transition:

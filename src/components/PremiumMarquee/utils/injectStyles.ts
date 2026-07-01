@@ -1,14 +1,13 @@
-// Injects keyframe animations and effect classes that cannot be expressed
-// with Tailwind utilities alone. Safe to call multiple times — idempotent.
-
 const STYLE_ID = 'pm-keyframes';
 
 const CSS = `
-  /* ── Gradient sweep ──────────────────────────────────────── */
+  /* ── Gradient sweep ──────────────────────────────────────────────────── */
   @keyframes pm-sweep {
     0%   { transform: translateX(-140%); }
     100% { transform: translateX(260%); }
   }
+
+  /* Light mode: dark shimmer so it reads on white/light backgrounds */
   .pm-gradient-sweep::after {
     content: '';
     position: absolute;
@@ -18,9 +17,9 @@ const CSS = `
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255,255,255,0.05) 35%,
-      rgba(255,255,255,0.09) 50%,
-      rgba(255,255,255,0.05) 65%,
+      rgba(0,0,0,0.04) 35%,
+      rgba(0,0,0,0.07) 50%,
+      rgba(0,0,0,0.04) 65%,
       transparent 100%
     );
     animation: pm-sweep 10s ease-in-out infinite;
@@ -28,7 +27,19 @@ const CSS = `
     z-index: 10;
   }
 
-  /* ── Separator pulse ─────────────────────────────────────── */
+  /* Dark mode: light shimmer */
+  :where(.dark) .pm-gradient-sweep::after {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255,255,255,0.05) 35%,
+      rgba(255,255,255,0.10) 50%,
+      rgba(255,255,255,0.05) 65%,
+      transparent 100%
+    );
+  }
+
+  /* ── Separator pulse ─────────────────────────────────────────────────── */
   @keyframes pm-sep-pulse {
     0%, 100% { opacity: 0.18; transform: scale(1); }
     50%       { opacity: 0.48; transform: scale(1.45); }
@@ -38,7 +49,7 @@ const CSS = `
     display: inline-block;
   }
 
-  /* ── Floating noise ──────────────────────────────────────── */
+  /* ── Floating noise ──────────────────────────────────────────────────── */
   @keyframes pm-noise-drift {
     0%   { transform: translate(0,    0   ); }
     25%  { transform: translate(-3%, -1.5%); }
@@ -58,14 +69,13 @@ const CSS = `
     z-index: 10;
   }
 
-  /* ── Perspective wrapper for tilt effects ────────────────── */
+  /* ── Perspective wrapper ─────────────────────────────────────────────── */
   .pm-perspective {
     perspective: 900px;
     transform-style: preserve-3d;
   }
 
-  /* ── Edge blur overlays ──────────────────────────────────── */
-  /* backdrop-filter blurs the marquee content visible through each overlay */
+  /* ── Edge blur overlays ──────────────────────────────────────────────── */
   .pm-edge-left,
   .pm-edge-right {
     backdrop-filter: blur(6px) saturate(1.15);
@@ -92,7 +102,6 @@ const CSS = `
 export function injectMarqueeStyles(): void {
   if (typeof document === 'undefined') return;
   if (document.getElementById(STYLE_ID)) return;
-
   const el = document.createElement('style');
   el.id = STYLE_ID;
   el.textContent = CSS;

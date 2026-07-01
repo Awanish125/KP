@@ -1,5 +1,5 @@
 // Layout defaults
-export const DEFAULT_SPEED = 45;
+export const DEFAULT_SPEED = 10;
 export const DEFAULT_GAP = 32;
 export const DEFAULT_SEPARATOR_ICON = 'dot';
 

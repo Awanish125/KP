@@ -21,6 +21,21 @@ import { PremiumMarquee } from "@/components/PremiumMarquee";
 
 gsap.registerPlugin(ScrollTrigger);
 
+/* ── Brand clients marquee ───────────────────────────────────────────────── */
+const BRANDS = [
+  "Hero",
+  "Honda",
+  "TVS",
+  "Royal Enfield",
+  "Ather",
+  "Senco Tanishq",
+  "Mia By Tanishq",
+  "Kalyan Jewellars",
+  "Birla Gold Cement",
+  "Style Bazar",
+  "Vmart",
+].map((text) => ({ type: "text" as const, text }));
+
 /* ── Images (hero section) ───────────────────────────────────────────────── */
 const IMG = {
   kp: "/homepage/herosection/kp.png",
@@ -58,63 +73,16 @@ export default function Home() {
   const stepRefs    = useRef<(HTMLDivElement | null)[]>([]);
   const counterRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
-  /* ── Lenis + section snap ────────────────────────────────────────────── */
+  /* ── Lenis smooth scroll ─────────────────────────────────────────────── */
   useEffect(() => {
     const lenis = new Lenis({ lerp: 0.08, smoothWheel: true, syncTouch: false });
 
-    const SNAP_IDS = ["s1", "s2", "s3", "s4-wrapper"];
-    let wheelAcc  = 0;
-    let wheelTimer: ReturnType<typeof setTimeout> | null = null;
-    let snapping  = false;
-
-    function snapToSection(direction: 1 | -1) {
-      const targets = SNAP_IDS
-        .map((id) => document.getElementById(id))
-        .filter(Boolean) as HTMLElement[];
-
-      const scroll = lenis.scroll;
-
-      let currentIdx = 0;
-      for (let i = 0; i < targets.length; i++) {
-        if (targets[i].offsetTop <= scroll + 10) currentIdx = i;
-      }
-
-      // Inside S-4 past first 45 vh → user is scrolling the pinned rotation; don't snap
-      const s4 = document.getElementById("s4-wrapper");
-      if (s4 && scroll > s4.offsetTop + window.innerHeight * 0.45) return;
-
-      const nextIdx = Math.max(0, Math.min(targets.length - 1, currentIdx + direction));
-      if (nextIdx === currentIdx) return;
-
-      snapping = true;
-      lenis.scrollTo(targets[nextIdx].offsetTop, {
-        duration: 0.75,
-        easing: (t: number) => 1 - Math.pow(1 - t, 3),
-        onComplete: () => { snapping = false; },
-      });
-    }
-
-    function onWheel(e: WheelEvent) {
-      if (snapping) return;
-      wheelAcc += e.deltaY;
-      if (wheelTimer) clearTimeout(wheelTimer);
-      wheelTimer = setTimeout(() => {
-        const acc = wheelAcc;
-        wheelAcc = 0;
-        if (Math.abs(acc) < 80) return;
-        snapToSection(acc > 0 ? 1 : -1);
-      }, 100);
-    }
-
-    window.addEventListener("wheel", onWheel, { passive: true });
     lenis.on("scroll", () => ScrollTrigger.update());
     const tick = (t: number) => lenis.raf(t * 1000);
     gsap.ticker.add(tick);
     gsap.ticker.lagSmoothing(0);
 
     return () => {
-      if (wheelTimer) clearTimeout(wheelTimer);
-      window.removeEventListener("wheel", onWheel);
       gsap.ticker.remove(tick);
       lenis.destroy();
     };
@@ -145,7 +113,7 @@ export default function Home() {
 
   /* ── JSX ──────────────────────────────────────────────────────────────── */
   return (
-    <div className="bg-white dark:bg-secondary">
+    <div className="bg-white dark:bg-secondary" style={{ overflowX: 'clip' }}>
       <Loading />
 
       {/* ↓ Comment this out to disable the 3D billboard entirely */}
@@ -155,10 +123,39 @@ export default function Home() {
       <section id="s1" className="relative h-screen">
         <HeroSection images={[IMG.i1, IMG.kp, IMG.i2, IMG.kp, IMG.i3, IMG.kp]}>
           <HeroSectionContent />
-          
         </HeroSection>
       </section>
-      <PremiumMarquee/>
+
+      {/* ── Brands marquee — full-width strip below hero ──────────────────── */}
+      {/* bgColor must match the page background so fade-edge gradients blend in. */}
+      {/* In light mode the page is white; in dark mode it is #14181D (secondary). */}
+      {/* Use two separate marquees with the same bgColor so the shared border    */}
+      {/* appears only once (showBottomDivider on first, showTopDivider on second).*/}
+      <PremiumMarquee
+        items={BRANDS}
+        speed={60}
+        direction="left"
+        gap={52}
+        itemPadding="px-0 py-5"
+        borderRadius="rounded-none"
+        separatorIcon="diamond"
+        separatorPosition="before"
+        separatorSpacing={14}
+        bgColor="var(--bg)"
+        fadeWidth="7rem"
+        showTopDivider
+        showBottomDivider
+        showScrollSpeedEffect
+        showHoverLift
+        showGradientSweep
+        showFadeEdges
+        showEntranceAnimation
+        entranceDirection="bottom"
+        entranceRepeat={true}
+        showVelocityStretch
+        showSeparatorAnimation
+        pauseOnHover
+      />
       {/* ── S-2: About content (left) | Billboard slot (right) ───────────── */}
       <section id="s2" className="relative flex h-screen">
         <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">

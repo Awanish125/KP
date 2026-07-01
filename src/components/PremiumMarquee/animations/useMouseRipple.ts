@@ -1,11 +1,9 @@
-import { RefObject, useEffect } from 'react';
+import { RefObject, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { RIPPLE_RADIUS, RIPPLE_SCALE } from '../constants';
 
-// Nearby items bulge very slightly as the cursor passes — a subtle depth cue
-// that keeps the marquee feeling alive without being distracting.
-// Uses requestAnimationFrame throttling so getBoundingClientRect calls are
-// batched and never fire inside a GSAP tick.
+// Throttled to one rAF per mousemove burst; items are cached and only re-queried
+// when the container is first entered, not on every move event.
 export function useMouseRipple(
   containerRef: RefObject<HTMLElement | null>,
   enabled: boolean,
@@ -14,21 +12,29 @@ export function useMouseRipple(
     if (!enabled || !containerRef.current) return;
 
     const container = containerRef.current;
-    let raf = 0;
+    let raf  = 0;
     let lastX = -9999;
     let lastY = -9999;
 
+    // Cache items on mouseenter — avoids querySelectorAll on every move event.
+    let items: Element[] = [];
+    const refreshItems = () => {
+      items = Array.from(container.querySelectorAll('[data-marquee-item]'));
+    };
+
     const process = () => {
-      container.querySelectorAll('[data-marquee-item]').forEach(el => {
-        const r  = el.getBoundingClientRect();
-        const cx = r.left + r.width  / 2;
-        const cy = r.top  + r.height / 2;
+      // Read phase
+      const rects = items.map(el => el.getBoundingClientRect());
+
+      // Write phase
+      items.forEach((el, i) => {
+        const cx = rects[i].left + rects[i].width  / 2;
+        const cy = rects[i].top  + rects[i].height / 2;
         const d  = Math.hypot(lastX - cx, lastY - cy);
 
         if (d < RIPPLE_RADIUS) {
-          const intensity = 1 - d / RIPPLE_RADIUS;
           gsap.to(el, {
-            scale:    1 + intensity * RIPPLE_SCALE,
+            scale:    1 + (1 - d / RIPPLE_RADIUS) * RIPPLE_SCALE,
             duration: 0.25,
             ease:     'power2.out',
             overwrite: 'auto',
@@ -44,6 +50,8 @@ export function useMouseRipple(
       });
     };
 
+    const onMouseEnter = () => refreshItems();
+
     const onMouseMove = (e: MouseEvent) => {
       lastX = e.clientX;
       lastY = e.clientY;
@@ -53,22 +61,20 @@ export function useMouseRipple(
 
     const onMouseLeave = () => {
       cancelAnimationFrame(raf);
-      gsap.to(container.querySelectorAll('[data-marquee-item]'), {
-        scale:    1,
-        duration: 0.55,
-        ease:     'power3.out',
-        overwrite: true,
-      });
+      gsap.to(items, { scale: 1, duration: 0.55, ease: 'power3.out', overwrite: true });
+      items = [];
     };
 
-    container.addEventListener('mousemove', onMouseMove);
+    container.addEventListener('mouseenter', onMouseEnter);
+    container.addEventListener('mousemove',  onMouseMove);
     container.addEventListener('mouseleave', onMouseLeave);
 
     return () => {
       cancelAnimationFrame(raf);
-      container.removeEventListener('mousemove', onMouseMove);
+      container.removeEventListener('mouseenter', onMouseEnter);
+      container.removeEventListener('mousemove',  onMouseMove);
       container.removeEventListener('mouseleave', onMouseLeave);
-      gsap.killTweensOf(container.querySelectorAll('[data-marquee-item]'));
+      if (items.length) gsap.killTweensOf(items);
     };
   }, [enabled]);
 }

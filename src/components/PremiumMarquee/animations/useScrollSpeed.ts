@@ -1,10 +1,12 @@
 import { RefObject, useEffect } from 'react';
 import gsap from 'gsap';
 
-// Adjusts react-fast-marquee's animation speed in response to scroll velocity.
-// Rather than triggering React re-renders, this reads the animationDuration that
-// react-fast-marquee sets as an inline style on its .rfm-marquee elements and
-// overwrites it directly — zero re-renders, pure DOM mutation via GSAP.
+// react-fast-marquee v1.6.x controls speed via the CSS custom property --duration
+// on each .rfm-marquee element (animation: scroll var(--duration) linear …).
+// We read/write that CSS variable — NOT animationDuration — to modulate speed.
+//
+// baseDurations is cleared after returning to normal so the next scroll always
+// re-reads from the DOM, picking up any speed-prop changes rfm made in between.
 export function useScrollSpeed(
   containerRef: RefObject<HTMLElement | null>,
   enabled: boolean,
@@ -17,58 +19,77 @@ export function useScrollSpeed(
         containerRef.current?.querySelectorAll<HTMLElement>('.rfm-marquee') ?? [],
       );
 
-    // Base durations are read once after react-fast-marquee has painted.
     let baseDurations: number[] = [];
 
     const readBase = () => {
-      baseDurations = getMarqueeEls().map(
-        el => parseFloat(el.style.animationDuration) || 10,
-      );
+      const els = getMarqueeEls();
+      if (!els.length) return;
+      baseDurations = els.map(el => {
+        const raw = el.style.getPropertyValue('--duration');
+        return parseFloat(raw) || 0;
+      });
+      // Drop the read if rfm hasn't applied --duration yet (all zeros).
+      if (baseDurations.every(d => d === 0)) baseDurations = [];
     };
 
-    // Small delay lets react-fast-marquee finish its own style application.
-    const initTimer = setTimeout(readBase, 100);
+    // Give rfm time to finish its own layout measurement and style application.
+    const initTimer = setTimeout(readBase, 200);
 
-    // Tweening an intermediate object avoids needing a state setter.
     const state = { factor: 1 };
+    let returnTimer: ReturnType<typeof setTimeout> | null = null;
 
     const apply = () => {
       getMarqueeEls().forEach((el, i) => {
-        const base = baseDurations[i] ?? baseDurations[0] ?? 10;
-        el.style.animationDuration = `${base * state.factor}s`;
+        const base = baseDurations[i] ?? baseDurations[0];
+        if (!base) return;
+        el.style.setProperty('--duration', `${base * state.factor}s`);
       });
+    };
+
+    const scheduleReturn = () => {
+      if (returnTimer) clearTimeout(returnTimer);
+      returnTimer = setTimeout(() => {
+        returnTimer = null;
+        gsap.killTweensOf(state);
+        gsap.to(state, {
+          factor:     1,
+          duration:   1.6,
+          ease:       'power3.out',
+          onUpdate:   apply,
+          onComplete: () => {
+            // Clear cache so next scroll re-reads rfm's current --duration,
+            // which reflects any speed-prop changes made during this interaction.
+            baseDurations = [];
+          },
+        });
+      }, 380);
     };
 
     const onWheel = (e: WheelEvent) => {
       if (baseDurations.length === 0) readBase();
+      if (baseDurations.length === 0) return; // rfm not ready
 
-      // Scroll down → shorter duration (faster). Scroll up → longer (slower).
-      const mag = Math.min(Math.abs(e.deltaY) / 80, 2);
-      const target = e.deltaY > 0 ? 1 / (1 + mag * 0.55) : 1 + mag * 0.18;
+      const mag    = Math.min(Math.abs(e.deltaY) / 60, 3);
+      const target = e.deltaY > 0
+        ? 1 / (1 + mag * 0.7)   // up to ~3.3× faster on scroll down
+        : 1 + mag * 0.45;        // up to ~2.35× slower on scroll up
 
       gsap.killTweensOf(state);
-
       gsap.to(state, {
-        factor: target,
-        duration: 0.18,
-        ease: 'power2.out',
+        factor:   target,
+        duration: 0.14,
+        ease:     'power2.out',
         onUpdate: apply,
       });
 
-      // Drift back to normal once scrolling stops.
-      gsap.to(state, {
-        factor: 1,
-        duration: 1.6,
-        ease: 'power3.out',
-        delay: 0.38,
-        onUpdate: apply,
-      });
+      scheduleReturn();
     };
 
     window.addEventListener('wheel', onWheel, { passive: true });
 
     return () => {
       clearTimeout(initTimer);
+      if (returnTimer) clearTimeout(returnTimer);
       window.removeEventListener('wheel', onWheel);
       gsap.killTweensOf(state);
     };
