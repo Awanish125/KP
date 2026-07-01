@@ -17,6 +17,7 @@ import Lenis from "lenis";
 //import { BillboardController } from "@/components/ThreeDObject/Billboard/BillboardController"; // ← comment to disable billboard
 import { HeroSection, HeroSectionContent } from "@/components/hero";
 import { Loading } from "@/components/ui";
+import { PremiumMarquee } from "@/components/PremiumMarquee";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -144,7 +145,7 @@ export default function Home() {
 
   /* ── JSX ──────────────────────────────────────────────────────────────── */
   return (
-    <div className="bg-[#070a13]">
+    <div className="bg-white dark:bg-secondary">
       <Loading />
 
       {/* ↓ Comment this out to disable the 3D billboard entirely */}
@@ -154,40 +155,41 @@ export default function Home() {
       <section id="s1" className="relative h-screen">
         <HeroSection images={[IMG.i1, IMG.kp, IMG.i2, IMG.kp, IMG.i3, IMG.kp]}>
           <HeroSectionContent />
+          
         </HeroSection>
       </section>
-
+      <PremiumMarquee/>
       {/* ── S-2: About content (left) | Billboard slot (right) ───────────── */}
       <section id="s2" className="relative flex h-screen">
         <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
           <div id="s2-content" className="w-full max-w-md">
 
             <div className="flex items-center gap-3 mb-8">
-              <span className="block w-6 h-px bg-orange-400/60" />
-              <span className="text-[10px] uppercase tracking-[0.45em] text-orange-400/80">About Us</span>
+              <span className="block w-6 h-px bg-kp-orange/60" />
+              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">About Us</span>
             </div>
 
-            <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.1] text-white mb-8">
+            <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.1] text-secondary dark:text-white mb-8">
               India&apos;s Premier<br />Outdoor<br />
-              <em className="not-italic text-white/40">Advertising</em> Network
+              <em className="not-italic text-secondary/40 dark:text-white/40">Advertising</em> Network
             </h2>
 
-            <div className="grid grid-cols-3 gap-4 mb-8 pt-6 border-t border-white/[0.08]">
+            <div className="grid grid-cols-3 gap-4 mb-8 pt-6 border-t border-secondary/8 dark:border-white/8">
               {STATS.map((s, i) => (
                 <div key={i}>
                   <div className="flex items-baseline gap-0.5">
                     <span
                       ref={(el) => { counterRefs.current[i] = el; }}
-                      className="text-3xl lg:text-4xl font-extralight text-white tabular-nums"
+                      className="text-3xl lg:text-4xl font-extralight text-secondary dark:text-white tabular-nums"
                     >0</span>
-                    <span className="text-lg font-light text-orange-400">{s.suffix}</span>
+                    <span className="text-lg font-light text-kp-orange">{s.suffix}</span>
                   </div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/55 mt-1 whitespace-pre-line">{s.label}</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-secondary/55 dark:text-white/55 mt-1 whitespace-pre-line">{s.label}</p>
                 </div>
               ))}
             </div>
 
-            <p className="text-sm text-white/60 leading-relaxed">
+            <p className="text-sm text-secondary/60 dark:text-white/60 leading-relaxed">
               For over two decades, Kiran Publicity has been transforming cityscapes
               into powerful brand narratives — from highways to high streets, across Maharashtra.
             </p>
@@ -208,21 +210,21 @@ export default function Home() {
           <div id="s3-content" className="w-full max-w-md">
 
             <div className="flex items-center gap-3 mb-8">
-              <span className="block w-6 h-px bg-orange-400/60" />
-              <span className="text-[10px] uppercase tracking-[0.45em] text-orange-400/80">What We Do</span>
+              <span className="block w-6 h-px bg-kp-orange/60" />
+              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">What We Do</span>
             </div>
 
-            <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.1] text-white mb-10">
-              Advertising<br /><em className="not-italic text-white/40">Solutions</em>
+            <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.1] text-secondary dark:text-white mb-10">
+              Advertising<br /><em className="not-italic text-secondary/40 dark:text-white/40">Solutions</em>
             </h2>
 
-            <ul className="divide-y divide-white/[0.06]">
+            <ul className="divide-y divide-secondary/8 dark:divide-white/6">
               {SERVICES.map((s) => (
                 <li key={s.num} className="group flex items-start gap-4 py-3.5">
-                  <span className="text-[10px] font-mono text-white/55 mt-0.5 w-5 flex-shrink-0">{s.num}</span>
+                  <span className="text-[10px] font-mono text-secondary/55 dark:text-white/55 mt-0.5 w-5 flex-shrink-0">{s.num}</span>
                   <div>
-                    <p className="text-sm font-light text-white/80 group-hover:text-white transition-colors">{s.title}</p>
-                    <p className="text-[11px] text-white/55 mt-0.5 leading-snug">{s.desc}</p>
+                    <p className="text-sm font-light text-secondary/80 dark:text-white/80 group-hover:text-secondary dark:group-hover:text-white transition-colors">{s.title}</p>
+                    <p className="text-[11px] text-secondary/55 dark:text-white/55 mt-0.5 leading-snug">{s.desc}</p>
                   </div>
                 </li>
               ))}
@@ -239,8 +241,8 @@ export default function Home() {
           <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
 
             <div className="absolute top-8 left-8 md:left-16 lg:left-20 flex items-center gap-3">
-              <span className="block w-6 h-px bg-orange-400/60" />
-              <span className="text-[10px] uppercase tracking-[0.45em] text-orange-400/80">Scroll to explore</span>
+              <span className="block w-6 h-px bg-kp-orange/60" />
+              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">Scroll to explore</span>
             </div>
 
             <div className="relative w-full max-w-md" style={{ minHeight: 280 }}>
@@ -252,16 +254,16 @@ export default function Home() {
                   style={{ opacity: i === 0 ? 1 : 0 }}
                 >
                   <div className="flex items-center gap-3 mb-6">
-                    <span className="block w-6 h-px bg-orange-400/60" />
-                    <span className="text-[10px] uppercase tracking-[0.45em] text-orange-400/80">{step.label}</span>
+                    <span className="block w-6 h-px bg-kp-orange/60" />
+                    <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">{step.label}</span>
                   </div>
-                  <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.15] text-white mb-6 whitespace-pre-line">
+                  <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.15] text-secondary dark:text-white mb-6 whitespace-pre-line">
                     {step.heading}
                   </h2>
-                  <p className="text-sm text-white/60 leading-relaxed max-w-xs">{step.body}</p>
+                  <p className="text-sm text-secondary/60 dark:text-white/60 leading-relaxed max-w-xs">{step.body}</p>
                   <div className="flex gap-2 mt-8">
                     {STEPS.map((_, j) => (
-                      <span key={j} className={`block h-px w-6 transition-colors duration-300 ${j === i ? "bg-orange-400" : "bg-white/15"}`} />
+                      <span key={j} className={`block h-px w-6 transition-colors duration-300 ${j === i ? "bg-kp-orange" : "bg-secondary/20 dark:bg-white/20"}`} />
                     ))}
                   </div>
                 </div>

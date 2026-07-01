@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import gsap from 'gsap';
 
@@ -16,14 +17,7 @@ export function NavLogo() {
       { opacity: 1, x: 0, duration: 0.55, ease: 'power2.out', delay: 0.55 }
     );
 
-    // Logo mark subtle pulse
-    gsap.to(markRef.current, {
-      boxShadow: '0 4px 20px rgba(255, 107, 53, 0.62)',
-      duration: 1.6,
-      ease: 'sine.inOut',
-      yoyo: true,
-      repeat: -1,
-    });
+    // no pulse — logo image has its own circle, don't add CSS rings
   }, []);
 
   const onEnter = () => {
@@ -56,9 +50,9 @@ export function NavLogo() {
       style={{ transformStyle: 'preserve-3d' }}
     >
       <div ref={markRef} className="nav-logo-mark">
-        <span className="nav-logo-k">K</span>
+        <Image src="/logo/kp-mark.png" alt="KP" width={44} height={44} priority />
       </div>
-      <span className="nav-logo-text">Kiran</span>
+      <span className="nav-logo-text">Kiran Publicity</span>
     </Link>
   );
 }

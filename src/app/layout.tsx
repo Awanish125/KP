@@ -1,16 +1,28 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Archivo, Manrope, Space_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
+/* ── KP Design System fonts ─────────────────────────────────────────────── */
+const archivo = Archivo({
+  variable:  '--font-archivo',
+  subsets:   ['latin'],
+  weight:    ['400', '500', '600', '700', '800', '900'],
+  display:   'swap',
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+const manrope = Manrope({
+  variable: '--font-manrope',
+  subsets:  ['latin'],
+  weight:   ['400', '500', '600', '700', '800'],
+  display:  'swap',
+});
+
+const spaceMono = Space_Mono({
+  variable: '--font-space-mono',
+  subsets:  ['latin'],
+  weight:   ['400', '700'],
+  display:  'swap',
 });
 
 export const metadata: Metadata = {
@@ -25,7 +37,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${archivo.variable} ${manrope.variable} ${spaceMono.variable} h-full antialiased`}
     >
       {/* bg and color come from CSS vars in globals.css — no Tailwind hardcoding */}
       <body className="min-h-full overflow-x-hidden">

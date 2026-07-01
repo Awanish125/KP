@@ -70,13 +70,12 @@ export function WhyUsSection() {
 
   return (
     <div ref={sectionRef} className="h-full flex items-center justify-end pr-12 lg:pr-20">
-      {/* Content panel — right side, billboard visible on the left in the camera frame */}
       <div className="w-full max-w-sm lg:max-w-md">
 
         {/* Label */}
         <div className="flex items-center gap-3 mb-8">
-          <span className="block w-6 h-px bg-orange-400/60" />
-          <span className="text-[10px] uppercase tracking-[0.45em] text-orange-400/80">
+          <span className="block w-6 h-px bg-kp-orange/60" />
+          <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
             Why Choose Us
           </span>
         </div>
@@ -84,14 +83,14 @@ export function WhyUsSection() {
         {/* Headline */}
         <h2
           ref={headlineRef}
-          className="opacity-0 text-4xl lg:text-5xl font-extralight leading-[1.1] text-white mb-10"
+          className="opacity-0 text-4xl lg:text-5xl font-extralight leading-[1.1] text-secondary dark:text-white mb-10"
         >
           Built on Trust,<br />
-          <em className="not-italic text-white/40">Driven</em> by Impact
+          <em className="not-italic text-secondary/40 dark:text-white/40">Driven</em> by Impact
         </h2>
 
         {/* Pillars */}
-        <div className="space-y-0 divide-y divide-white/[0.06]">
+        <div className="space-y-0 divide-y divide-secondary/8 dark:divide-white/6">
           {PILLARS.map((p, i) => (
             <div
               key={p.num}
@@ -99,10 +98,10 @@ export function WhyUsSection() {
               className="opacity-0 py-4"
             >
               <div className="flex items-baseline gap-3 mb-1">
-                <span className="text-[10px] font-mono text-orange-400/50">{p.num}</span>
-                <span className="text-sm font-light text-white/80">{p.title}</span>
+                <span className="text-[10px] font-mono text-kp-orange/50">{p.num}</span>
+                <span className="text-sm font-light text-secondary/80 dark:text-white/80">{p.title}</span>
               </div>
-              <p className="text-[11px] text-white/25 leading-relaxed pl-7">{p.body}</p>
+              <p className="text-[11px] text-secondary/25 dark:text-white/25 leading-relaxed pl-7">{p.body}</p>
             </div>
           ))}
         </div>

@@ -12,53 +12,60 @@
    TAILWIND DESIGN TOKENS  (@theme = static utility classes)
    ============================================================ */
 @theme {
-  --color-primary:           #FF6B35;
-  --color-primary-light:     #FF8F65;
-  --color-primary-dark:      #D94E1A;
-  --color-secondary:         #1A1A2E;
-  --color-secondary-light:   #2E2E4E;
-  --color-secondary-dark:    #0D0D1A;
-  --color-accent:            #F7C59F;
-  --color-accent-light:      #FAD9C0;
-  --color-accent-dark:       #E8A070;
+  /* ── KP Brand colors ─────────────────────────────── */
+  --color-primary:           #0064B1;   /* kp-blue */
+  --color-primary-light:     #5BA3D6;   /* kp-blue-300 */
+  --color-primary-dark:      #024C84;   /* kp-blue-700 */
+  --color-secondary:         #14181D;   /* kp-ink */
+  --color-secondary-light:   #2B323B;   /* kp-ink-700 */
+  --color-secondary-dark:    #0a0d10;
+  --color-accent:            #F58320;   /* kp-orange */
+  --color-accent-light:      #F9B274;   /* kp-orange-300 */
+  --color-accent-dark:       #C75F0E;   /* kp-orange-700 */
   --color-base:              #FFFFFF;
-  --color-base-alt:          #F5F5F5;
-  --color-surface:           #FAFAFA;
-  --color-surface-dark:      #111118;
-  --color-text:              #1A1A2E;
-  --color-text-muted:        #6B7280;
+  --color-base-alt:          #F4F6F8;   /* kp-ink-50 */
+  --color-surface:           #FFFFFF;
+  --color-surface-dark:      #14181D;   /* kp-ink */
+  --color-text:              #14181D;   /* kp-ink */
+  --color-text-muted:        #5A646F;   /* kp-ink-500 */
   --color-text-inverse:      #FFFFFF;
   --color-text-on-primary:   #FFFFFF;
-  --color-success:           #22C55E;
-  --color-success-light:     #BBF7D0;
-  --color-warning:           #F59E0B;
-  --color-warning-light:     #FDE68A;
-  --color-danger:            #EF4444;
-  --color-danger-light:      #FECACA;
-  --color-info:              #3B82F6;
-  --color-info-light:        #BFDBFE;
-  --color-border:            #E5E7EB;
-  --color-border-dark:       #374151;
-  --color-link:              #FF6B35;
-  --color-link-hover:        #D94E1A;
-  --color-link-visited:      #9B4DCA;
-  --color-btn-primary:       #FF6B35;
-  --color-btn-primary-hover: #D94E1A;
-  --color-btn-secondary:     #1A1A2E;
-  --color-btn-secondary-hover: #2E2E4E;
-  --color-btn-ghost-hover:   #FF6B351A;
-  --color-overlay:           #1A1A2E99;
-  --gradient-brand:          linear-gradient(135deg, #FF6B35 0%, #F7C59F 100%);
-  --gradient-dark:           linear-gradient(135deg, #1A1A2E 0%, #2E2E4E 100%);
-  --gradient-hero:           linear-gradient(180deg, #1A1A2E 0%, #0D0D1A 100%);
-  --font-sans:               var(--font-geist-sans, ui-sans-serif, system-ui, sans-serif);
-  --font-mono:               var(--font-geist-mono, ui-monospace, monospace);
-  --font-display:            var(--font-geist-sans, ui-sans-serif, system-ui, sans-serif);
-  --radius-btn:              0.5rem;
-  --radius-card:             1rem;
+  --color-success:           #1F9E5A;
+  --color-success-light:     #d1f5e3;
+  --color-warning:           #F5A623;
+  --color-warning-light:     #fde9b4;
+  --color-danger:            #D7392B;
+  --color-danger-light:      #fdd0cd;
+  --color-info:              #0064B1;
+  --color-info-light:        #D6E8F5;   /* kp-blue-100 */
+  --color-border:            #D5DCE3;   /* kp-ink-200 */
+  --color-border-dark:       #2B323B;   /* kp-ink-700 */
+  --color-link:              #0064B1;
+  --color-link-hover:        #024C84;
+  --color-link-visited:      #00599E;
+  --color-btn-primary:       #0064B1;
+  --color-btn-primary-hover: #00599E;
+  --color-btn-secondary:     #14181D;
+  --color-btn-secondary-hover: #2B323B;
+  --color-btn-ghost-hover:   #0064B11A;
+  --color-overlay:           #14181D99;
+  --gradient-brand:          linear-gradient(135deg, #0064B1 0%, #F58320 100%);
+  --gradient-dark:           linear-gradient(135deg, #14181D 0%, #2B323B 100%);
+  --gradient-hero:           linear-gradient(180deg, #14181D 0%, #07090c 100%);
+  /* ── KP fonts ────────────────────────────────────── */
+  --font-sans:               var(--font-manrope, "Manrope", ui-sans-serif, system-ui, sans-serif);
+  --font-mono:               var(--font-space-mono, "Space Mono", ui-monospace, monospace);
+  --font-display:            var(--font-archivo, "Archivo", ui-sans-serif, system-ui, sans-serif);
+  /* ── KP named utilities ─────────────────────────── */
+  --color-kp-blue:   #0064B1;
+  --color-kp-orange: #F58320;
+  --color-kp-ink:    #14181D;
+  /* ── Radius / shadow ─────────────────────────────── */
+  --radius-btn:              0.375rem;
+  --radius-card:             0.75rem;
   --radius-pill:             9999px;
-  --shadow-primary:          0 4px 24px 0 #FF6B3540;
-  --shadow-card:             0 2px 16px 0 #1A1A2E18;
+  --shadow-primary:          0 4px 24px 0 #0064B140;
+  --shadow-card:             0 2px 16px 0 #14181D18;
   --shadow-dark:             0 4px 32px 0 #00000060;
 }
 
@@ -68,11 +75,11 @@
    These power the glass / navbar / toggle / sidebar.
    ============================================================ */
 :root {
-  --bg:            #f0f0f7;
-  --bg-secondary:  #e4e4ef;
-  --fg:            #1A1A1A;
-  --fg-muted:      #4a4a4a;
-  --fg-subtle:     #9ca3af;
+  --bg:            #FFFFFF;   /* pure white light mode */
+  --bg-secondary:  #F4F6F8;   /* kp-ink-50 — subtle surface */
+  --fg:            #14181D;   /* kp-ink — near-black heading ink */
+  --fg-muted:      #5A646F;   /* kp-ink-500 */
+  --fg-subtle:     #AEB7C1;   /* kp-ink-300 */
 
   /* Glass */
   --glass-bg:        rgba(255, 255, 255, 0.60);
@@ -83,22 +90,22 @@
   --glass-blur:      24px;
 
   /* Navbar — white frosted glass */
-  --navbar-bg:          rgba(255, 255, 255, 0.75);
-  --navbar-border:      rgba(0, 0, 0, 0.10);
+  --navbar-bg:          rgba(255, 255, 255, 0.80);
+  --navbar-border:      rgba(0, 100, 177, 0.12);
   --navbar-shadow:
-    0 4px 32px rgba(0, 0, 0, 0.12),
+    0 4px 32px rgba(0, 100, 177, 0.10),
     0 1px 6px  rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  --navbar-text:        #1A1A1A;          /* 17.4:1 on white ✓ AAA */
-  --navbar-text-muted:  #4a4a4a;          /* 8.86:1 on white ✓ AAA (spec #666 fails) */
-  --navbar-hover-text:  #1A1A1A;          /* hover darkens to primary */
-  --navbar-icon-bg:     #FFF4E6;          /* spec light mode icon bg */
+  --navbar-text:        #14181D;          /* kp-ink ✓ AAA */
+  --navbar-text-muted:  #2B323B;          /* kp-ink-700 ✓ AAA */
+  --navbar-hover-text:  #0064B1;          /* kp-blue on hover */
+  --navbar-icon-bg:     #EFF6FC;          /* kp-blue-50 */
 
   /* Active indicator — glowing capsule */
-  --active-text:        #8b2e04;          /* 8.43:1 on white ✓ AAA */
-  --active-underline:   #FF8A00;
-  --active-bg:          rgba(255, 138, 0, 0.10);
-  --active-border:      rgba(255, 138, 0, 0.25);
+  --active-text:        #024C84;          /* kp-blue-700 ✓ AAA */
+  --active-underline:   #F58320;          /* kp-orange */
+  --active-bg:          rgba(245, 131, 32, 0.10);
+  --active-border:      rgba(245, 131, 32, 0.25);
 
   /* Toggle */
   --toggle-track:        rgba(210, 210, 220, 0.90);
@@ -120,36 +127,36 @@
 }
 
 .dark {
-  --bg:            #07070f;
-  --bg-secondary:  #0c0c1a;
-  --fg:            #e4e4ff;
-  --fg-muted:      #8b93a8;
-  --fg-subtle:     #5a6275;
+  --bg:            #14181D;   /* kp-ink — billboard-dark */
+  --bg-secondary:  #1e242b;
+  --fg:            #F4F6F8;
+  --fg-muted:      #AEB7C1;
+  --fg-subtle:     #5A646F;
 
-  --glass-bg:        rgba(255, 255, 255, 0.08);
-  --glass-bg-hover:  rgba(255, 255, 255, 0.14);
-  --glass-border:    rgba(255, 255, 255, 0.15);
-  --glass-highlight: rgba(255, 255, 255, 0.08);
+  --glass-bg:        rgba(255, 255, 255, 0.06);
+  --glass-bg-hover:  rgba(255, 255, 255, 0.11);
+  --glass-border:    rgba(255, 255, 255, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.07);
   --glass-shadow:    rgba(0, 0, 0, 0.55);
   --glass-blur:      24px;
 
   /* Navbar — dark frosted glass */
-  --navbar-bg:          rgba(20, 20, 36, 0.72);
-  --navbar-border:      rgba(255, 255, 255, 0.15);
+  --navbar-bg:          rgba(20, 24, 29, 0.78);   /* kp-ink translucent */
+  --navbar-border:      rgba(0, 100, 177, 0.22);  /* kp-blue edge tint */
   --navbar-shadow:
     0 8px 40px rgba(0, 0, 0, 0.55),
     0 2px 8px  rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  --navbar-text:        #FFFFFF;           /* 17.2:1 on eff. dark ✓ AAA */
-  --navbar-text-muted:  #FFFFFF;           /* 8.21:1 on eff. dark ✓ AAA */
-  --navbar-hover-text:  #FFBA00;           /* spec hover; 9.5:1 ✓ AAA */
-  --navbar-icon-bg:     rgba(255, 255, 255, 0.15); /* spec dark icon bg */
+    inset 0 1px 0 rgba(0, 100, 177, 0.10);
+  --navbar-text:        #F4F6F8;           /* kp-ink-50 ✓ AAA */
+  --navbar-text-muted:  #D5DCE3;           /* kp-ink-200 ✓ AAA */
+  --navbar-hover-text:  #F9B274;           /* kp-orange-300 — warm hover */
+  --navbar-icon-bg:     rgba(0, 100, 177, 0.18);
 
   /* Active indicator — glowing capsule */
-  --active-text:        #FF8A00;           /* 7.29:1 on eff. dark ✓ AAA */
-  --active-underline:   #FF8A00;
-  --active-bg:          rgba(255, 138, 0, 0.14);
-  --active-border:      rgba(255, 138, 0, 0.22);
+  --active-text:        #F58320;           /* kp-orange — pops on dark ✓ AAA */
+  --active-underline:   #F58320;
+  --active-bg:          rgba(245, 131, 32, 0.14);
+  --active-border:      rgba(245, 131, 32, 0.22);
 
   --toggle-track:        rgba(14, 14, 30, 0.95);
   --toggle-knob-bg:      #1e1e36;
@@ -181,9 +188,16 @@
   a:hover   { color: var(--color-link-hover); }
   a:visited { color: var(--color-link-visited); }
 
+  /* Display headings: Archivo Black — billboard energy */
   h1, h2, h3, h4, h5, h6 {
     color: var(--color-text);
-    font-family: var(--font-display);
+    font-family: var(--font-display, "Archivo", ui-sans-serif, system-ui, sans-serif);
+    font-weight: 800;
+  }
+
+  /* Body copy: Manrope — humanist, readable */
+  body, p, li, input, textarea, select {
+    font-family: var(--font-sans, "Manrope", ui-sans-serif, system-ui, sans-serif);
   }
 
   p, li { color: var(--color-text); }
@@ -329,44 +343,30 @@
 .nav-logo-mark {
   width: 44px;
   height: 44px;
-  background: linear-gradient(135deg, #FF6B35 0%, #FF9240 100%);
-  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   flex-shrink: 0;
-  box-shadow:
-    0 4px 12px rgba(255, 107, 53, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
-.nav-logo-mark::before {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 3px;
-  right: 3px;
-  height: 45%;
-  background: linear-gradient(180deg, rgba(255,255,255,0.38) 0%, transparent 100%);
-  border-radius: 8px 8px 0 0;
+.nav-logo-mark img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  display: block;
 }
 
-.nav-logo-k {
-  font-size: 18px;
-  font-weight: 800;
-  color: white;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  position: relative;
-  z-index: 1;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
+/* Remove the old ::before shine — logo image handles its own look */
+.nav-logo-mark::before { display: none; }
+
+.nav-logo-k { display: none; }   /* replaced by image */
 
 .nav-logo-text {
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  font-family: var(--font-display, "Archivo", sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--navbar-text);
   transition: color 500ms ease;
 }
@@ -756,8 +756,8 @@
 }
 
 @keyframes logo-pulse {
-  0%, 100% { box-shadow: 0 4px 12px rgba(255, 107, 53, 0.38); }
-  50%       { box-shadow: 0 4px 20px rgba(255, 107, 53, 0.60); }
+  0%, 100% { box-shadow: 0 0 0 2px rgba(245,131,32,0.35), 0 4px 14px rgba(245,131,32,0.25); }
+  50%       { box-shadow: 0 0 0 3px rgba(245,131,32,0.55), 0 4px 22px rgba(245,131,32,0.45); }
 }
 
 /* ============================================================

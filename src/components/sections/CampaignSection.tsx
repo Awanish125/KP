@@ -35,11 +35,6 @@ export function CampaignSection() {
       ref={sectionRef}
       className="h-full flex flex-col items-center justify-end pb-16 lg:pb-24"
     >
-      {/*
-        Camera zooms in tight on the poster face for this section.
-        Content sits at the bottom — minimal text so the billboard fills the frame.
-        A vignette gradient at the bottom lifts the text off the 3D background.
-      */}
       <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
 
       <div className="relative z-10 text-center">
@@ -48,19 +43,19 @@ export function CampaignSection() {
           ref={lineRef}
           className="opacity-0 flex items-center justify-center gap-4 mb-5"
         >
-          <span className="block w-12 h-px bg-orange-400/40" />
-          <span className="text-[10px] uppercase tracking-[0.5em] text-orange-400/70">
+          <span className="block w-12 h-px bg-kp-orange/40" />
+          <span className="text-[10px] uppercase tracking-[0.5em] text-kp-orange/70">
             Featured Campaign
           </span>
-          <span className="block w-12 h-px bg-orange-400/40" />
+          <span className="block w-12 h-px bg-kp-orange/40" />
         </div>
 
         <div ref={textRef} className="opacity-0">
-          <h2 className="text-4xl lg:text-6xl font-extralight text-white leading-none mb-3">
+          <h2 className="text-4xl lg:text-6xl font-extralight text-secondary dark:text-white leading-none mb-3">
             The Billboard<br />
-            <em className="not-italic text-white/35">That Stops</em> Traffic
+            <em className="not-italic text-secondary/35 dark:text-white/35">That Stops</em> Traffic
           </h2>
-          <p className="text-xs uppercase tracking-[0.4em] text-white/25 mt-5">
+          <p className="text-xs uppercase tracking-[0.4em] text-secondary/25 dark:text-white/25 mt-5">
             Continue scrolling to explore
           </p>
         </div>
