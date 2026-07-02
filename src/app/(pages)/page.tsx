@@ -22,6 +22,8 @@ import { HeroSection, HeroSectionContent } from "@/components/hero";
 import { Loading } from "@/components/ui";
 import { PremiumMarquee } from "@/components/PremiumMarquee";
 import { PremiumRevealSection } from "@/components/PremiumRevealSection";
+import { CampaignGallery } from "@/components/gallery";
+import { CAMPAIGNS } from "@/data/campaigns";
 import data from "@/data/home.json";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -112,7 +114,7 @@ export default function Home() {
         showHoverLift
         showGradientSweep
         showFadeEdges
-        showEntranceAnimation
+        // showEntranceAnimation
         entranceDirection="top"
         entranceRepeat={true}
         showVelocityStretch
@@ -137,7 +139,7 @@ export default function Home() {
         showHoverLift
         showGradientSweep
         showFadeEdges
-        showEntranceAnimation
+        // showEntranceAnimation
         entranceDirection="bottom"
         entranceRepeat={true}
         showVelocityStretch
@@ -249,8 +251,10 @@ export default function Home() {
         showFadeAnimation
         showRotation
         showStaggerAnimation
-        staggerAmount={0.9}
-        showOvershoot={true}
+        animationDuration={0.1}
+        staggerAmount={0.5}
+        showOvershoot={true} 
+        showLandingJerk={true}
         showBounceEffect={true}
         showFloatingAnimation
         showMouseParallax
@@ -292,6 +296,9 @@ export default function Home() {
           </div>
         </div>
       </PremiumRevealSection>
+
+      {/* ── S-6: Campaign gallery ─────────────────────────────────────── */}
+      <CampaignGallery campaigns={CAMPAIGNS} glowColor="rgba(0,100,177,0.5)"  />
 
       {/* ── S-4: Process (pinned scroll) ───────────────────────────────── */}
       <div id="s4-wrapper" style={{ height: "400vh" }}>

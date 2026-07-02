@@ -79,12 +79,20 @@ export interface PremiumRevealSectionProps {
   showStaggerAnimation?:  boolean;
   showOvershoot?:         boolean;
   showBounceEffect?:      boolean;
+  /** Small scale-punch + rotation-wiggle when each card lands. Default: false. */
+  showLandingJerk?:       boolean;
   /**
    * Gap between images in the stagger (seconds). Lower = more images animate
    * at once. Higher = one-at-a-time. Default: 0.18.
-   * Set to roughly `entrance duration` for fully sequential reveal.
+   * Set to roughly `animationDuration` for fully sequential reveal.
    */
   staggerAmount?:         number;
+  /**
+   * Duration of each image's entrance tween (seconds). Overrides the
+   * preset's built-in default. Default: 1.0.
+   * Lower = snappier (0.4–0.6), Higher = slower/cinematic (1.2–2.0).
+   */
+  animationDuration?:     number;
 
   // ── Post-reveal motion ───────────────────────────────────────────────────────
   showFloatingAnimation?: boolean;

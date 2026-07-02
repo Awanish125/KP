@@ -1,8 +1,7 @@
 import { RefObject, useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import type { ImageData, AnimationPreset } from '../types';
-import { ENTRANCE_DURATION, ENTRANCE_STAGGER } from '../constants';
+import { ENTRANCE_DURATION } from '../constants';
 import {
   getPresetResult,
   buildToVars,
@@ -11,20 +10,32 @@ import {
 } from '../utils/presetAnimations';
 
 export interface EntranceOptions extends PresetOptions {
-  enabled:        boolean;
-  stagger:        boolean;
-  staggerAmount:  number;
-  scrollStart:    string;
-  repeatOnScroll: boolean;
+  enabled:           boolean;
+  stagger:           boolean;
+  staggerAmount:     number;
+  /** Per-card duration in seconds. Overrides preset default when set. */
+  animationDuration?: number;
+  /** Scale-punch + rotation-wiggle when each card settles. */
+  showLandingJerk?:  boolean;
+  /**
+   * GSAP-style start string, e.g. "top 75%".
+   * Converted to IntersectionObserver rootMargin so no ScrollTrigger is needed.
+   * "top N%" → trigger when top of section is N% down the viewport.
+   */
+  scrollStart:       string;
+  repeatOnScroll:    boolean;
 }
 
 /**
- * ONE master GSAP timeline + ONE ScrollTrigger for the entire image set.
+ * Entrance animation — NO ScrollTrigger.
+ *
+ * Trigger: IntersectionObserver (native, zero per-frame overhead).
+ * ScrollTrigger fired on every Lenis RAF tick which caused scroll lag.
+ * IntersectionObserver fires only on state-change (enter/leave).
  *
  * Performance:
- *   - will-change is applied just before play() and removed on complete.
- *   - fromTo keeps "to" state explicit so repeatOnScroll restarts cleanly.
- *   - No individual timelines or triggers per image.
+ *   - will-change applied per-card in onStart (not all at once).
+ *   - One master timeline, no per-image timelines.
  */
 export function useEntranceAnimation(
   containerRef:  RefObject<HTMLElement | null>,
@@ -33,11 +44,12 @@ export function useEntranceAnimation(
   preset:        AnimationPreset,
   opts:          EntranceOptions,
   isReduced:     boolean,
+  shakeRef?:     RefObject<HTMLElement | null>,
 ): void {
   const resolvedPreset = useRef<AnimationPreset>('assemble');
+  const hasPlayed      = useRef(false);
 
   useEffect(() => {
-    gsap.registerPlugin(ScrollTrigger);
     if (!opts.enabled || !containerRef.current || images.length === 0) return;
 
     const container = containerRef.current;
@@ -63,7 +75,6 @@ export function useEntranceAnimation(
       showBounce:    opts.showBounce,
     };
 
-    // ── Build entries sorted by stagger order ─────────────────────────────────
     type Entry = {
       el:           HTMLElement;
       image:        ImageData;
@@ -84,8 +95,8 @@ export function useEntranceAnimation(
         image:        img,
         fromVars:     result.fromVars,
         toVars:       { ...buildToVars(img), ...(result.toOverrides ?? {}) },
-        ease:         result.ease     ?? 'power3.out',
-        duration:     result.duration ?? ENTRANCE_DURATION,
+        ease:         result.ease ?? 'power3.out',
+        duration:     opts.animationDuration ?? result.duration ?? ENTRANCE_DURATION,
         staggerOrder: result.staggerOrder,
       });
     });
@@ -95,17 +106,15 @@ export function useEntranceAnimation(
 
     const stagger = opts.stagger ? opts.staggerAmount : 0;
 
-    // ── Apply hidden state to every image ─────────────────────────────────────
+    // No will-change here — applied per-card in onStart to avoid GPU spike.
     const applyHidden = () => {
-      entries.forEach(({ el, fromVars }) => {
-        gsap.set(el, { ...fromVars, willChange: 'transform, opacity' });
-      });
+      entries.forEach(({ el, fromVars }) => gsap.set(el, fromVars));
     };
 
-    // ── Master timeline ───────────────────────────────────────────────────────
+    // ── Master timeline ─────────────────────────────────────────────────────
     const tl = gsap.timeline({ paused: true });
 
-    entries.forEach(({ el, fromVars, toVars, ease, duration }, si) => {
+    entries.forEach(({ el, image, fromVars, toVars, ease, duration }, si) => {
       tl.fromTo(
         el,
         fromVars,
@@ -113,43 +122,84 @@ export function useEntranceAnimation(
           ...toVars,
           ease,
           duration,
+          onStart() {
+            gsap.set(el, { willChange: 'transform, opacity' });
+          },
           onComplete() {
-            // Remove will-change after each image settles to free compositor layer.
             gsap.set(el, { willChange: 'auto' });
+
+            if (opts.showLandingJerk) {
+              // Shake inner wrapper — never the section (Lenis owns its transform).
+              const shakeEl = shakeRef?.current;
+              if (shakeEl) {
+                gsap.to(shakeEl, {
+                  keyframes: [
+                    { x: -3,   y: -2,   duration: 0.04, ease: 'none' },
+                    { x:  2,   y:  1.5, duration: 0.05, ease: 'none' },
+                    { x: -1.5, y: -1,   duration: 0.04, ease: 'none' },
+                    { x:  1,   y:  0.5, duration: 0.04, ease: 'none' },
+                    { x:  0,   y:  0,   duration: 0.05, ease: 'power1.out' },
+                  ],
+                });
+              }
+
+              entranceRefs.current.forEach((otherEl, j) => {
+                if (!otherEl || otherEl === el || !images[j]) return;
+                const finalRot = images[j].rotation ?? 0;
+                const seed     = (j * 37 + (image.zIndex ?? 1)) % 10;
+                const rAmp     = 1.5 + seed * 0.22;
+                const yAmp     = 2   + seed * 0.5;
+                const dir      = j % 2 === 0 ? 1 : -1;
+                gsap.to(otherEl, {
+                  keyframes: [
+                    { rotation: finalRot + rAmp * dir,       y: -yAmp,        duration: 0.07, ease: 'power2.out' },
+                    { rotation: finalRot - rAmp * dir * 0.4, y:  yAmp * 0.4,  duration: 0.09, ease: 'power2.in'  },
+                    { rotation: finalRot,                    y:  0,            duration: 0.12, ease: 'power1.out' },
+                  ],
+                });
+              });
+            }
           },
         },
         si * stagger,
       );
     });
 
-    // ── ScrollTrigger ─────────────────────────────────────────────────────────
+    // ── IntersectionObserver — replaces ScrollTrigger ───────────────────────
+    // Convert "top N%" → rootMargin so intersection fires at the same visual
+    // position without any ScrollTrigger overhead.
+    const match  = opts.scrollStart.match(/top\s+(\d+(?:\.\d+)?)%/i);
+    const offset = match ? 100 - parseFloat(match[1]) : 20; // default 20% from bottom
+    const rootMargin = `0px 0px -${offset}% 0px`;
+
     applyHidden();
+    hasPlayed.current = false;
 
-    let st: ScrollTrigger;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (!opts.repeatOnScroll) {
+            if (!hasPlayed.current) {
+              hasPlayed.current = true;
+              tl.play(0);
+            }
+          } else {
+            applyHidden();
+            tl.restart(true);
+          }
+        } else if (opts.repeatOnScroll) {
+          tl.pause(0);
+          applyHidden();
+        }
+      },
+      { threshold: 0, rootMargin },
+    );
 
-    if (!opts.repeatOnScroll) {
-      st = ScrollTrigger.create({
-        trigger: container,
-        start:   opts.scrollStart,
-        once:    true,
-        onEnter: () => tl.play(0),
-      });
-    } else {
-      const play  = () => { applyHidden(); tl.restart(true); };
-      const reset = () => { tl.pause(0);  applyHidden(); };
-      st = ScrollTrigger.create({
-        trigger:     container,
-        start:       opts.scrollStart,
-        onEnter:     play,
-        onLeave:     reset,
-        onEnterBack: play,
-        onLeaveBack: reset,
-      });
-    }
+    observer.observe(container);
 
     return () => {
+      observer.disconnect();
       tl.kill();
-      st?.kill();
       entries.forEach(({ el }) => gsap.set(el, { willChange: 'auto', clearProps: 'all' }));
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -157,6 +207,7 @@ export function useEntranceAnimation(
     opts.enabled, preset, images.length, isReduced,
     opts.showRotation, opts.showBlur, opts.showScale, opts.showFade,
     opts.showOvershoot, opts.showBounce, opts.stagger,
-    opts.staggerAmount, opts.scrollStart, opts.repeatOnScroll,
+    opts.staggerAmount, opts.animationDuration, opts.showLandingJerk,
+    opts.scrollStart, opts.repeatOnScroll,
   ]);
 }

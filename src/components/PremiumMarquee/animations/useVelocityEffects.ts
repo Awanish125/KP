@@ -3,15 +3,13 @@ import gsap from 'gsap';
 import { STRETCH_MAX, TILT_MAX, ROTATE_MAX, COMPRESS_MAX } from '../constants';
 
 interface Options {
-  stretch:     boolean; // scale items in the scroll direction
-  tilt:        boolean; // tilt the inner container on scroll
-  compression: boolean; // compress the inner container in the scroll direction
-  rotation:    boolean; // rotate items slightly in scroll direction
-  isVertical:  boolean; // true when direction='up'|'down' — swaps X↔Y axes
+  stretch:     boolean;
+  tilt:        boolean;
+  compression: boolean;
+  rotation:    boolean;
+  isVertical:  boolean;
 }
 
-// All four velocity-driven effects share one wheel listener so velocity
-// calculation and decay are applied consistently without duplication.
 export function useVelocityEffects(
   containerRef: RefObject<HTMLElement | null>,
   { stretch, tilt, compression, rotation, isVertical }: Options,
@@ -22,82 +20,48 @@ export function useVelocityEffects(
     if (!anyEnabled || !containerRef.current) return;
 
     const container = containerRef.current;
-    let decayTimer: ReturnType<typeof setTimeout> | null = null;
+    const scaleAxis = isVertical ? 'scaleY' : 'scaleX';
+    const tiltAxis  = isVertical ? 'rotateY' : 'rotateX';
 
-    const items     = () => container.querySelectorAll<HTMLElement>('[data-marquee-item]');
-    const innerWrap = () => container.querySelector<HTMLElement>('.rfm-marquee-container');
+    // Cache DOM queries once — querySelectorAll in a 60 fps wheel handler is expensive.
+    const itemEls   = Array.from(container.querySelectorAll<HTMLElement>('[data-marquee-item]'));
+    const innerWrap = container.querySelector<HTMLElement>('.rfm-marquee-container');
+    if (!itemEls.length) return;
+
+    // quickTo: pre-allocated per-element tween updater — no tween object is created on each
+    // call, just the target value is updated. ~5× faster than gsap.to in a hot event handler.
+    const quickScale = stretch
+      ? itemEls.map(el => gsap.quickTo(el, scaleAxis, { duration: 0.14, ease: 'power2.out' }))
+      : null;
+    const quickRot = rotation
+      ? itemEls.map(el => gsap.quickTo(el, 'rotate', { duration: 0.18, ease: 'power2.out' }))
+      : null;
+    const quickTilt = tilt && innerWrap
+      ? gsap.quickTo(innerWrap, tiltAxis, { duration: 0.2, ease: 'power2.out' })
+      : null;
+    const quickComp = compression && innerWrap
+      ? gsap.quickTo(innerWrap, scaleAxis, { duration: 0.2, ease: 'power2.out' })
+      : null;
+
+    let decayTimer: ReturnType<typeof setTimeout> | null = null;
 
     const onWheel = (e: WheelEvent) => {
       const v   = Math.min(Math.abs(e.deltaY) / 100, 1);
       const dir = Math.sign(e.deltaY);
 
-      if (stretch) {
-        // Horizontal → stretch width; vertical → stretch height.
-        gsap.to(items(), {
-          [isVertical ? 'scaleY' : 'scaleX']: 1 + v * STRETCH_MAX,
-          duration:  0.14,
-          ease:      'power2.out',
-          overwrite: 'auto',
-        });
-      }
+      // Hot path — only value updates, no tween creation.
+      quickScale?.forEach(fn => fn(1 + v * STRETCH_MAX));
+      quickRot?.forEach(fn => fn(dir * v * ROTATE_MAX));
+      quickTilt?.(dir * v * -TILT_MAX);
+      quickComp?.(1 - v * COMPRESS_MAX);
 
-      const wrap = innerWrap();
-      if (wrap) {
-        if (tilt) {
-          // Horizontal strip → tip forward/back (rotateX).
-          // Vertical strip   → tip left/right (rotateY).
-          gsap.to(wrap, {
-            [isVertical ? 'rotateY' : 'rotateX']: dir * v * -TILT_MAX,
-            duration:  0.2,
-            ease:      'power2.out',
-            overwrite: 'auto',
-          });
-        }
-        if (compression) {
-          // Compress in the direction of movement.
-          gsap.to(wrap, {
-            [isVertical ? 'scaleY' : 'scaleX']: 1 - v * COMPRESS_MAX,
-            duration:  0.2,
-            ease:      'power2.out',
-            overwrite: 'auto',
-          });
-        }
-      }
-
-      if (rotation) {
-        gsap.to(items(), {
-          rotate:    dir * v * ROTATE_MAX,
-          duration:  0.18,
-          ease:      'power2.out',
-          overwrite: 'auto',
-        });
-      }
-
-      // Return everything to rest after scroll ceases.
+      // Return-to-rest fires once after scroll stops (not per-frame — gsap.to is fine here).
       if (decayTimer) clearTimeout(decayTimer);
       decayTimer = setTimeout(() => {
-        const scaleAxis = isVertical ? 'scaleY' : 'scaleX';
-        const tiltAxis  = isVertical ? 'rotateY' : 'rotateX';
-
-        if (stretch) {
-          gsap.to(items(), {
-            [scaleAxis]: 1,
-            duration: 0.45,
-            ease:     'power3.out',
-          });
-        }
-        if (rotation) {
-          gsap.to(items(), {
-            rotate:   0,
-            duration: 0.45,
-            ease:     'power3.out',
-          });
-        }
-        const w = innerWrap();
-        if (w) {
-          if (tilt)        gsap.to(w, { [tiltAxis]:  0, duration: 0.5, ease: 'power3.out' });
-          if (compression) gsap.to(w, { [scaleAxis]: 1, duration: 0.45, ease: 'power3.out' });
-        }
+        if (stretch)              gsap.to(itemEls,  { [scaleAxis]: 1, duration: 0.45, ease: 'power3.out' });
+        if (rotation)             gsap.to(itemEls,  { rotate: 0,      duration: 0.45, ease: 'power3.out' });
+        if (tilt && innerWrap)    gsap.to(innerWrap, { [tiltAxis]: 0,  duration: 0.5,  ease: 'power3.out' });
+        if (compression && innerWrap) gsap.to(innerWrap, { [scaleAxis]: 1, duration: 0.45, ease: 'power3.out' });
       }, 130);
     };
 
@@ -106,9 +70,8 @@ export function useVelocityEffects(
     return () => {
       window.removeEventListener('wheel', onWheel);
       if (decayTimer) clearTimeout(decayTimer);
-      gsap.killTweensOf(items());
-      const w = innerWrap();
-      if (w) gsap.killTweensOf(w);
+      gsap.set(itemEls, { [scaleAxis]: 1, rotate: 0 });
+      if (innerWrap) gsap.set(innerWrap, { [tiltAxis]: 0, [scaleAxis]: 1 });
     };
   }, [anyEnabled, stretch, tilt, compression, rotation, isVertical]);
 }

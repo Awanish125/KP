@@ -17,6 +17,7 @@
  */
 
 import React, { useRef, useMemo } from 'react';
+import Tilt from 'react-parallax-tilt';
 import type { PremiumRevealSectionProps } from './types';
 import { useReducedMotion } from './hooks/useReducedMotion';
 import { useEntranceAnimation } from './animations/useEntranceAnimation';
@@ -50,7 +51,9 @@ function PremiumRevealSectionInner({
   showStaggerAnimation   = true,
   showOvershoot          = false,
   showBounceEffect       = false,
+  showLandingJerk        = false,
   staggerAmount          = ENTRANCE_STAGGER,
+  animationDuration,
 
   showFloatingAnimation  = true,
   showMouseParallax      = true,
@@ -74,6 +77,9 @@ function PremiumRevealSectionInner({
   const needsPerspective = showPerspective || animationStyle === 'cameraZoom';
 
   const containerRef  = useRef<HTMLDivElement>(null);
+  // Inner wrapper for landing-jerk shake — kept separate from containerRef so
+  // GSAP never touches the section element's transform (Lenis owns that).
+  const shakeRef      = useRef<HTMLDivElement>(null);
 
   // Four layers per image — each hook owns exactly one.
   const scrollRefs   = useRef<(HTMLDivElement | null)[]>([]);
@@ -83,30 +89,32 @@ function PremiumRevealSectionInner({
 
   // ── Entrance ─────────────────────────────────────────────────────────────────
   const entranceOpts = useMemo(() => ({
-    enabled:        master && showEntranceAnimation,
+    enabled:           master && showEntranceAnimation,
     showRotation,
-    showBlur:       showBlurEffect,
-    showScale:      showScaleAnimation,
-    showFade:       showFadeAnimation,
+    showBlur:          showBlurEffect,
+    showScale:         showScaleAnimation,
+    showFade:          showFadeAnimation,
     showOvershoot,
-    showBounce:     showBounceEffect,
-    stagger:        showStaggerAnimation,
+    showBounce:        showBounceEffect,
+    showLandingJerk,
+    stagger:           showStaggerAnimation,
     staggerAmount,
+    animationDuration,
     scrollStart,
     repeatOnScroll,
   }), [
     master, showEntranceAnimation, showRotation, showBlurEffect,
     showScaleAnimation, showFadeAnimation, showOvershoot, showBounceEffect,
-    showStaggerAnimation, staggerAmount, scrollStart, repeatOnScroll,
+    showStaggerAnimation, showLandingJerk, staggerAmount, animationDuration, scrollStart, repeatOnScroll,
   ]);
 
-  useEntranceAnimation(containerRef, entranceRefs, images, animationStyle, entranceOpts, isReduced);
+  useEntranceAnimation(containerRef, entranceRefs, images, animationStyle, entranceOpts, isReduced, shakeRef);
 
   // ── Floating — starts AFTER entrance completes to avoid competing animations ─
   const floatStartDelay = useMemo(() => {
     if (!master || !showEntranceAnimation) return 0;
-    return totalEntranceDuration(images.length, staggerAmount, ENTRANCE_DURATION) + FLOAT_ENTRANCE_BUFFER;
-  }, [master, showEntranceAnimation, images.length, staggerAmount]);
+    return totalEntranceDuration(images.length, staggerAmount, animationDuration ?? ENTRANCE_DURATION) + FLOAT_ENTRANCE_BUFFER;
+  }, [master, showEntranceAnimation, images.length, staggerAmount, animationDuration]);
 
   const floatOpts = useMemo(
     () => ({ enabled: master && showFloatingAnimation, showDepth: showDepthEffect, startDelay: floatStartDelay }),
@@ -147,97 +155,107 @@ function PremiumRevealSectionInner({
           : {}),
       }}
     >
-      {/* ── Built-in radial gradient (only when no custom gradient class given) ── */}
-      {showBackgroundGradient && !backgroundGradientClass && (
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(ellipse 70% 60% at 18% 28%, rgba(111,91,255,0.09) 0%, transparent 65%),' +
-              'radial-gradient(ellipse 60% 50% at 82% 72%, rgba(241,107,87,0.08) 0%, transparent 60%)',
-          }}
-          aria-hidden="true"
-        />
-      )}
+      {/* ── Inner shake wrapper ────────────────────────────────────────────────
+           Landing-jerk targets this div — never the section element.
+           Lenis owns the section's transform; GSAP must not touch it. */}
+      <div ref={shakeRef} style={{ position: 'relative', minHeight }}>
 
-      {/* ── Decorative image layer ─────────────────────────────────────────── */}
-      {hasImages && (
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ zIndex: 0 }}       // explicitly below children (z-10)
-          aria-hidden="true"
-        >
-          {images.map((img, i) => (
-            <div
-              key={i}
-              // Layer 1 — CSS position + scroll-parallax target
-              ref={el => { scrollRefs.current[i] = el; }}
-              style={{ position: 'absolute', left: img.x, top: img.y, width: img.width, zIndex: img.zIndex ?? 1 }}
-            >
-              {/* Layer 2 — entrance animation (x / y / scale / opacity / rotation / filter) */}
-              <div ref={el => { entranceRefs.current[i] = el; }}>
+        {/* ── Built-in radial gradient ──────────────────────────────────────── */}
+        {showBackgroundGradient && !backgroundGradientClass && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(ellipse 70% 60% at 18% 28%, rgba(111,91,255,0.09) 0%, transparent 65%),' +
+                'radial-gradient(ellipse 60% 50% at 82% 72%, rgba(241,107,87,0.08) 0%, transparent 60%)',
+            }}
+            aria-hidden="true"
+          />
+        )}
 
-                {/* Layer 3 — floating (y, x).
-                    Permanent will-change:transform promotes this element to its
-                    own compositor layer once at mount so floating never triggers
-                    a full repaint cycle. */}
-                <div
-                  ref={el => { floatRefs.current[i] = el; }}
-                  style={{ willChange: 'transform' }}
-                >
-                  {/* Layer 4 — mouse parallax (x, y) */}
-                  <div
-                    ref={el => { mouseRefs.current[i] = el; }}
-                    className={showHoverInteraction ? 'group' : ''}
-                  >
-                    {/* Glow halo — rendered behind via negative z-index */}
-                    {showGlow && (
-                      <div
-                        className="absolute inset-0 -z-10 rounded-2xl opacity-40 blur-2xl scale-[1.4]"
-                        style={{
-                          background: img.glowColor ??
-                            'radial-gradient(circle, rgba(255,160,80,0.7) 0%, transparent 70%)',
-                        }}
-                      />
-                    )}
-
-                    <img
-                      src={img.src}
-                      alt={img.alt ?? ''}
-                      width={img.width}
-                      draggable={false}
-                      decoding="async"
-                      className={[
-                        // No shadow-2xl here — box-shadow is expensive compositor paint.
-                        // A shadow-md keeps the look without the perf cost.
-                        'w-full h-auto block rounded-xl object-cover select-none',
-                        'shadow-[0_8px_30px_rgba(0,0,0,0.18)]',
-                        showHoverInteraction
-                          ? 'transition-transform duration-300 ease-out group-hover:-translate-y-1.5'
-                          : '',
-                      ].filter(Boolean).join(' ')}
-                      // Reduced-motion: static rotation only, no GSAP.
-                      style={isReduced ? { transform: `rotate(${img.rotation ?? 0}deg)` } : undefined}
-                    />
+        {/* ── Decorative image layer ──────────────────────────────────────────── */}
+        {hasImages && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ zIndex: 0 }}
+            aria-hidden="true"
+          >
+            {images.map((img, i) => (
+              <div
+                key={i}
+                ref={el => { scrollRefs.current[i] = el; }}
+                style={{ position: 'absolute', left: img.x, top: img.y, width: img.width, zIndex: img.zIndex ?? 1 }}
+              >
+                <div ref={el => { entranceRefs.current[i] = el; }}>
+                  <div ref={el => { floatRefs.current[i] = el; }}>
+                    <div
+                      ref={el => { mouseRefs.current[i] = el; }}
+                      className={showHoverInteraction ? 'group' : ''}
+                    >
+                      {showGlow && (
+                        <div
+                          className="absolute inset-0 -z-10 rounded-2xl opacity-40 blur-2xl scale-[1.4]"
+                          style={{
+                            background: img.glowColor ??
+                              'radial-gradient(circle, rgba(255,160,80,0.7) 0%, transparent 70%)',
+                          }}
+                        />
+                      )}
+                      {/* 3D tilt + glare on hover — same package-driven effect used on
+                          the campaign gallery cards. This is its own innermost layer
+                          so it never competes with mouseRef's whole-section parallax
+                          transform on the element above it. */}
+                      <Tilt
+                        tiltEnable={showHoverInteraction && !isReduced}
+                        tiltMaxAngleX={10}
+                        tiltMaxAngleY={10}
+                        perspective={1000}
+                        scale={1.03}
+                        transitionSpeed={800}
+                        glareEnable={showHoverInteraction && !isReduced}
+                        glareMaxOpacity={0.2}
+                        glareColor="#ffffff"
+                        glarePosition="all"
+                        glareBorderRadius="0.75rem"
+                        className="w-full"
+                      >
+                        <img
+                          src={img.src}
+                          alt={img.alt ?? ''}
+                          width={img.width}
+                          draggable={false}
+                          decoding="async"
+                          className={[
+                            'w-full h-auto block rounded-xl object-cover select-none',
+                            'shadow-[0_8px_30px_rgba(0,0,0,0.18)]',
+                            showHoverInteraction
+                              ? 'transition-transform duration-300 ease-out group-hover:-translate-y-1.5'
+                              : '',
+                          ].filter(Boolean).join(' ')}
+                          style={isReduced ? { transform: `rotate(${img.rotation ?? 0}deg)` } : undefined}
+                        />
+                      </Tilt>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {/* ── Noise overlay ─────────────────────────────────────────────────── */}
-      {showNoiseTexture && (
-        <div
-          className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-20"
-          style={{ backgroundImage: `url("${NOISE_URL}")`, backgroundRepeat: 'repeat' }}
-          aria-hidden="true"
-        />
-      )}
+        {/* ── Noise overlay ─────────────────────────────────────────────────── */}
+        {showNoiseTexture && (
+          <div
+            className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-20"
+            style={{ backgroundImage: `url("${NOISE_URL}")`, backgroundRepeat: 'repeat' }}
+            aria-hidden="true"
+          />
+        )}
 
-      {/* ── Content — always above the image layer ─────────────────────── */}
-      <div className="relative z-10">{children}</div>
+        {/* ── Content — always above the image layer ─────────────────────── */}
+        <div className="relative z-10">{children}</div>
+
+      </div>{/* end shakeRef inner wrapper */}
     </section>
   );
 }

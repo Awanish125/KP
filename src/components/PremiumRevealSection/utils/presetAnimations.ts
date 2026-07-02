@@ -122,33 +122,55 @@ function explodePreset(
 
 function cameraZoomPreset(
   index: number, _total: number, image: ImageData,
-  _cw: number, _ch: number, opts: PresetOptions,
+  cw: number, ch: number, opts: PresetOptions,
 ): PresetResult {
   /**
-   * Simulates a cinematic pull-back from the lens using BLUR as the primary
-   * depth cue, not scale.  scale:1.6 keeps compositor layers a manageable
-   * size (vs. scale:5.5 which created 50 MB+ of GPU textures per frame).
+   * "Throwing card" effect — cinematic, GPU-safe, visually heavy.
    *
-   * Percept: heavy blur + slight scale-up = "right in front of camera".
-   * As it settles: blur drops, scale returns to 1, opacity rises.
-   * The combination reads as the camera "pulling back" into the scene.
+   * EVERY card starts near the viewport centre at a large scale (50–85% of
+   * viewport width) with heavy blur and near-zero opacity.  Then it flies to
+   * its final corner/edge position while shrinking, sharpening and appearing —
+   * exactly like a card being thrown across a table.
+   *
+   * Scale performance note: CSS filter:blur() is computed at the element's
+   * NATURAL size (e.g. 150 px), then transform:scale() stretches the result
+   * on the compositor layer for free.  A 150 px image at scale(5) uses the
+   * same GPU memory as at scale(1) — texture size is unchanged.
+   * Perceived blur = blurValue × scaleStart (e.g. 14 px × 5 = 70 px visual blur).
    */
-  const blurStart = CAMERA_ZOOM_BLUR_START + prand(index, 2) * 8; // 30–38 px
-  const scaleVar  = CAMERA_ZOOM_SCALE_START + prand(index, 3) * 0.2; // 1.6–1.8×
+  const finalXPx = parsePx(image.x, cw);
+  const finalYPx = parsePx(image.y, ch);
+
+  // Scale so the card fills 55–85 % of the viewport width on entry.
+  const targetFraction = 0.55 + prand(index, 5) * 0.30;   // 55–85 %
+  const rawScale       = (cw * targetFraction) / image.width;
+  const scaleStart     = Math.min(8.0, Math.max(3.5, rawScale));
+
+  // Blur computed on natural-size element → cheap.
+  // Perceived blur at scaleStart ≈ blurVal × scale ≈ 14 × 5 = 70 px → near-invisible.
+  const blurVal = 12 + prand(index, 2) * 5; // 12–17 px
+
+  // Cards originate near the centre, with small random offset per card.
+  const jx = (prand(index, 0) - 0.5) * cw * 0.12;
+  const jy = (prand(index, 1) - 0.5) * ch * 0.10;
+
+  // Exaggerated rotation during the throw; settles at image.rotation.
+  const rotSpin = opts.showRotation ? (prand(index, 3) - 0.5) * 38 : 0;
+
   return {
     fromVars: {
-      x:        0,
-      y:        0,
-      scale:    opts.showScale ? scaleVar : 1,
-      opacity:  0.05,
-      rotation: opts.showRotation
-        ? (image.rotation ?? 0) + (prand(index, 1) - 0.5) * 12
-        : (image.rotation ?? 0),
-      filter:   opts.showBlur ? `blur(${blurStart}px)` : 'none',
+      x:        cw / 2 - finalXPx + jx,   // centre → final position (the "throw")
+      y:        ch / 2 - finalYPx + jy,
+      scale:    opts.showScale ? scaleStart : 1,
+      opacity:  opts.showFade  ? 0           : 1,
+      rotation: (image.rotation ?? 0) + rotSpin,
+      filter:   opts.showBlur ? `blur(${blurVal}px)` : 'none',
     },
-    ease:         'power2.out',
-    duration:     1.4,
-    staggerOrder: index,
+    // power4.out: card leaves the hand fast, decelerates gracefully onto the table.
+    ease:         'power4.out',
+    duration:     1.0,
+    // Shuffle stagger order so cards fly out in a natural-feeling sequence.
+    staggerOrder: prand(index, 7),
   };
 }
 

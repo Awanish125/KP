@@ -27,8 +27,9 @@ export function useFloatingAnimation(
 
     const container = containerRef.current;
     const tweens: gsap.core.Tween[] = [];
+    const floatEls  = floatRefs.current;
 
-    floatRefs.current.forEach((el, i) => {
+    floatEls.forEach((el, i) => {
       if (!el || !images[i]) return;
 
       const img   = images[i];
@@ -54,10 +55,19 @@ export function useFloatingAnimation(
       );
     });
 
-    // Play/pause the whole batch based on section visibility.
-    // When off-screen: zero GSAP ticks for these tweens.
+    // Play/pause + will-change lifecycle tied to section visibility.
+    // Compositor layers are created on enter and released on leave —
+    // no 14 permanent layers eating GPU memory while the user scrolls elsewhere.
     const obs = new IntersectionObserver(
-      ([entry]) => tweens.forEach(t => entry.isIntersecting ? t.play() : t.pause()),
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          floatEls.forEach(el => el && gsap.set(el, { willChange: 'transform' }));
+          tweens.forEach(t => t.play());
+        } else {
+          tweens.forEach(t => t.pause());
+          floatEls.forEach(el => el && gsap.set(el, { willChange: 'auto' }));
+        }
+      },
       { threshold: 0.05 },
     );
     obs.observe(container);
@@ -65,6 +75,7 @@ export function useFloatingAnimation(
     return () => {
       obs.disconnect();
       tweens.forEach(t => t.kill());
+      floatEls.forEach(el => el && gsap.set(el, { willChange: 'auto' }));
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opts.enabled, opts.showDepth, opts.startDelay, images.length, isReduced]);

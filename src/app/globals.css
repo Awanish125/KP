@@ -760,6 +760,16 @@
   50%       { box-shadow: 0 0 0 3px rgba(245,131,32,0.55), 0 4px 22px rgba(245,131,32,0.45); }
 }
 
+/* ── Campaign gallery ────────────────────────────────────────── */
+@keyframes kp-border-rotate {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes kp-light-sweep {
+  0%, 92%, 100% { transform: translateX(-120%) rotate(12deg); }
+  96%           { transform: translateX(420%) rotate(12deg); }
+}
+
 /* ============================================================
    GLOBAL BASE
    ============================================================ */
