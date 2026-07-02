@@ -13,6 +13,7 @@
  */
 
 import { useRef, useEffect, Fragment } from "react";
+import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -22,8 +23,8 @@ import { HeroSection, HeroSectionContent } from "@/components/hero";
 import { Loading } from "@/components/ui";
 import { PremiumMarquee } from "@/components/PremiumMarquee";
 import { PremiumRevealSection } from "@/components/PremiumRevealSection";
-import { CampaignGallery } from "@/components/gallery";
-import { CAMPAIGNS } from "@/data/campaigns";
+import { CampaignGallery, type Campaign } from "@/components/gallery";
+import { GALLERY_CATEGORIES } from "@/data/categories";
 import data from "@/data/home.json";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -31,17 +32,37 @@ gsap.registerPlugin(ScrollTrigger);
 // Transform brands list into the shape PremiumMarquee expects.
 const BRANDS = data.brands.map((text) => ({ type: "text" as const, text }));
 
+// Category cards for the homepage gallery section — one premium card per
+// category, showing that category's own cover image. Clicking one opens the
+// gallery page pre-filtered to it. Covers are configured in data/categories.ts.
+const SIZES = ["lg", "md", "tall", "wide", "sm", "md"] as const;
+const CATEGORY_CARDS: Campaign[] = GALLERY_CATEGORIES.map((c, i) => ({
+  id: `category-${c.name}`,
+  title: c.name,
+  category: `${c.count} photos`,
+  location: "View collection",
+  duration: "Tap to explore",
+  type: "category",
+  image: c.image,
+  size: SIZES[i % SIZES.length],
+}));
+
 // Module-level constant so the reference is always stable.
 // The images come from home.json and never change at runtime.
 const SHOWCASE_IMAGES = data.showcase.images;
 
 export default function Home() {
-  const stepRefs    = useRef<(HTMLDivElement | null)[]>([]);
+  const router = useRouter();
+  const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
   const counterRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   /* ── Lenis smooth scroll ─────────────────────────────────────────────── */
   useEffect(() => {
-    const lenis = new Lenis({ lerp: 0.08, smoothWheel: true, syncTouch: false });
+    const lenis = new Lenis({
+      lerp: 0.08,
+      smoothWheel: true,
+      syncTouch: false,
+    });
     lenis.on("scroll", () => ScrollTrigger.update());
     const tick = (t: number) => lenis.raf(t * 1000);
     gsap.ticker.add(tick);
@@ -59,20 +80,40 @@ export default function Home() {
       if (!el) return;
       const obj = { val: 0 };
       gsap.to(obj, {
-        val: stat.value, duration: 1.6, ease: "power2.out",
+        val: stat.value,
+        duration: 1.6,
+        ease: "power2.out",
         scrollTrigger: { trigger: "#s2", start: "top 60%" },
-        onUpdate: () => { el.textContent = Math.round(obj.val).toString(); },
+        onUpdate: () => {
+          el.textContent = Math.round(obj.val).toString();
+        },
       });
     });
 
-    gsap.fromTo("#s2-content > *", { opacity: 0, y: 30 }, {
-      opacity: 1, y: 0, stagger: 0.12, duration: 0.9, ease: "power3.out",
-      scrollTrigger: { trigger: "#s2", start: "top 65%" },
-    });
-    gsap.fromTo("#s3-content > *", { opacity: 0, x: 30 }, {
-      opacity: 1, x: 0, stagger: 0.07, duration: 0.7, ease: "power3.out",
-      scrollTrigger: { trigger: "#s3", start: "top 65%" },
-    });
+    gsap.fromTo(
+      "#s2-content > *",
+      { opacity: 0, y: 30 },
+      {
+        opacity: 1,
+        y: 0,
+        stagger: 0.12,
+        duration: 0.9,
+        ease: "power3.out",
+        scrollTrigger: { trigger: "#s2", start: "top 65%" },
+      },
+    );
+    gsap.fromTo(
+      "#s3-content > *",
+      { opacity: 0, x: 30 },
+      {
+        opacity: 1,
+        x: 0,
+        stagger: 0.07,
+        duration: 0.7,
+        ease: "power3.out",
+        scrollTrigger: { trigger: "#s3", start: "top 65%" },
+      },
+    );
   }, []);
 
   /* ── JSX ──────────────────────────────────────────────────────────────── */
@@ -111,8 +152,8 @@ export default function Home() {
         showTopDivider
         // showBottomDivider
         showScrollSpeedEffect
-        showHoverLift
         showGradientSweep
+        showHoverLift
         showFadeEdges
         // showEntranceAnimation
         entranceDirection="top"
@@ -121,7 +162,7 @@ export default function Home() {
         showSeparatorAnimation
         pauseOnHover
       />
-<PremiumMarquee
+      <PremiumMarquee
         items={BRANDS}
         speed={60}
         direction="left"
@@ -136,8 +177,8 @@ export default function Home() {
         // showTopDivider
         showBottomDivider
         showScrollSpeedEffect
-        showHoverLift
         showGradientSweep
+        showHoverLift
         showFadeEdges
         // showEntranceAnimation
         entranceDirection="bottom"
@@ -150,7 +191,6 @@ export default function Home() {
       <section id="s2" className="relative flex h-screen">
         <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
           <div id="s2-content" className="w-full max-w-md">
-
             <div className="flex items-center gap-3 mb-8">
               <span className="block w-6 h-px bg-kp-orange/60" />
               <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
@@ -160,7 +200,10 @@ export default function Home() {
 
             <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.1] text-secondary dark:text-white mb-8">
               {data.about.heading.split("\n").map((line, i) => (
-                <Fragment key={i}>{line}<br /></Fragment>
+                <Fragment key={i}>
+                  {line}
+                  <br />
+                </Fragment>
               ))}
               <em className="not-italic text-secondary/40 dark:text-white/40">
                 {data.about.headingEmphasis}
@@ -173,10 +216,16 @@ export default function Home() {
                 <div key={i}>
                   <div className="flex items-baseline gap-0.5">
                     <span
-                      ref={(el) => { counterRefs.current[i] = el; }}
+                      ref={(el) => {
+                        counterRefs.current[i] = el;
+                      }}
                       className="text-3xl lg:text-4xl font-extralight text-secondary dark:text-white tabular-nums"
-                    >0</span>
-                    <span className="text-lg font-light text-kp-orange">{s.suffix}</span>
+                    >
+                      0
+                    </span>
+                    <span className="text-lg font-light text-kp-orange">
+                      {s.suffix}
+                    </span>
                   </div>
                   <p className="text-[10px] uppercase tracking-[0.2em] text-secondary/55 dark:text-white/55 mt-1 whitespace-pre-line">
                     {s.label}
@@ -200,7 +249,6 @@ export default function Home() {
 
         <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
           <div id="s3-content" className="w-full max-w-md">
-
             <div className="flex items-center gap-3 mb-8">
               <span className="block w-6 h-px bg-kp-orange/60" />
               <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
@@ -209,7 +257,8 @@ export default function Home() {
             </div>
 
             <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.1] text-secondary dark:text-white mb-10">
-              {data.services.heading}<br />
+              {data.services.heading}
+              <br />
               <em className="not-italic text-secondary/40 dark:text-white/40">
                 {data.services.headingEmphasis}
               </em>
@@ -253,7 +302,7 @@ export default function Home() {
         showStaggerAnimation
         animationDuration={0.1}
         staggerAmount={0.5}
-        showOvershoot={true} 
+        showOvershoot={true}
         showLandingJerk={true}
         showBounceEffect={true}
         showFloatingAnimation
@@ -278,7 +327,10 @@ export default function Home() {
 
             <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.1] text-secondary dark:text-white mb-6">
               {data.showcase.heading.split("\n").map((line, i) => (
-                <Fragment key={i}>{line}<br /></Fragment>
+                <Fragment key={i}>
+                  {line}
+                  <br />
+                </Fragment>
               ))}
               <em className="not-italic text-secondary/35 dark:text-white/35">
                 {data.showcase.headingEmphasis}
@@ -297,15 +349,17 @@ export default function Home() {
         </div>
       </PremiumRevealSection>
 
-      {/* ── S-6: Campaign gallery ─────────────────────────────────────── */}
-      <CampaignGallery campaigns={CAMPAIGNS} glowColor="rgba(0,100,177,0.5)"  />
+      {/* ── S-6: Gallery categories — click opens /gallery pre-filtered ── */}
+      <CampaignGallery
+        campaigns={CATEGORY_CARDS}
+        glowColor="rgba(0,100,177,0.5)"
+        onCardClick={(card) => router.push(`/gallery?category=${encodeURIComponent(card.title)}`)}
+      />
 
       {/* ── S-4: Process (pinned scroll) ───────────────────────────────── */}
       <div id="s4-wrapper" style={{ height: "400vh" }}>
         <section className="sticky top-0 h-screen flex overflow-hidden">
-
           <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
-
             <div className="absolute top-8 left-8 md:left-16 lg:left-20 flex items-center gap-3">
               <span className="block w-6 h-px bg-kp-orange/60" />
               <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
@@ -313,11 +367,16 @@ export default function Home() {
               </span>
             </div>
 
-            <div className="relative w-full max-w-md" style={{ minHeight: 280 }}>
+            <div
+              className="relative w-full max-w-md"
+              style={{ minHeight: 280 }}
+            >
               {data.process.steps.map((step, i) => (
                 <div
                   key={i}
-                  ref={(el) => { stepRefs.current[i] = el; }}
+                  ref={(el) => {
+                    stepRefs.current[i] = el;
+                  }}
                   className="absolute inset-0 flex flex-col justify-center"
                   style={{ opacity: i === 0 ? 1 : 0 }}
                 >
@@ -338,7 +397,9 @@ export default function Home() {
                       <span
                         key={j}
                         className={`block h-px w-6 transition-colors duration-300 ${
-                          j === i ? "bg-kp-orange" : "bg-secondary/20 dark:bg-white/20"
+                          j === i
+                            ? "bg-kp-orange"
+                            : "bg-secondary/20 dark:bg-white/20"
                         }`}
                       />
                     ))}
@@ -351,7 +412,6 @@ export default function Home() {
           <div className="hidden md:block w-1/2 h-full" aria-hidden="true" />
         </section>
       </div>
-
     </div>
   );
 }

@@ -17,9 +17,9 @@ const CSS = `
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(0,0,0,0.04) 35%,
-      rgba(0,0,0,0.07) 50%,
-      rgba(0,0,0,0.04) 65%,
+      rgba(0,102,175,0.04) 35%,
+      rgba(0,102,175,0.07) 50%,
+      rgba(0,102,175,0.04) 65%,
       transparent 100%
     );
     animation: pm-sweep 10s ease-in-out infinite;
@@ -37,6 +37,16 @@ const CSS = `
       rgba(255,255,255,0.05) 65%,
       transparent 100%
     );
+  }
+
+  /* ── Item hover tilt — subtle 3D lift, transform-only (compositor) ───── */
+  .pm-item-tilt {
+    transform: perspective(600px) rotateX(0deg) translateY(0) scale(1);
+    will-change: auto;
+  }
+  .pm-item-tilt:hover {
+    transform: perspective(600px) rotateX(7deg) translateY(-3px) scale(1.05);
+    box-shadow: 0 10px 24px -12px rgba(20, 24, 29, 0.35);
   }
 
   /* ── Separator pulse ─────────────────────────────────────────────────── */

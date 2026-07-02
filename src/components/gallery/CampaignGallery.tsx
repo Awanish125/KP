@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import Link from "next/link";
-import { ChevronDown, ArrowUpRight } from "lucide-react";
 import type { Campaign, CampaignGalleryProps } from "./types/gallery";
 import { GalleryCard } from "./GalleryCard";
 import { GallerySkeleton } from "./GallerySkeleton";
@@ -54,30 +52,23 @@ export function CampaignGallery({
   enableGlass = true,
   enableGlow = true,
   enableGradientBorder = true,
-  enableParallax = true,
   enableMouseTilt = true,
   enableFloating = true,
   enableNoise = true,
-  enableLightSweep = true,
   enableScrollReveal = true,
-  enableLoadMore = true,
-  pageSize = 6,
   staggerDelay = 0.08,
   tiltStrength = 8,
   onCardClick,
 }: CampaignGalleryProps) {
-  const [visibleCount, setVisibleCount] = useState(pageSize);
   const activeColumns = useResponsiveColumns(columns);
-
-  const visible = useMemo(() => campaigns.slice(0, visibleCount), [campaigns, visibleCount]);
 
   const columnBuckets = useMemo(() => {
     const buckets: { campaign: Campaign; index: number }[][] = Array.from({ length: activeColumns }, () => []);
-    visible.forEach((campaign, index) => {
+    campaigns.forEach((campaign, index) => {
       buckets[index % activeColumns].push({ campaign, index });
     });
     return buckets;
-  }, [visible, activeColumns]);
+  }, [campaigns, activeColumns]);
 
   return (
     <section
@@ -91,7 +82,7 @@ export function CampaignGallery({
     >
       {loading ? (
         <GallerySkeleton />
-      ) : visible.length === 0 ? (
+      ) : campaigns.length === 0 ? (
         <GalleryEmpty />
       ) : (
         <div className="flex items-start" style={{ gap }}>
@@ -107,11 +98,9 @@ export function CampaignGallery({
                   enableGlass={enableGlass}
                   enableGlow={enableGlow}
                   enableGradientBorder={enableGradientBorder}
-                  enableParallax={enableParallax}
                   enableMouseTilt={enableMouseTilt}
                   enableFloating={enableFloating}
                   enableNoise={enableNoise}
-                  enableLightSweep={enableLightSweep}
                   enableScrollReveal={enableScrollReveal}
                   tiltStrength={tiltStrength}
                   staggerDelay={staggerDelay}
@@ -122,27 +111,6 @@ export function CampaignGallery({
           ))}
         </div>
       )}
-
-      <div className="mt-14 flex flex-wrap items-center justify-center gap-4">
-        {enableLoadMore && !loading && visibleCount < campaigns.length && (
-          <button
-            type="button"
-            onClick={() => setVisibleCount((v) => v + pageSize)}
-            className="group flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-7 py-3 text-sm font-medium text-text backdrop-blur-md transition-all duration-300 hover:border-primary/40 hover:bg-primary hover:text-white dark:border-white/10 dark:bg-white/[0.04] dark:text-white"
-          >
-            Load more
-            <ChevronDown size={15} className="transition-transform duration-300 group-hover:translate-y-0.5" />
-          </button>
-        )}
-
-        <Link
-          href="/gallery"
-          className="group flex items-center gap-2 rounded-full bg-primary px-7 py-3 text-sm font-medium text-white shadow-[0_8px_24px_rgba(0,100,177,0.35)] transition-all duration-300 hover:bg-primary-dark"
-        >
-          View Full Gallery
-          <ArrowUpRight size={15} className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        </Link>
-      </div>
     </section>
   );
 }

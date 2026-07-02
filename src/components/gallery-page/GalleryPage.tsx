@@ -28,12 +28,10 @@ export function GalleryPage({
   enableGlass = true,
   enableGlow = true,
   enableNoise = true,
-  enableParallax = true,
   enableTilt = true,
   enableFloating = true,
   enableBorderAnimation = true,
   enableImageZoom = true,
-  enableLightSweep = true,
   enableTitle = true,
   enableDescription = true,
   enableCategoryBadge = true,
@@ -53,6 +51,8 @@ export function GalleryPage({
   const { categories, category, setCategory, search, setSearch, filtered, visible, hasMore, loadMore } = useGallery({
     images,
     pageSize,
+    initialCategory,
+    enableLoadMore,
   });
 
   const { activeIndex, isOpen, open, close } = useFullscreen({ enableKeyboard });
@@ -101,12 +101,10 @@ export function GalleryPage({
           enableGlass,
           enableGlow,
           enableNoise,
-          enableParallax,
           enableTilt,
           enableFloating,
           enableBorderAnimation,
           enableImageZoom,
-          enableLightSweep,
           enableTitle,
           enableDescription,
           enableCategoryBadge,

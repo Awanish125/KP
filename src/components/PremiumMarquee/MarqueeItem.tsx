@@ -43,14 +43,14 @@ export function MarqueeItem({
 
   const wrapClass = cx(
     'group relative inline-flex items-center shrink-0 select-none',
+    // pm-item-tilt (injectStyles.ts) owns the default hover: subtle 3D tilt +
+    // lift + soft shadow, transform-only so it stays on the compositor.
+    'pm-item-tilt',
     'transition-[transform,box-shadow] duration-300 ease-out',
     'outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2',
     itemPadding,
     borderRadius,
-    showHoverLift && [
-      item.href && 'cursor-pointer',
-      'hover:-translate-y-[3px]',
-    ],
+    item.href && 'cursor-pointer',
     showGlow && 'hover:shadow-lg hover:shadow-kp-orange/[0.22] dark:hover:shadow-kp-orange/[0.18]',
   );
 
@@ -103,7 +103,7 @@ export function MarqueeItem({
               className={cx(
                 'h-6 w-auto max-w-[7rem] object-contain',
                 'dark:brightness-[0.88] dark:contrast-[1.08]',
-                'transition-opacity duration-300',
+                'transition-[opacity,transform] duration-300 group-hover:scale-105',
                 imgReady ? 'opacity-100' : 'opacity-0',
               )}
               onLoad={() => setImgReady(true)}
@@ -141,7 +141,8 @@ export function MarqueeItem({
               alt={item.alt ?? ''}
               className={cx(
                 'h-5 w-auto object-contain dark:brightness-[0.88]',
-                !imgReady ? 'opacity-0' : 'opacity-100 transition-opacity duration-300',
+                'transition-[opacity,transform] duration-300 group-hover:scale-105',
+                !imgReady ? 'opacity-0' : 'opacity-100',
               )}
               onLoad={() => setImgReady(true)}
               onError={() => setImgError(true)}

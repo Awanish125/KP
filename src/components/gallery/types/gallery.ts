@@ -46,20 +46,11 @@ export interface CampaignGalleryProps {
   enableGlass?: boolean;
   enableGlow?: boolean;
   enableGradientBorder?: boolean;
-  enableParallax?: boolean;
   enableMouseTilt?: boolean;
   enableFloating?: boolean;
   enableNoise?: boolean;
-  enableLightSweep?: boolean;
   enableScrollReveal?: boolean;
 
-  enableSearch?: boolean;
-  enableSorting?: boolean;
-  enableCategoryFilter?: boolean;
-  enableViewSwitch?: boolean;
-  enableLoadMore?: boolean;
-
-  pageSize?: number;
   animationSpeed?: number;
   staggerDelay?: number;
   tiltStrength?: number;

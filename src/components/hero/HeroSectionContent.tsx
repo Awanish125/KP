@@ -29,40 +29,11 @@ const HeroSectionContent = ({
   // Build gradient string from the colors array.
   const gradient = `linear-gradient(to right, ${gradientColors.join(", ")})`;
 
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      const els = [
-        subtitleRef.current,
-        line1Ref.current,
-        line2Ref.current,
-        line3Ref.current,
-      ];
-
-      gsap.set(els, { opacity: 0, y: 80 });
-
-      const tl = gsap.timeline({ paused: true });
-      tl.to(subtitleRef.current, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" })
-        .to(line1Ref.current, { opacity: 1, y: 0, duration: 0.8, ease: "power4.out" }, "-=0.2")
-        .to(line2Ref.current, { opacity: 1, y: 0, duration: 0.8, ease: "power4.out" }, "-=0.55")
-        .to(line3Ref.current, { opacity: 1, y: 0, duration: 0.8, ease: "power4.out" }, "-=0.55");
-
-      ScrollTrigger.create({
-        trigger: sectionRef.current,
-        start:   "top 75%",
-        end:     "bottom 20%",
-        onEnter:      () => tl.restart(),
-        onEnterBack:  () => tl.restart(),
-        onLeave:      () => { gsap.set(els, { opacity: 0, y: 80 }); tl.pause(0); },
-        onLeaveBack:  () => { gsap.set(els, { opacity: 0, y: 80 }); tl.pause(0); },
-      });
-    }, sectionRef);
-
-    return () => ctx.revert();
-  }, []);
+  
 
   return (
     <div ref={sectionRef} className="w-full h-full flex">
-      <div className="w-1/2 h-full">
+      <div className="w-full md:w-[50%] h-full flex flex-col justify-center gap-4 md:gap-6 px-6 text-center md:text-left">
         <h2
           ref={subtitleRef}
           className="text-xs md:text-sm uppercase tracking-[0.5em] text-primary font-semibold mb-4"
@@ -70,7 +41,7 @@ const HeroSectionContent = ({
           {subtitle}
         </h2>
 
-        <h1 className="font-heading font-bold tracking-[-0.06em] leading-[0.85] text-6xl md:text-[7rem] lg:text-[8.5rem] xl:text-[9rem]">
+        <h1 className="font-heading font-bold   text-6xl md:text-[4rem] xl:text-[4.5rem] 2xl:text-[5rem] leading-[1.1] md:leading-[1.05] xl:leading-[1.05] 2xl:leading-[1.05]">
           <span ref={line1Ref} className="block text-white">
             {line1}
           </span>
@@ -89,7 +60,7 @@ const HeroSectionContent = ({
         </h1>
       </div>
 
-      <div className="w-1/2 h-full" />
+      {/* <div className="w-1/2 h-full" /> */}
     </div>
   );
 };

@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, memo } from "react";
+import { memo, type CSSProperties } from "react";
 import Tilt from "react-parallax-tilt";
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion } from "motion/react";
 import { Eye, Heart, ArrowUpRight, MapPin, Sparkles } from "lucide-react";
 import type { Campaign, GalleryCardSize } from "./types/gallery";
 import { cn, formatCount } from "./utils/cn";
@@ -21,7 +21,6 @@ const NOISE_URL =
 // expo-out — a punchier entrance than a plain ease curve
 const ENTRANCE_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const ENTRANCE_DURATION = 1.1;
-const FLOAT_START_BUFFER = 0.5;
 
 interface GalleryCardProps {
   campaign: Campaign;
@@ -31,11 +30,9 @@ interface GalleryCardProps {
   enableGlass?: boolean;
   enableGlow?: boolean;
   enableGradientBorder?: boolean;
-  enableParallax?: boolean;
   enableMouseTilt?: boolean;
   enableFloating?: boolean;
   enableNoise?: boolean;
-  enableLightSweep?: boolean;
   enableScrollReveal?: boolean;
   tiltStrength?: number;
   hoverScale?: number;
@@ -43,6 +40,18 @@ interface GalleryCardProps {
   onClick?: (campaign: Campaign) => void;
 }
 
+/**
+ * Scroll-performance contract (see memory: feedback-scroll-performance):
+ *   - NO per-card scroll-linked motion values (useScroll/useTransform ran
+ *     main-thread JS on every Lenis frame × every card — the primary cause
+ *     of scroll lag).
+ *   - NO filter/blur in the entrance animation (filter animates on the
+ *     paint path, not the compositor).
+ *   - Floating is a pure CSS keyframe (compositor-only, zero JS/frame),
+ *     not a motion repeat:Infinity loop per card.
+ *   - Exactly one animation system per element: motion owns the entrance
+ *     wrapper, CSS owns the float wrapper, Tilt owns its own wrapper.
+ */
 function GalleryCardInner({
   campaign,
   index,
@@ -51,56 +60,40 @@ function GalleryCardInner({
   enableGlass = true,
   enableGlow = true,
   enableGradientBorder = true,
-  enableParallax = true,
   enableMouseTilt = true,
   enableFloating = true,
   enableNoise = true,
-  enableLightSweep = true,
   enableScrollReveal = true,
   tiltStrength = 8,
   hoverScale = 1.015,
   staggerDelay = 0.08,
   onClick,
 }: GalleryCardProps) {
-  // The 3D tilt/glare, scroll-linked parallax, and float/entrance motion are
-  // all handled by react-parallax-tilt and motion — package-driven, so there
-  // is no hand-rolled transform math fighting over the same element (that
-  // custom-hook approach is what caused the earlier edge-clipping and
-  // overlap bugs). Each concern still gets its own layer: this container is
-  // only ever measured (for scroll progress), never itself transformed.
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start end", "end start"] });
-  const imageY = useTransform(scrollYProgress, [0, 1], enableParallax ? [-24, 24] : [0, 0]);
-
   const rotateDirection = (index % 3) - 1; // -1, 0, 1 — alternates the entrance per card
   const entranceDelay = index * staggerDelay;
-  const floatDistance = 6 + (index % 5);
-  const floatDuration = 6 + ((index * 37) % 40) / 10; // 6s - 10s
-  const floatDelay = entranceDelay + ENTRANCE_DURATION + FLOAT_START_BUFFER + ((index * 13) % 20) / 10;
+
+  const floatStyle: CSSProperties | undefined = enableFloating
+    ? {
+        animationName: "kp-card-float",
+        animationDuration: `${6 + ((index * 37) % 40) / 10}s`,
+        animationDelay: `${entranceDelay + ENTRANCE_DURATION + 0.5 + ((index * 13) % 20) / 10}s`,
+        animationTimingFunction: "ease-in-out",
+        animationIterationCount: "infinite",
+        "--kp-float-distance": `-${6 + (index % 5)}px`,
+      } as CSSProperties
+    : undefined;
 
   const size = campaign.size ?? "md";
 
   return (
-    <motion.div
-      ref={containerRef}
-      animate={enableFloating ? { y: [0, -floatDistance, 0] } : undefined}
-      transition={
-        enableFloating
-          ? { duration: floatDuration, delay: floatDelay, repeat: Infinity, ease: "easeInOut" }
-          : undefined
-      }
-    >
+    <div style={floatStyle}>
       <motion.div
         initial={
           enableScrollReveal
-            ? { opacity: 0, y: 90, scale: 0.82, rotateX: 14, rotateY: rotateDirection * 12, filter: "blur(24px)" }
+            ? { opacity: 0, y: 90, scale: 0.82, rotateX: 14, rotateY: rotateDirection * 12 }
             : undefined
         }
-        whileInView={
-          enableScrollReveal
-            ? { opacity: 1, y: 0, scale: 1, rotateX: 0, rotateY: 0, filter: "blur(0px)" }
-            : undefined
-        }
+        whileInView={enableScrollReveal ? { opacity: 1, y: 0, scale: 1, rotateX: 0, rotateY: 0 } : undefined}
         viewport={{ once: true, amount: 0.15 }}
         transition={{ duration: ENTRANCE_DURATION, delay: entranceDelay, ease: ENTRANCE_EASE }}
       >
@@ -111,11 +104,6 @@ function GalleryCardInner({
           perspective={1200}
           scale={hoverScale}
           transitionSpeed={1000}
-          glareEnable={enableLightSweep}
-          glareMaxOpacity={0.15}
-          glareColor="#ffffff"
-          glarePosition="all"
-          glareBorderRadius={cardRadius}
         >
           <div
             role="button"
@@ -127,8 +115,8 @@ function GalleryCardInner({
               "group relative isolate w-full cursor-pointer overflow-hidden outline-none",
               "border border-black/5 bg-white shadow-[0_2px_16px_rgba(20,24,29,0.08)]",
               "dark:border-white/10 dark:bg-white/[0.03]",
-              "transition-[transform,box-shadow] duration-500 ease-out",
-              "hover:scale-[1.015] hover:shadow-[0_20px_50px_rgba(20,24,29,0.28)]",
+              "transition-shadow duration-500 ease-out",
+              "hover:shadow-[0_20px_50px_rgba(20,24,29,0.28)]",
               "focus-visible:ring-2 focus-visible:ring-accent",
               SIZE_CLASSES[size],
             )}
@@ -143,7 +131,8 @@ function GalleryCardInner({
               />
             )}
 
-            {/* Animated gradient border — spins faster on hover */}
+            {/* Animated gradient border — paused until hover so N invisible
+                cards don't each run an infinite compositor animation */}
             {enableGradientBorder && (
               <div
                 aria-hidden
@@ -155,10 +144,11 @@ function GalleryCardInner({
                 }}
               >
                 <div
-                  className="h-[200%] w-[200%] -translate-x-1/4 -translate-y-1/4 [animation-duration:6s] group-hover:[animation-duration:2.2s]"
+                  className="h-[200%] w-[200%] -translate-x-1/4 -translate-y-1/4 [animation-play-state:paused] group-hover:[animation-play-state:running]"
                   style={{
                     background: "conic-gradient(transparent 0%, rgba(255,255,255,0.7) 15%, transparent 30%)",
                     animationName: "kp-border-rotate",
+                    animationDuration: "2.2s",
                     animationTimingFunction: "linear",
                     animationIterationCount: "infinite",
                   }}
@@ -166,44 +156,29 @@ function GalleryCardInner({
               </div>
             )}
 
-            {/* Scroll-parallax image layer */}
-            <motion.div className="absolute inset-0 -m-4" style={{ y: imageY }}>
+            {/* Image */}
+            <div className="absolute inset-0">
               <img
                 src={campaign.image}
                 alt={campaign.title}
                 loading="lazy"
                 decoding="async"
                 draggable={false}
-                className={cn(
-                  "h-[calc(100%+2rem)] w-[calc(100%+2rem)] select-none object-cover",
-                  "scale-100 transition-transform duration-700 ease-out group-hover:scale-[1.08]",
-                )}
+                className="h-full w-full select-none object-cover transition-transform duration-700 ease-out group-hover:scale-[1.08]"
               />
-            </motion.div>
+            </div>
 
             {/* Gradient overlay for legibility */}
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/0 transition-opacity duration-500 group-hover:opacity-90"
             />
-            {enableLightSweep && (
-              <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-                <div
-                  className="absolute -inset-y-full -left-1/2 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/25 to-transparent [animation-duration:9s] group-hover:[animation-duration:1.6s]"
-                  style={{
-                    animationName: "kp-light-sweep",
-                    animationTimingFunction: "ease-in-out",
-                    animationDelay: `${index * 0.5}s`,
-                    animationIterationCount: "infinite",
-                  }}
-                />
-              </div>
-            )}
+
             {/* Noise overlay */}
             {enableNoise && (
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 mix-blend-overlay opacity-[0.06]"
+                className="pointer-events-none absolute inset-0 opacity-[0.05]"
                 style={{ backgroundImage: `url("${NOISE_URL}")` }}
               />
             )}
@@ -221,13 +196,11 @@ function GalleryCardInner({
               {campaign.category}
             </div>
 
-            {/* Glass info panel — pinned to the frame's bottom edge, never
-                transformed by float/tilt/parallax so it can't detach from it */}
+            {/* Glass info panel — pinned to the frame's bottom edge */}
             <div
               className={cn(
                 "absolute inset-x-0 bottom-0 z-10 flex flex-col gap-2 p-5",
-                enableGlass &&
-                  "border-t border-white/10 bg-black/25 backdrop-blur-xl supports-[backdrop-filter]:bg-black/20",
+                enableGlass && "border-t border-white/10 bg-black/30 backdrop-blur-md",
                 "transition-transform duration-500 ease-out group-hover:-translate-y-1",
               )}
             >
@@ -276,7 +249,7 @@ function GalleryCardInner({
           </div>
         </Tilt>
       </motion.div>
-    </motion.div>
+    </div>
   );
 }
 

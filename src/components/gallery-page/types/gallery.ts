@@ -44,12 +44,10 @@ export interface GalleryPageProps {
   enableGlass?: boolean;
   enableGlow?: boolean;
   enableNoise?: boolean;
-  enableParallax?: boolean;
   enableTilt?: boolean;
   enableFloating?: boolean;
   enableBorderAnimation?: boolean;
   enableImageZoom?: boolean;
-  enableLightSweep?: boolean;
 
   enableTitle?: boolean;
   enableDescription?: boolean;
