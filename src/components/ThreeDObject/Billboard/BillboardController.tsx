@@ -52,7 +52,12 @@ export function BillboardController({ stepRefs }: BillboardControllerProps) {
 
   /* ── All billboard scroll animations ─────────────────────────────────── */
   useGSAP(() => {
-    const bill = billRef.current;
+    // Non-null assertion + runtime guard: `bill` is a const, so TS's
+    // closure-widening (which drops the `if (!bill)` narrowing inside the
+    // nested ScrollTrigger callbacks below) would otherwise flag every
+    // `bill.*` deref. Asserting the type here keeps the callbacks clean
+    // while the guard still handles the real null case at runtime.
+    const bill = billRef.current!;
     if (!bill) return;
     const wrap = bill.wrapRef.current;
     if (!wrap) return;
