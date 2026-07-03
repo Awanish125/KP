@@ -13,7 +13,269 @@
     "line1": "MAKING BRANDS",
     "line2": "IMPOSSIBLE",
     "line3": "TO IGNORE",
-    "scrollText": "OUTDOOR ADVERTISING THAT COMMANDS ATTENTION ACROSS MAHARASHTRA",
+    "stats": [
+      {
+        "value": 48,
+        "suffix": "M+",
+        "label": "Campaign Reach"
+      },
+      {
+        "value": 320,
+        "suffix": "+",
+        "label": "Successful Campaigns"
+      },
+      {
+        "value": 96,
+        "suffix": "%",
+        "label": "Retention Rate"
+      },
+      {
+        "value": 12,
+        "suffix": "+",
+        "label": "Cities Covered"
+      }
+    ],
+    "marquee": {
+      "travelFactor": 1.85,
+      "textBandY": "55%",
+      "billboardGlow": {
+        "x": "72%",
+        "y": "43%",
+        "color": "rgba(245,131,32,0.42)"
+      },
+      "glass": {
+        "color": "rgba(255,255,255,0.08)",
+        "opacityStart": 0,
+        "opacityMid": 0.05,
+        "opacityMax": 0.16,
+        "blurStart": 0,
+        "blurMid": 10,
+        "blurMax": 22
+      },
+      "particleEffect": {
+        "enableSnapEffect": true,
+        "particleCount": 10,
+        "particleSize": 4,
+        "particleDuration": 0.85,
+        "particleColor": "rgba(255,255,255,0.78)",
+        "particleSpeed": 1,
+        "particleSpread": 32,
+        "particleOpacity": 0.8,
+        "particleGlow": 0.18
+      },
+      "layers": [
+        {
+          "direction": "left",
+          "speed": 0.72,
+          "opacity": 1,
+          "y": 0,
+          "scale": 1.04,
+          "gap": 42,
+          "separator": {
+            "type": "icon",
+            "icon": "Diamond",
+            "color": "#F5821F",
+            "size": 16,
+            "opacity": 0.7
+          },
+          "items": [
+            {
+              "type": "text",
+              "value": "OUTDOOR",
+              "color": "#FFFFFF",
+              "fontWeight": 900,
+              "fontSize": "clamp(2.7rem, 5vw, 6rem)",
+              "uppercase": true,
+              "tracking": "0.14em",
+              "animation": "lift"
+            },
+            {
+              "type": "text",
+              "value": "CAMPAIGNS",
+              "color": "#FFFFFF",
+              "fontWeight": 900,
+              "fontSize": "clamp(3rem, 5.6vw, 6.4rem)",
+              "uppercase": true,
+              "tracking": "0.08em",
+              "animation": "maskReveal",
+              "separator": {
+                "type": "text",
+                "value": "/",
+                "color": "#F5F7FA",
+                "fontWeight": 400,
+                "opacity": 0.55
+              }
+            },
+            {
+              "type": "text",
+              "value": "BILLBOARD",
+              "color": "#FFFFFF",
+              "fontWeight": 800,
+              "fontSize": "clamp(2.5rem, 4.8vw, 5.6rem)",
+              "uppercase": true,
+              "tracking": "0.12em",
+              "outline": true,
+              "outlineColor": "#FFFFFF",
+              "outlineWidth": "1px",
+              "animation": "blur",
+              "separator": {
+                "type": "icon",
+                "icon": "Sparkles",
+                "color": "#5BA3D6",
+                "size": 14,
+                "opacity": 0.65
+              }
+            },
+            {
+              "type": "text",
+              "value": "REACH",
+              "color": "#F5B474",
+              "fontWeight": 700,
+              "fontSize": "clamp(2.4rem, 4.6vw, 5rem)",
+              "uppercase": true,
+              "tracking": "0.16em",
+              "animation": "scale",
+              "separator": {
+                "type": "text",
+                "value": "/",
+                "color": "#FFFFFF",
+                "opacity": 0.45
+              }
+            }
+          ]
+        },
+        {
+          "direction": "right",
+          "speed": 0.96,
+          "opacity": 0.55,
+          "y": 96,
+          "scale": 0.9,
+          "gap": 34,
+          "separator": {
+            "type": "icon",
+            "icon": "ArrowRight",
+            "color": "#8CBFE8",
+            "size": 14,
+            "opacity": 0.55
+          },
+          "items": [
+            {
+              "type": "text",
+              "value": "DIGITAL",
+              "color": "#F5F7FA",
+              "fontWeight": 600,
+              "fontSize": "clamp(1.9rem, 3.8vw, 4.2rem)",
+              "uppercase": true,
+              "tracking": "0.18em",
+              "animation": "fade"
+            },
+            {
+              "type": "text",
+              "value": "MEDIA",
+              "color": "#FFFFFF",
+              "fontWeight": 300,
+              "fontSize": "clamp(1.85rem, 3.6vw, 4rem)",
+              "uppercase": true,
+              "tracking": "0.18em",
+              "italic": true,
+              "animation": "lift",
+              "separator": {
+                "type": "icon",
+                "icon": "ChevronRight",
+                "color": "#FFFFFF",
+                "size": 13,
+                "opacity": 0.4
+              }
+            },
+            {
+              "type": "text",
+              "value": "BRANDING",
+              "color": "#FFFFFF",
+              "fontWeight": 700,
+              "fontSize": "clamp(2rem, 4vw, 4.4rem)",
+              "uppercase": true,
+              "tracking": "0.14em",
+              "outline": true,
+              "outlineColor": "#F5F7FA",
+              "animation": "sweep",
+              "separator": {
+                "type": "text",
+                "value": "|",
+                "color": "#F16B57",
+                "fontWeight": 300,
+                "opacity": 0.6
+              }
+            },
+            {
+              "type": "text",
+              "value": "CITY",
+              "color": "#B86CCB",
+              "fontWeight": 500,
+              "fontSize": "clamp(1.8rem, 3.6vw, 4rem)",
+              "uppercase": true,
+              "tracking": "0.2em",
+              "animation": "maskReveal"
+            }
+          ]
+        },
+        {
+          "direction": "left",
+          "speed": 1.12,
+          "opacity": 0.18,
+          "y": 192,
+          "scale": 0.78,
+          "gap": 28,
+          "separator": {
+            "type": "image",
+            "src": "/homepage/herosection/kp.png",
+            "alt": "Kiran Publicity",
+            "width": 18,
+            "height": 18,
+            "opacity": 0.88
+          },
+          "items": [
+            {
+              "type": "text",
+              "value": "LAUNCH",
+              "color": "#FFFFFF",
+              "fontWeight": 700,
+              "fontSize": "clamp(1.5rem, 3vw, 3.2rem)",
+              "uppercase": true,
+              "tracking": "0.24em",
+              "animation": "fade"
+            },
+            {
+              "type": "text",
+              "value": "LIVE",
+              "color": "#F5821F",
+              "fontWeight": 900,
+              "fontSize": "clamp(1.7rem, 3.2vw, 3.6rem)",
+              "uppercase": true,
+              "tracking": "0.18em",
+              "animation": "scale",
+              "separator": {
+                "type": "icon",
+                "icon": "Star",
+                "color": "#F5821F",
+                "size": 12,
+                "opacity": 0.6
+              }
+            },
+            {
+              "type": "text",
+              "value": "MAHARASHTRA",
+              "color": "#FFFFFF",
+              "fontWeight": 500,
+              "fontSize": "clamp(1.35rem, 2.8vw, 3rem)",
+              "uppercase": true,
+              "tracking": "0.28em",
+              "opacity": 0.78,
+              "animation": "lift"
+            }
+          ]
+        }
+      ]
+    },
     "gradientColors": [
       "#6F5BFF",
       "#B86CCB",

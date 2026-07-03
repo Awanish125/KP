@@ -25,6 +25,27 @@ interface HeroSectionContentProps {
   showScrollIndicator?: boolean;
   /** CSS colors for the left-to-right gradient on line2. Min 2 values. */
   gradientColors?: string[];
+  /** Shared story progress from the pinned hero wrapper. */
+  storyProgress?: number;
+}
+
+function sampleStoryCurve(progress: number, stops: Array<[number, number]>) {
+  const p = Math.min(Math.max(progress, 0), 1);
+  if (stops.length === 0) return 0;
+  if (p <= stops[0][0]) return stops[0][1];
+
+  for (let i = 1; i < stops.length; i += 1) {
+    const [fromT, fromV] = stops[i - 1];
+    const [toT, toV] = stops[i];
+    if (p <= toT) {
+      const span = Math.max(toT - fromT, 0.0001);
+      const raw = (p - fromT) / span;
+      const eased = 1 - Math.pow(1 - Math.min(Math.max(raw, 0), 1), 3);
+      return fromV + (toV - fromV) * eased;
+    }
+  }
+
+  return stops[stops.length - 1][1];
 }
 
 /**
@@ -55,6 +76,7 @@ const HeroSectionContent = ({
   secondaryCta = null,
   showScrollIndicator = true,
   gradientColors = ["#6F5BFF", "#B86CCB", "#F16B57", "#FF6B1A"],
+  storyProgress,
 }: HeroSectionContentProps) => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -80,7 +102,7 @@ const HeroSectionContent = ({
 
     // Hidden before first paint (useLayoutEffect) — no flash even if the
     // loading overlay were skipped.
-    gsap.set(content, { autoAlpha: 0, scale: 1.06 });
+    gsap.set(content, { autoAlpha: 0 });
     gsap.set(items, { autoAlpha: 0, y: 26 });
 
     let tl: gsap.core.Timeline | null = null;
@@ -95,8 +117,7 @@ const HeroSectionContent = ({
       });
       tl.to(content, {
         autoAlpha: 1,
-        scale: 1,
-        duration: 1.1,
+        duration: 0.95,
         ease: "expo.out",
       });
       tl.to(items, { autoAlpha: 1, y: 0, duration: 0.85, stagger: 0.09 }, 0.15);
@@ -130,26 +151,110 @@ const HeroSectionContent = ({
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const headline = section.querySelector<HTMLElement>("[data-hero-headline]");
+    const subtitle = section.querySelector<HTMLElement>("[data-hero-subtitle]");
+    const description = section.querySelector<HTMLElement>("[data-hero-description]");
     const indicator = indicatorRef.current;
 
-    const setContentY = gsap.quickSetter(content, "y", "px");
-    const setContentAlpha = gsap.quickSetter(content, "opacity");
-    const setHeadY = headline ? gsap.quickSetter(headline, "y", "px") : null;
+    const setHeadlineAlpha = headline ? gsap.quickSetter(headline, "opacity") : null;
+    const setHeadlineY = headline ? gsap.quickSetter(headline, "y", "px") : null;
+    const setHeadlineScale = headline ? gsap.quickSetter(headline, "scale") : null;
+    const setHeadlineBlur = headline ? gsap.quickSetter(headline, "filter") : null;
+    const setSubtitleAlpha = subtitle ? gsap.quickSetter(subtitle, "opacity") : null;
+    const setSubtitleY = subtitle ? gsap.quickSetter(subtitle, "y", "px") : null;
+    const setDescriptionAlpha = description ? gsap.quickSetter(description, "opacity") : null;
+    const setDescriptionY = description ? gsap.quickSetter(description, "y", "px") : null;
     const setIndAlpha = indicator
       ? gsap.quickSetter(indicator, "opacity")
       : null;
 
     let lastY = -1;
     const update = () => {
-      const y = window.scrollY;
-      if (y === lastY) return;
-      lastY = y;
-      const p = Math.min(Math.max(y / window.innerHeight, 0), 1);
-      // Layers drift at different speeds; everything fades as the hero exits.
-      setContentY(p * -46);
-      setContentAlpha(1 - p * 1.1);
-      setHeadY?.(p * -28);
-      setIndAlpha?.(Math.max(1 - p * 3, 0));
+      const cssProgress = Number.parseFloat(
+        window
+          .getComputedStyle(section)
+          .getPropertyValue("--hero-story-progress"),
+      );
+      const rawProgress =
+        typeof storyProgress === "number" && Number.isFinite(storyProgress)
+          ? storyProgress
+          : cssProgress;
+      const p = Number.isFinite(rawProgress) ? Math.min(Math.max(rawProgress, 0), 1) : 0;
+      if (p === lastY) return;
+      lastY = p;
+
+      const headlineAlpha = sampleStoryCurve(p, [
+        [0, 1],
+        [0.05, 0.92],
+        [0.1, 0.8],
+        [0.2, 0.4],
+        [0.3, 0.08],
+        [0.35, 0],
+      ]);
+      const headlineY = sampleStoryCurve(p, [
+        [0, 0],
+        [0.05, -18],
+        [0.1, -32],
+        [0.2, -56],
+        [0.3, -74],
+        [0.35, -80],
+      ]);
+      const headlineScale = sampleStoryCurve(p, [
+        [0, 1],
+        [0.1, 0.993],
+        [0.2, 0.984],
+        [0.3, 0.97],
+        [0.35, 0.96],
+      ]);
+      const headlineBlur = sampleStoryCurve(p, [
+        [0, 0],
+        [0.05, 1.4],
+        [0.1, 2.8],
+        [0.2, 4.4],
+        [0.3, 5.4],
+        [0.35, 6],
+      ]);
+      const subtitleAlpha = sampleStoryCurve(p, [
+        [0, 1],
+        [0.05, 0.9],
+        [0.1, 0.75],
+        [0.2, 0.35],
+        [0.3, 0.06],
+        [0.35, 0],
+      ]);
+      const subtitleY = sampleStoryCurve(p, [
+        [0, 0],
+        [0.05, -10],
+        [0.1, -18],
+        [0.2, -30],
+        [0.3, -38],
+        [0.35, -40],
+      ]);
+      const descriptionAlpha = sampleStoryCurve(p, [
+        [0, 1],
+        [0.05, 0.88],
+        [0.1, 0.7],
+        [0.2, 0.3],
+        [0.3, 0.06],
+        [0.35, 0],
+      ]);
+      const descriptionY = sampleStoryCurve(p, [
+        [0, 0],
+        [0.05, -8],
+        [0.1, -14],
+        [0.2, -24],
+        [0.3, -28],
+        [0.35, -30],
+      ]);
+
+      setHeadlineAlpha?.(headlineAlpha);
+      setHeadlineY?.(headlineY);
+      setHeadlineScale?.(headlineScale);
+      setHeadlineBlur?.(`blur(${headlineBlur}px)`);
+      setSubtitleAlpha?.(subtitleAlpha);
+      setSubtitleY?.(subtitleY);
+      setDescriptionAlpha?.(descriptionAlpha);
+      setDescriptionY?.(descriptionY);
+      setIndAlpha?.(subtitleAlpha);
     };
 
     const observer = new IntersectionObserver(
@@ -165,7 +270,7 @@ const HeroSectionContent = ({
       observer.disconnect();
       gsap.ticker.remove(update);
     };
-  }, []);
+  }, [storyProgress]);
 
   return (
     <div ref={sectionRef} className="relative h-full w-full">
@@ -216,6 +321,7 @@ const HeroSectionContent = ({
         {/* Eyebrow */}
         <p
           data-hero-item
+          data-hero-subtitle
           className="mb-4 text-[10px] font-semibold uppercase tracking-[0.45em] text-primary-light sm:text-xs sm:tracking-[0.5em] md:mb-5"
         >
           {subtitle}
@@ -247,6 +353,7 @@ const HeroSectionContent = ({
         {/* Description */}
         <p
           data-hero-item
+          data-hero-description
           className="mt-5 max-w-md text-sm leading-relaxed text-white/70 sm:text-base md:mt-6 lg:max-w-lg"
         >
           {description}

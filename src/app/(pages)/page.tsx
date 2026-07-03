@@ -6,10 +6,9 @@
  * All copy / content lives in src/data/home.json.
  * Edit that file to change text, images, stats, or brand names.
  *
- * The 3D billboard is fully isolated in BillboardController.
- * To disable it (no WebGL, no Three.js loaded at all):
- *   1. Comment out the BillboardController import below
- *   2. Comment out <BillboardController stepRefs={stepRefs} /> in JSX
+ * The 3D billboard is fully isolated in HeroSection.
+ * To disable it (no WebGL, no Three.js loaded at all), remove the hero
+ * wrapper block below.
  */
 
 import { useRef, useEffect, Fragment } from "react";
@@ -18,7 +17,6 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
-//import { BillboardController } from "@/components/ThreeDObject/Billboard/BillboardController";
 import { HeroSection, HeroSectionContent, PinnedHeroMarquee } from "@/components/hero";
 import { Loading } from "@/components/ui";
 import { PremiumMarquee } from "@/components/PremiumMarquee";
@@ -121,10 +119,7 @@ export default function Home() {
     <div className="bg-white dark:bg-secondary" style={{ overflowX: "clip" }}>
       <Loading />
 
-      {/* <BillboardController stepRefs={stepRefs} /> */}
-
-      
-      <PinnedHeroMarquee scrollText={data.hero.scrollText}>
+      <PinnedHeroMarquee marquee={data.hero.marquee} stats={data.hero.stats}>
         <HeroSection images={data.hero.images}>
           <HeroSectionContent
             subtitle={data.hero.subtitle}
