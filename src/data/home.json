@@ -36,8 +36,8 @@
       }
     ],
     "marquee": {
-      "travelFactor": 1.85,
-      "textBandY": "55%",
+      "travelFactor": 2.5,
+      "textBandY": "calc(50% - 120px)",
       "billboardGlow": {
         "x": "72%",
         "y": "43%",
@@ -84,7 +84,7 @@
               "value": "OUTDOOR",
               "color": "#FFFFFF",
               "fontWeight": 900,
-              "fontSize": "clamp(2.7rem, 5vw, 6rem)",
+              "fontSize": "clamp(1.8rem, 3.2vw, 3.8rem)",
               "uppercase": true,
               "tracking": "0.14em",
               "animation": "lift"
@@ -94,7 +94,7 @@
               "value": "CAMPAIGNS",
               "color": "#FFFFFF",
               "fontWeight": 900,
-              "fontSize": "clamp(3rem, 5.6vw, 6.4rem)",
+              "fontSize": "clamp(2rem, 3.6vw, 4.2rem)",
               "uppercase": true,
               "tracking": "0.08em",
               "animation": "maskReveal",
@@ -111,7 +111,7 @@
               "value": "BILLBOARD",
               "color": "#FFFFFF",
               "fontWeight": 800,
-              "fontSize": "clamp(2.5rem, 4.8vw, 5.6rem)",
+              "fontSize": "clamp(1.7rem, 3vw, 3.5rem)",
               "uppercase": true,
               "tracking": "0.12em",
               "outline": true,
@@ -131,7 +131,7 @@
               "value": "REACH",
               "color": "#F5B474",
               "fontWeight": 700,
-              "fontSize": "clamp(2.4rem, 4.6vw, 5rem)",
+              "fontSize": "clamp(1.6rem, 2.8vw, 3.2rem)",
               "uppercase": true,
               "tracking": "0.16em",
               "animation": "scale",

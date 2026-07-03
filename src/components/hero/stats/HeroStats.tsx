@@ -25,6 +25,10 @@ export function HeroStats({
     if (!wrap) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    // Set will-change dynamically — not in JSX — to avoid permanent
+    // compositor-layer promotion while the stats are off-screen.
+    wrap.style.willChange = "transform, opacity";
+
     const getProgress = () => {
       const cssProgress = Number.parseFloat(
         window
@@ -69,6 +73,7 @@ export function HeroStats({
 
     return () => {
       gsap.ticker.remove(update);
+      wrap.style.willChange = "auto";
     };
   }, [heroStats, merged.fadeEnd, merged.fadeStart, merged.revealEnd, merged.revealStart, progress]);
 
@@ -82,7 +87,6 @@ export function HeroStats({
       style={{
         opacity: 0,
         transform: "translate3d(0, 12px, 0)",
-        willChange: "transform, opacity",
         visibility: "hidden",
       }}
     >
@@ -98,7 +102,7 @@ export function HeroStats({
             <div
               className="font-heading font-bold text-white tabular-nums"
               style={{
-                fontSize: `clamp(${merged.mobileSize}, 1.7vw, ${merged.desktopSize})`,
+                fontSize: `clamp(${merged.mobileSize}, 3.8vw, ${merged.desktopSize})`,
                 lineHeight: 1,
               }}
             >
@@ -113,7 +117,7 @@ export function HeroStats({
             <div
               className="uppercase tracking-[0.2em] text-white/60"
               style={{
-                fontSize: `clamp(${merged.labelSize}, 1vw, 0.75rem)`,
+                fontSize: `clamp(${merged.labelSize}, 0.85vw, 0.75rem)`,
                 lineHeight: 1.15,
               }}
             >

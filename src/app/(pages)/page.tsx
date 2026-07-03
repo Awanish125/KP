@@ -18,6 +18,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import { HeroSection, HeroSectionContent, PinnedHeroMarquee } from "@/components/hero";
+import type { HeroMarqueeConfig } from "@/components/hero/marqueeTypes";
 import { Loading } from "@/components/ui";
 import { PremiumMarquee } from "@/components/PremiumMarquee";
 import { PremiumRevealSection } from "@/components/PremiumRevealSection";
@@ -119,7 +120,7 @@ export default function Home() {
     <div className="bg-white dark:bg-secondary" style={{ overflowX: "clip" }}>
       <Loading />
 
-      <PinnedHeroMarquee marquee={data.hero.marquee} stats={data.hero.stats}>
+      <PinnedHeroMarquee marquee={data.hero.marquee as HeroMarqueeConfig} stats={data.hero.stats}>
         <HeroSection images={data.hero.images}>
           <HeroSectionContent
             subtitle={data.hero.subtitle}

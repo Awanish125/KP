@@ -38,7 +38,19 @@ export interface HeroMarqueeTextToken {
   uppercase?: boolean;
   tracking?: string;
   opacity?: number;
-  animation?: "fade" | "maskReveal" | "blur" | "lift" | "sweep" | "scale";
+  animation?:
+    | "fade"
+    | "lift"
+    | "slideLeft"
+    | "slideRight"
+    | "maskReveal"
+    | "blur"
+    | "scale"
+    | "flip"
+    | "chars"
+    | "punch"
+    | "skew"
+    | "sweep";   // legacy value — treated as "fade" by the entrance registry
   iconBefore?: HeroMarqueeToken;
   iconAfter?: HeroMarqueeToken;
   separator?: HeroMarqueeToken;

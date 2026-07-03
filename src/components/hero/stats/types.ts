@@ -28,7 +28,7 @@ export interface HeroStatsConfig {
 
 export interface HeroStatsProps {
   heroStats: HeroStat[];
-  progress: number;
+  progress?: number;
   className?: string;
   config?: HeroStatsConfig;
   particleEffect?: HeroStatsParticleEffect;
