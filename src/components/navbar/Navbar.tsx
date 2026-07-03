@@ -121,12 +121,12 @@ export function Navbar() {
             style={{ width: 1, background: 'var(--navbar-border)', margin: '12px 8px' }}
           />
 
-          <div className="hidden md:flex items-center pr-1">
+          <div className="flex items-center pr-1">
             <ThemeToggle3D />
           </div>
 
           <button
-            className="md:hidden hamburger-btn"
+            className="flex md:hidden hamburger-btn mr-2"
             onClick={openSidebar}
             aria-label="Open navigation menu"
             aria-expanded={sidebarOpen}

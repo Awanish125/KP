@@ -264,10 +264,12 @@
 .glass-navbar {
   position: relative;
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 8px;
-  min-height: 72px;
-  padding: 12px 12px 12px 28px;
+  /* min-height: 72px; */
+  padding: 6px;
+  min-width: 420px;
   border-radius: 36px;
   pointer-events: auto;
   /* perspective lives on the parent wrapper — this element IS the one rotating */
@@ -603,7 +605,7 @@
    HAMBURGER BUTTON (mobile)
    ============================================================ */
 .hamburger-btn {
-  display: flex;
+ 
   align-items: center;
   justify-content: center;
   width: 46px;

@@ -892,13 +892,22 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
 
   // ── Resize ────────────────────────────────────────────────────────────────
 
+  // On small screens the overlay content is centered (not left-aligned), so
+  // the image is centered too (offsetX 0); on wider screens it shifts left
+  // to sit beside the content column.
+  const responsiveOffsetX = useCallback(
+    () => (window.innerWidth < 768 ? 0.0 : -0.25),
+    [],
+  );
+
   const onResize = useCallback(() => {
     const renderer = rendererRef.current;
     const u = uniformsRef.current;
     if (!renderer || !u) return;
     renderer.setSize(window.innerWidth, window.innerHeight);
     u.uResolution.value = [window.innerWidth, window.innerHeight];
-  }, []);
+    u.uOffsetX.value = responsiveOffsetX();
+  }, [responsiveOffsetX]);
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -943,7 +952,7 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
       uZoom: { value: 0.9 },
       uScaleX: { value: 1.0 },
       uScaleY: { value: 1.0 },
-      uOffsetX: { value: -0.25 },
+      uOffsetX: { value: responsiveOffsetX() },
       uOffsetY: { value: 0.0 },
       uRotation: { value: 0.0 },
       uAspectCompensation: { value: 1 },
@@ -1060,6 +1069,7 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
     onResize,
     tick,
     runTransition,
+    responsiveOffsetX,
   ]);
 
   return (

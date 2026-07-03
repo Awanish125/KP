@@ -1,6 +1,5 @@
 {
   "_comment": "Home page content — edit values here to update the site. No code changes needed.",
-
   "hero": {
     "images": [
       "/homepage/herosection/1.png",
@@ -14,9 +13,14 @@
     "line1": "MAKING BRANDS",
     "line2": "IMPOSSIBLE",
     "line3": "TO IGNORE",
-    "gradientColors": ["#6F5BFF", "#B86CCB", "#F16B57", "#FF6B1A"]
+    "scrollText": "OUTDOOR ADVERTISING THAT COMMANDS ATTENTION ACROSS MAHARASHTRA",
+    "gradientColors": [
+      "#6F5BFF",
+      "#B86CCB",
+      "#F16B57",
+      "#FF6B1A"
+    ]
   },
-
   "brands": [
     "Hero",
     "Honda",
@@ -30,7 +34,6 @@
     "Style Bazar",
     "Vmart"
   ],
-
   "about": {
     "sectionLabel": "About Us",
     "heading": "India's Premier\nOutdoor",
@@ -38,26 +41,54 @@
     "headingSuffix": " Network",
     "paragraph": "For over two decades, Kiran Publicity has been transforming cityscapes into powerful brand narratives — from highways to high streets, across Maharashtra.",
     "stats": [
-      { "value": 20,  "suffix": "+", "label": "Years of\nExcellence" },
-      { "value": 500, "suffix": "+", "label": "Prime\nLocations"     },
-      { "value": 100, "suffix": "+", "label": "Brands\nServed"       }
+      {
+        "value": 20,
+        "suffix": "+",
+        "label": "Years of\nExcellence"
+      },
+      {
+        "value": 500,
+        "suffix": "+",
+        "label": "Prime\nLocations"
+      },
+      {
+        "value": 100,
+        "suffix": "+",
+        "label": "Brands\nServed"
+      }
     ]
   },
-
   "services": {
     "sectionLabel": "What We Do",
     "heading": "Advertising",
     "headingEmphasis": "Solutions",
     "items": [
-      { "title": "Billboards & Hoardings", "description": "Large-format roadside displays at premium traffic junctions."  },
-      { "title": "Unipoles & Gantries",    "description": "Sky-high single-pole structures and highway arch gantries."    },
-      { "title": "Digital LED Displays",   "description": "Dynamic full-colour LED screens with real-time content."       },
-      { "title": "Transit Advertising",    "description": "Bus, auto and fleet wraps that move your brand city-wide."     },
-      { "title": "Bus Shelter Branding",   "description": "Eye-level panels at high-dwell commuter shelters."            },
-      { "title": "Wall Wraps & Murals",    "description": "Large-scale building wraps and hand-painted murals."          }
+      {
+        "title": "Billboards & Hoardings",
+        "description": "Large-format roadside displays at premium traffic junctions."
+      },
+      {
+        "title": "Unipoles & Gantries",
+        "description": "Sky-high single-pole structures and highway arch gantries."
+      },
+      {
+        "title": "Digital LED Displays",
+        "description": "Dynamic full-colour LED screens with real-time content."
+      },
+      {
+        "title": "Transit Advertising",
+        "description": "Bus, auto and fleet wraps that move your brand city-wide."
+      },
+      {
+        "title": "Bus Shelter Branding",
+        "description": "Eye-level panels at high-dwell commuter shelters."
+      },
+      {
+        "title": "Wall Wraps & Murals",
+        "description": "Large-scale building wraps and hand-painted murals."
+      }
     ]
   },
-
   "showcase": {
     "sectionLabel": "Our Portfolio",
     "heading": "Campaigns That\nCommand",
@@ -65,45 +96,156 @@
     "body": "From concept to installation, we craft outdoor campaigns that stop traffic — literally. Trusted by 100+ brands across Maharashtra.",
     "cta": "View All Work",
     "images": [
-      { "src": "https://picsum.photos/seed/kp01/420/300", "alt": "Billboard campaign",       "x": "3%",  "y": "6%",  "width": 160, "rotation": -6,  "zIndex": 2 },
-      { "src": "https://picsum.photos/seed/kp02/300/420", "alt": "Street advertising",      "x": "1%",  "y": "38%", "width": 110, "rotation":  4,  "zIndex": 4 },
-      { "src": "https://picsum.photos/seed/kp03/380/260", "alt": "Transit branding",        "x": "5%",  "y": "70%", "width": 130, "rotation": -10, "zIndex": 3 },
-      { "src": "https://picsum.photos/seed/kp04/260/360", "alt": "Outdoor media",           "x": "17%", "y": "82%", "width": 95,  "rotation":  8,  "zIndex": 5 },
-      { "src": "https://picsum.photos/seed/kp05/440/300", "alt": "Highway hoarding",        "x": "28%", "y": "4%",  "width": 175, "rotation": -3,  "zIndex": 2 },
-      { "src": "https://picsum.photos/seed/kp06/350/240", "alt": "LED display",             "x": "55%", "y": "3%",  "width": 120, "rotation":  7,  "zIndex": 4 },
-      { "src": "https://picsum.photos/seed/kp07/400/280", "alt": "Unipole advertising",     "x": "76%", "y": "5%",  "width": 155, "rotation": -8,  "zIndex": 3 },
-      { "src": "https://picsum.photos/seed/kp08/280/400", "alt": "Bus shelter branding",    "x": "83%", "y": "28%", "width": 140, "rotation":  5,  "zIndex": 5 },
-      { "src": "https://picsum.photos/seed/kp09/300/360", "alt": "Wall wrap",               "x": "87%", "y": "57%", "width": 105, "rotation": -12, "zIndex": 2 },
-      { "src": "https://picsum.photos/seed/kp10/380/260", "alt": "Gantry signage",          "x": "76%", "y": "78%", "width": 145, "rotation":  9,  "zIndex": 4 },
-      { "src": "https://picsum.photos/seed/kp11/320/240", "alt": "Fleet advertising",       "x": "55%", "y": "85%", "width": 110, "rotation": -5,  "zIndex": 3 },
-      { "src": "https://picsum.photos/seed/kp12/260/350", "alt": "Junction billboard",      "x": "36%", "y": "82%", "width": 88,  "rotation":  6,  "zIndex": 5 },
-      { "src": "https://picsum.photos/seed/kp13/360/250", "alt": "Premium site",            "x": "19%", "y": "11%", "width": 125, "rotation": -9,  "zIndex": 2 },
-      { "src": "https://picsum.photos/seed/kp14/280/200", "alt": "Brand activation",        "x": "60%", "y": "62%", "width": 90,  "rotation":  11, "zIndex": 1 }
+      {
+        "src": "https://picsum.photos/seed/kp01/420/300",
+        "alt": "Billboard campaign",
+        "x": "3%",
+        "y": "6%",
+        "width": 160,
+        "rotation": -6,
+        "zIndex": 2
+      },
+      {
+        "src": "https://picsum.photos/seed/kp02/300/420",
+        "alt": "Street advertising",
+        "x": "1%",
+        "y": "38%",
+        "width": 110,
+        "rotation": 4,
+        "zIndex": 4
+      },
+      {
+        "src": "https://picsum.photos/seed/kp03/380/260",
+        "alt": "Transit branding",
+        "x": "5%",
+        "y": "70%",
+        "width": 130,
+        "rotation": -10,
+        "zIndex": 3
+      },
+      {
+        "src": "https://picsum.photos/seed/kp04/260/360",
+        "alt": "Outdoor media",
+        "x": "17%",
+        "y": "82%",
+        "width": 95,
+        "rotation": 8,
+        "zIndex": 5
+      },
+      {
+        "src": "https://picsum.photos/seed/kp05/440/300",
+        "alt": "Highway hoarding",
+        "x": "28%",
+        "y": "4%",
+        "width": 175,
+        "rotation": -3,
+        "zIndex": 2
+      },
+      {
+        "src": "https://picsum.photos/seed/kp06/350/240",
+        "alt": "LED display",
+        "x": "55%",
+        "y": "3%",
+        "width": 120,
+        "rotation": 7,
+        "zIndex": 4
+      },
+      {
+        "src": "https://picsum.photos/seed/kp07/400/280",
+        "alt": "Unipole advertising",
+        "x": "76%",
+        "y": "5%",
+        "width": 155,
+        "rotation": -8,
+        "zIndex": 3
+      },
+      {
+        "src": "https://picsum.photos/seed/kp08/280/400",
+        "alt": "Bus shelter branding",
+        "x": "83%",
+        "y": "28%",
+        "width": 140,
+        "rotation": 5,
+        "zIndex": 5
+      },
+      {
+        "src": "https://picsum.photos/seed/kp09/300/360",
+        "alt": "Wall wrap",
+        "x": "87%",
+        "y": "57%",
+        "width": 105,
+        "rotation": -12,
+        "zIndex": 2
+      },
+      {
+        "src": "https://picsum.photos/seed/kp10/380/260",
+        "alt": "Gantry signage",
+        "x": "76%",
+        "y": "78%",
+        "width": 145,
+        "rotation": 9,
+        "zIndex": 4
+      },
+      {
+        "src": "https://picsum.photos/seed/kp11/320/240",
+        "alt": "Fleet advertising",
+        "x": "55%",
+        "y": "85%",
+        "width": 110,
+        "rotation": -5,
+        "zIndex": 3
+      },
+      {
+        "src": "https://picsum.photos/seed/kp12/260/350",
+        "alt": "Junction billboard",
+        "x": "36%",
+        "y": "82%",
+        "width": 88,
+        "rotation": 6,
+        "zIndex": 5
+      },
+      {
+        "src": "https://picsum.photos/seed/kp13/360/250",
+        "alt": "Premium site",
+        "x": "19%",
+        "y": "11%",
+        "width": 125,
+        "rotation": -9,
+        "zIndex": 2
+      },
+      {
+        "src": "https://picsum.photos/seed/kp14/280/200",
+        "alt": "Brand activation",
+        "x": "60%",
+        "y": "62%",
+        "width": 90,
+        "rotation": 11,
+        "zIndex": 1
+      }
     ]
   },
-
   "process": {
     "sectionLabel": "Scroll to explore",
     "steps": [
       {
-        "label":   "Prime Locations",
+        "label": "Prime Locations",
         "heading": "Hand-curated\nSites",
-        "body":    "Highest-traffic junctions, highways, and corridors across Maharashtra."
+        "body": "Highest-traffic junctions, highways, and corridors across Maharashtra."
       },
       {
-        "label":   "Creative Partnership",
+        "label": "Creative Partnership",
         "heading": "Concept to\nCampaign",
-        "body":    "In-house design team handles artwork, print files and production."
+        "body": "In-house design team handles artwork, print files and production."
       },
       {
-        "label":   "72-Hour Installation",
+        "label": "72-Hour Installation",
         "heading": "Approval\nto Live",
-        "body":    "From artwork sign-off to live billboard in 72 hours, guaranteed."
+        "body": "From artwork sign-off to live billboard in 72 hours, guaranteed."
       },
       {
-        "label":   "End-to-End Management",
+        "label": "End-to-End Management",
         "heading": "One Roof,\nAll Services",
-        "body":    "Site scouting, permits, installation, maintenance and reports."
+        "body": "Site scouting, permits, installation, maintenance and reports."
       }
     ]
   }

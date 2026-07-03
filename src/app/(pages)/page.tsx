@@ -19,7 +19,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 //import { BillboardController } from "@/components/ThreeDObject/Billboard/BillboardController";
-import { HeroSection, HeroSectionContent } from "@/components/hero";
+import { HeroSection, HeroSectionContent, PinnedHeroMarquee } from "@/components/hero";
 import { Loading } from "@/components/ui";
 import { PremiumMarquee } from "@/components/PremiumMarquee";
 import { PremiumRevealSection } from "@/components/PremiumRevealSection";
@@ -123,8 +123,8 @@ export default function Home() {
 
       {/* <BillboardController stepRefs={stepRefs} /> */}
 
-      {/* ── S-1: Hero ──────────────────────────────────────────────────── */}
-      <section id="s1" className="relative h-screen">
+      {/* ── S-1: Hero — pinned while the scroll marquee sweeps (if set) ─── */}
+      <PinnedHeroMarquee scrollText={data.hero.scrollText}>
         <HeroSection images={data.hero.images}>
           <HeroSectionContent
             subtitle={data.hero.subtitle}
@@ -132,9 +132,11 @@ export default function Home() {
             line2={data.hero.line2}
             line3={data.hero.line3}
             gradientColors={data.hero.gradientColors}
+            primaryCta={null}
+            secondaryCta={null}
           />
         </HeroSection>
-      </section>
+      </PinnedHeroMarquee>
 
       {/* ── Brands marquee ─────────────────────────────────────────────── */}
       <PremiumMarquee
