@@ -123,7 +123,7 @@ export default function Home() {
 
       {/* <BillboardController stepRefs={stepRefs} /> */}
 
-      {/* ── S-1: Hero — pinned while the scroll marquee sweeps (if set) ─── */}
+      
       <PinnedHeroMarquee scrollText={data.hero.scrollText}>
         <HeroSection images={data.hero.images}>
           <HeroSectionContent
