@@ -143,7 +143,7 @@ export function PinnedHero({
           onUpdate: applyCamera,
         }, "depart")
         
-        // 2. Compose Camera Zoom Return
+        // 2. Compose Camera Zoom Return & Stats Reveal
         .addLabel("compose", "depart+=0.8")
         .to(camera, {
           zoom: intro.camera.initialZoom,
@@ -152,30 +152,27 @@ export function PinnedHero({
           ease: "expo.inOut",
           onUpdate: applyCamera,
         }, "compose")
-        
-        // 3. Stats Reveal
-        .addLabel("reveal", "compose+=0.8")
         .to(statsPanel, {
           autoAlpha: 1,
           y: 0,
           scale: 1,
           duration: 0.8,
           ease: "power3.out",
-        }, "reveal")
+        }, "compose")
         .to(statReveal, {
           autoAlpha: 1,
           y: 0,
           duration: 0.6,
           stagger: 0.08,
           ease: "power2.out",
-        }, "reveal+=0.1")
+        }, "compose+=0.1")
         .to(statItems, {
           autoAlpha: 1,
           y: 0,
           duration: 0.6,
           stagger: 0.08,
           ease: "power2.out",
-        }, "reveal+=0.15")
+        }, "compose+=0.15")
         .to(counters, {
           value: (index: number) => counters[index].target,
           duration: 1.0,
@@ -185,14 +182,14 @@ export function PinnedHero({
               counter.el.textContent = Math.round(counter.value).toLocaleString("en-IN");
             });
           },
-        }, "reveal+=0.2")
+        }, "compose+=0.2")
         .to(marqueeRoot, {
           autoAlpha: 1,
           y: 0,
           clipPath: "inset(0 0% 0 0)",
           duration: 0.8,
           ease: "power2.out",
-        }, "reveal+=0.25")
+        }, "compose+=0.25")
         .to(marqueeWords, {
           autoAlpha: 1,
           y: 0,
@@ -200,10 +197,10 @@ export function PinnedHero({
           duration: 0.8,
           stagger: 0.06,
           ease: "power2.out",
-        }, "reveal+=0.3")
+        }, "compose+=0.3")
 
-        // 4. Horizontal Editorial Scroll Animation
-        .addLabel("scrollMarquee", "reveal+=0.8")
+        // 3. Horizontal Editorial Scroll Animation
+        .addLabel("scrollMarquee", "compose+=1.2")
         .to(marqueeTrack, {
           x: () => {
             const containerW = marqueeRoot?.offsetWidth ?? 0;
