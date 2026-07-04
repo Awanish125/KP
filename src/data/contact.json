@@ -1,10 +1,54 @@
 {
-  "_comment": "Contact page content + form schema. Edit here — no code changes needed.",
+  "_comment": "Contact page content. No backend yet — the page shows direct channels instead of the form. The form schema below is kept for when an API exists.",
   "hero": {
     "label": "Contact",
     "line1": "LET'S PUT YOU",
     "line2": "UP THERE",
-    "sub": "Tell us about the brand and the budget — we'll come back with a site-by-site media plan within 48 hours."
+    "sub": "No forms, no waiting rooms. Call, WhatsApp, or email the team directly — a media planner responds within one working day."
+  },
+  "channels": [
+    {
+      "id": "phone",
+      "label": "Call Us",
+      "value": "+91 98220 44210",
+      "href": "tel:+919822044210",
+      "note": "Mon–Sat, 9:30 AM – 7:00 PM IST",
+      "icon": "phone"
+    },
+    {
+      "id": "whatsapp",
+      "label": "WhatsApp",
+      "value": "+91 98220 44210",
+      "href": "https://wa.me/919822044210?text=Hi%20Kiran%20Publicity%2C%20I%27d%20like%20to%20plan%20a%20campaign.",
+      "note": "Fastest reply — usually within the hour",
+      "icon": "whatsapp"
+    },
+    {
+      "id": "email",
+      "label": "Email",
+      "value": "hello@kiranpublicity.in",
+      "href": "mailto:hello@kiranpublicity.in?subject=Campaign%20enquiry",
+      "note": "Briefs, media kits & rate cards",
+      "icon": "mail"
+    }
+  ],
+  "office": {
+    "heading": "Head Office",
+    "address": "Kiran House, Station Road, Samastipur, Bihar 848101",
+    "phone": "+91 98220 44210",
+    "email": "hello@kiranpublicity.in",
+    "hours": "Mon–Sat, 9:30 AM – 7:00 PM IST"
+  },
+  "offices": [
+    { "city": "Samastipur", "tag": "HQ", "address": "Kiran House, Station Road, Samastipur, Bihar 848101" },
+    { "city": "Patna", "tag": "Bihar", "address": "2nd Floor, Frazer Road, Patna, Bihar 800001" },
+    { "city": "Ranchi", "tag": "Jharkhand", "address": "Main Road, Ranchi, Jharkhand 834001" },
+    { "city": "New Delhi", "tag": "Pan-India", "address": "Netaji Subhash Place, Pitampura, New Delhi 110034" }
+  ],
+  "social": {
+    "instagram": "https://instagram.com/kiranpublicity",
+    "linkedin": "https://linkedin.com/company/kiranpublicity",
+    "facebook": "https://facebook.com/kiranpublicity"
   },
   "fields": [
     { "name": "name", "label": "Your Name", "type": "text", "placeholder": "Priya Sharma", "required": true },
@@ -21,17 +65,5 @@
     { "name": "message", "label": "Tell us about the campaign", "type": "textarea", "placeholder": "Cities, timeline, budget range — anything helps.", "required": true }
   ],
   "submitLabel": "Send Enquiry",
-  "successMessage": "Got it. A media planner will call you within one working day.",
-  "office": {
-    "heading": "Head Office",
-    "address": "Kiran House, Plot 14, Trimbak Road, Nashik, Maharashtra 422002",
-    "phone": "+91 98220 44210",
-    "email": "hello@kiranpublicity.in",
-    "hours": "Mon–Sat, 9:30 AM – 7:00 PM IST"
-  },
-  "social": {
-    "instagram": "https://instagram.com/kiranpublicity",
-    "linkedin": "https://linkedin.com/company/kiranpublicity",
-    "facebook": "https://facebook.com/kiranpublicity"
-  }
+  "successMessage": "Got it. A media planner will call you within one working day."
 }

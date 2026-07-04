@@ -1,17 +1,25 @@
 "use client";
 
 /**
- * /locations — interactive Maharashtra map with site pins.
- * All copy lives in src/data/locations.json — edit there, not here.
+ * /locations — interactive 3D dotted-earth globe with the KP network pins.
+ * Pan-India presence, HQ in Samastipur, strongest in Bihar & Jharkhand.
+ * All content lives in src/data/locations.json — add a pin there and it
+ * appears on the globe automatically.
  */
 
 import { useState } from "react";
 import Image from "next/image";
 import { PageHero } from "@/components/PageHero";
 import { SectionReveal } from "@/components/SectionReveal";
-import { MapEmbed, MAP_EMBED_DEFAULTS } from "@/components/MapEmbed";
+import { DottedGlobe } from "@/components/DottedGlobe";
 import { CTABanner } from "@/components/CTABanner";
 import data from "@/data/locations.json";
+
+const TYPE_COLORS: Record<string, string> = {
+  Billboard: "var(--kp-orange)",
+  "Digital LED": "var(--kp-blue)",
+  Transit: "var(--kp-purple)",
+};
 
 export default function LocationsPage() {
   const [selected, setSelected] = useState(0);
@@ -27,36 +35,40 @@ export default function LocationsPage() {
       />
 
       <section className="mx-auto max-w-6xl px-6 pb-28">
-        <SectionReveal as="div" className="grid gap-10 lg:grid-cols-[1.5fr_1fr] lg:items-start">
-          {/* Map */}
+        <SectionReveal as="div" className="grid gap-10 lg:grid-cols-[1.5fr_1fr] lg:items-stretch">
+          {/* Globe — always on the dark stage, both themes */}
           <div
-            className="rounded-2xl p-6 md:p-10"
-            style={{ background: "var(--surface)", border: "1px solid var(--border-soft)" }}
+            className="relative overflow-hidden rounded-2xl"
+            style={{
+              background:
+                "radial-gradient(ellipse at 50% 120%, var(--kp-dark-2), var(--kp-dark) 70%)",
+              border: "1px solid var(--border-soft)",
+              minHeight: "34rem",
+            }}
           >
-            <MapEmbed
+            <DottedGlobe
               sites={data.sites}
               selectedIndex={selected}
               onSelect={setSelected}
+              height="100%"
             />
             {/* Legend */}
-            <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3">
+            <div className="pointer-events-none absolute bottom-5 left-6 flex flex-wrap gap-x-7 gap-y-2">
               {data.legend.map((l) => (
-                <span key={l.type} className="flex items-center gap-2.5">
+                <span key={l.type} className="flex items-center gap-2">
                   <span
                     aria-hidden
-                    className="inline-block h-3 w-3 rounded-full"
-                    style={{
-                      background:
-                        MAP_EMBED_DEFAULTS.typeColors[l.type] ?? "var(--kp-orange)",
-                    }}
+                    className="inline-block h-2.5 w-2.5 rounded-full"
+                    style={{ background: TYPE_COLORS[l.type] ?? "var(--kp-orange)" }}
                   />
                   <span
                     style={{
                       fontFamily: "var(--kp-font-mono)",
-                      fontSize: "0.72rem",
+                      fontSize: "0.65rem",
                       letterSpacing: "0.14em",
                       textTransform: "uppercase",
-                      color: "var(--text-muted)",
+                      color: "var(--kp-light)",
+                      opacity: 0.6,
                     }}
                   >
                     {l.label}
@@ -68,7 +80,7 @@ export default function LocationsPage() {
 
           {/* Selected site panel */}
           <aside
-            className="overflow-hidden rounded-2xl"
+            className="flex flex-col overflow-hidden rounded-2xl"
             style={{ background: "var(--surface)", border: "1px solid var(--border-soft)" }}
             aria-live="polite"
           >
@@ -82,7 +94,7 @@ export default function LocationsPage() {
                 style={{ objectFit: "cover" }}
               />
             </div>
-            <div className="p-7">
+            <div className="flex flex-1 flex-col p-7">
               <div
                 style={{
                   fontFamily: "var(--kp-font-mono)",
@@ -93,6 +105,7 @@ export default function LocationsPage() {
                 }}
               >
                 {site.type} · {site.city}
+                {"tag" in site && site.tag ? ` · ${site.tag}` : ""}
               </div>
               <h2
                 className="mt-3"
@@ -119,7 +132,7 @@ export default function LocationsPage() {
               </p>
 
               {/* City quick-jump */}
-              <div className="mt-6 flex flex-wrap gap-2">
+              <div className="mt-auto flex flex-wrap gap-2 pt-6">
                 {data.sites.map((s, i) => (
                   <button
                     key={`${s.city}-${s.name}`}
@@ -128,7 +141,7 @@ export default function LocationsPage() {
                     className="rounded-full px-3.5 py-1.5 transition-colors duration-200"
                     style={{
                       fontFamily: "var(--kp-font-mono)",
-                      fontSize: "0.68rem",
+                      fontSize: "0.66rem",
                       letterSpacing: "0.1em",
                       textTransform: "uppercase",
                       cursor: "pointer",
@@ -147,8 +160,8 @@ export default function LocationsPage() {
       </section>
 
       <CTABanner
-        heading="Want a site on this map?"
-        sub="Tell us your target cities — we'll send availability and rates within a day."
+        heading="Want a pin with your name on it?"
+        sub="Tell us your target cities — availability and rates within a day."
         button={{ label: "Check Availability", href: "/contact" }}
       />
     </div>

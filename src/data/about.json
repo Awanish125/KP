@@ -4,14 +4,14 @@
     "label": "Since 1998",
     "line1": "WE OWN",
     "line2": "THE SKYLINE",
-    "sub": "Kiran Publicity is Maharashtra's most trusted outdoor advertising house — three decades of putting brands where the whole city has to look."
+    "sub": "Kiran Publicity is one of India's most trusted outdoor advertising houses — headquartered in Samastipur, strongest across Bihar and Jharkhand, and live in every metro that matters."
   },
   "story": {
     "label": "Our Story",
-    "heading": "From one hoarding in Nashik to 400+ sites across the state.",
+    "heading": "From one hoarding in Samastipur to 400+ sites across India.",
     "paragraphs": [
-      "In 1998, Kiran Deshmukh leased a single 20×10 hoarding on Nashik's Trimbak Road and painted it by hand for a local jeweller. The phone didn't stop ringing for a month.",
-      "Today we operate one of Maharashtra's largest independent outdoor networks — premium billboards, transit fleets, and digital LED screens across 12 cities — still run by the same family, still obsessed with the same question: will people stop and look?",
+      "In 1998, Kiran Deshmukh leased a single 20×10 hoarding on Samastipur's Station Road and painted it by hand for a local jeweller. The phone didn't stop ringing for a month.",
+      "Today we operate one of eastern India's largest independent outdoor networks — premium billboards, transit fleets, and digital LED screens across Bihar, Jharkhand, and every major metro — still run by the same family, still obsessed with the same question: will people stop and look?",
       "We don't sell media space. We engineer attention — the right structure, on the right junction, lit the right way, at the right hour."
     ],
     "image": "https://picsum.photos/seed/kpstory/1200/1500"
@@ -23,9 +23,9 @@
     { "value": 48, "suffix": "M+", "label": "Monthly Impressions" }
   ],
   "timeline": [
-    { "year": "1998", "title": "The First Hoarding", "body": "Kiran Deshmukh leases and hand-paints a single hoarding on Trimbak Road, Nashik." },
+    { "year": "1998", "title": "The First Hoarding", "body": "Kiran Deshmukh leases and hand-paints a single hoarding on Station Road, Samastipur." },
     { "year": "2004", "title": "Mumbai Calling", "body": "First premium sites on the Western Express Highway — the network goes metro." },
-    { "year": "2010", "title": "Transit Media", "body": "500 bus wraps across MSRTC routes make KP the state's largest transit advertiser." },
+    { "year": "2010", "title": "Transit Media", "body": "500 bus wraps across Bihar and Jharkhand routes make KP the region's largest transit advertiser." },
     { "year": "2016", "title": "Going Digital", "body": "First large-format LED screens installed in Pune and Nagpur city centres." },
     { "year": "2021", "title": "400 Sites", "body": "The owned network crosses 400 structures — every major NH junction covered." },
     { "year": "2025", "title": "Programmatic OOH", "body": "Real-time booking and audience analytics roll out across the digital network." }
@@ -53,7 +53,7 @@
     "items": [
       { "quote": "KP's Western Express sites carried our IPO campaign to 20 million commuters. Flawless execution, weekly photo proofs.", "name": "Meera Nair", "role": "CMO, Suvarna Finance" },
       { "quote": "The only vendor who told us NOT to buy a site because the sightline was blocked. That honesty bought a decade of business.", "name": "Arjun Bhatt", "role": "Brand Head, Café Arabia" },
-      { "quote": "From artwork to installation in 72 hours across 9 cities. Nobody else in Maharashtra moves this fast.", "name": "Sanjana Rao", "role": "Marketing Director, Zephyr Mobility" },
+      { "quote": "From artwork to installation in 72 hours across 9 cities. Nobody else in the country moves this fast.", "name": "Sanjana Rao", "role": "Marketing Director, Zephyr Mobility" },
       { "quote": "Their Pune LED network delivered 3× the footfall lift of our previous OOH partner. The data reporting is genuinely best-in-class.", "name": "Vikram Sethi", "role": "Growth Lead, NovaMart" }
     ]
   },

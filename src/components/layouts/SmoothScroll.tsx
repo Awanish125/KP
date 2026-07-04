@@ -7,6 +7,12 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
+declare global {
+  interface Window {
+    __kpLenis?: Lenis;
+  }
+}
+
 export function SmoothScroll() {
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia(
@@ -37,11 +43,16 @@ export function SmoothScroll() {
     gsap.ticker.lagSmoothing(0);
     ScrollTrigger.refresh();
 
+    // Expose for components that need programmatic scrolling in sync with
+    // Lenis (e.g. CustomScrollbar drag). Cleared on unmount.
+    window.__kpLenis = lenis;
+
     return () => {
       gsap.ticker.remove(raf);
       window.removeEventListener("kp:scroll-lock", stop);
       window.removeEventListener("kp:scroll-unlock", start);
       lenis.destroy();
+      delete window.__kpLenis;
     };
   }, []);
 

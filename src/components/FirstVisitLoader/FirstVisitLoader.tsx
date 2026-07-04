@@ -6,13 +6,13 @@
  * Rules (per loading-screen spec):
  *  - Shows only when sessionStorage 'kp-visited' is null.
  *  - Sets 'kp-visited' = '1' on completion so it never repeats this session.
- *  - Does NOT modify Loading.tsx — completion is detected via the
- *    'page-revealed' class Loading adds to <html> when its timeline ends.
+ *  - Completion is detected via the 'page-revealed' class the loader adds
+ *    to <html> when its timeline ends (PremiumLoader, was Loading.tsx).
  *  - Repeat visitors render nothing: the page is immediately interactive.
  */
 
 import { useEffect, useState } from "react";
-import { Loading } from "@/components/ui";
+import { PremiumLoader } from "@/components/PremiumLoader";
 import { FIRST_VISIT_LOADER_DEFAULTS } from "./firstVisitLoaderConfig";
 import type { FirstVisitLoaderProps } from "./firstVisitLoaderTypes";
 
@@ -86,5 +86,5 @@ export function FirstVisitLoader({
   }, [show, storageKey, fallbackMs]);
 
   if (show !== true) return null;
-  return <Loading />;
+  return <PremiumLoader />;
 }

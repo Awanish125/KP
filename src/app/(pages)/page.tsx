@@ -11,20 +11,25 @@
  * wrapper block below.
  */
 
-import { useRef, Fragment } from "react";
+import { Fragment } from "react";
 import { useRouter } from "next/navigation";
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { HeroSection, HeroSectionContent, PinnedHero } from "@/components/hero";
 import { FirstVisitLoader } from "@/components/FirstVisitLoader";
 import { PremiumRevealSection } from "@/components/PremiumRevealSection";
 import { CampaignGallery, type Campaign } from "@/components/gallery";
+import { ServicesStrip } from "@/components/ServicesStrip";
+import { ProcessSteps } from "@/components/ProcessSteps";
+import { OfficeGrid } from "@/components/OfficeGrid";
+import { TestimonialSlider } from "@/components/TestimonialSlider";
+import { SectionReveal } from "@/components/SectionReveal";
+import { CTABanner } from "@/components/CTABanner";
+import { Footer } from "@/components/Footer";
 import { GALLERY_CATEGORIES } from "@/data/categories";
 import data from "@/data/home.json";
+import aboutData from "@/data/about.json";
+import contactData from "@/data/contact.json";
 import { PremiumMarquee } from "@/components/PremiumMarquee";
 
-gsap.registerPlugin(ScrollTrigger);
 const BRANDS = data.brands.map((text) => ({ type: "text" as const, text }));
 // Category cards for the homepage gallery section — one premium card per
 // category, showing that category's own cover image. Clicking one opens the
@@ -47,51 +52,6 @@ const SHOWCASE_IMAGES = data.showcase.images;
 
 export default function Home() {
   const router = useRouter();
-  const counterRefs = useRef<(HTMLSpanElement | null)[]>([]);
-
-  /* ── Lenis smooth scroll ─────────────────────────────────────────────── */
-  /* ── Scroll animations (counters + text reveals) ────────────────────── */
-  useGSAP(() => {
-    data.about.stats.forEach((stat, i) => {
-      const el = counterRefs.current[i];
-      if (!el) return;
-      const obj = { val: 0 };
-      gsap.to(obj, {
-        val: stat.value,
-        duration: 1.6,
-        ease: "power2.out",
-        scrollTrigger: { trigger: "#s2", start: "top 60%" },
-        onUpdate: () => {
-          el.textContent = Math.round(obj.val).toString();
-        },
-      });
-    });
-
-    gsap.fromTo(
-      "#s2-content > *",
-      { opacity: 0, y: 30 },
-      {
-        opacity: 1,
-        y: 0,
-        stagger: 0.12,
-        duration: 0.9,
-        ease: "power3.out",
-        scrollTrigger: { trigger: "#s2", start: "top 65%" },
-      },
-    );
-    gsap.fromTo(
-      "#s3-content > *",
-      { opacity: 0, x: 30 },
-      {
-        opacity: 1,
-        x: 0,
-        stagger: 0.07,
-        duration: 0.7,
-        ease: "power3.out",
-        scrollTrigger: { trigger: "#s3", start: "top 65%" },
-      },
-    );
-  }, []);
 
   /* ── JSX ──────────────────────────────────────────────────────────────── */
   return (
@@ -238,8 +198,42 @@ export default function Home() {
         onCardClick={(card) => router.push(`/gallery?category=${encodeURIComponent(card.title)}`)}
       />
 
-      
-      
+      {/* ── Business sections (JSON-driven) ─────────────────────────────── */}
+      <ServicesStrip
+        items={data.services.items}
+        label={data.services.sectionLabel}
+        heading={data.services.heading}
+        headingEmphasis={data.services.headingEmphasis}
+      />
+
+      <ProcessSteps steps={data.process.steps} />
+
+      {/* Testimonials */}
+      <section
+        className="py-24"
+        style={{ background: "var(--surface)", borderTop: "1px solid var(--border-soft)" }}
+      >
+        <SectionReveal as="div" className="mx-auto mb-12 max-w-6xl px-6">
+          <p
+            style={{
+              fontFamily: "var(--kp-font-mono)",
+              fontSize: "var(--text-label)",
+              letterSpacing: "0.45em",
+              textTransform: "uppercase",
+              color: "var(--kp-orange)",
+            }}
+          >
+            {aboutData.testimonials.label}
+          </p>
+        </SectionReveal>
+        <TestimonialSlider items={aboutData.testimonials.items} />
+      </section>
+
+      <OfficeGrid offices={contactData.offices} />
+
+      <CTABanner />
+
+      <Footer />
     </div>
   );
 }

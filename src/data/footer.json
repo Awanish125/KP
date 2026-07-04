@@ -1,6 +1,6 @@
 {
   "_comment": "Footer content. Edit here — no code changes needed.",
-  "tagline": "Making brands impossible to ignore across Maharashtra since 1998.",
+  "tagline": "Making brands impossible to ignore — HQ in Samastipur, strongest in Bihar & Jharkhand, live pan-India since 1998.",
   "columns": [
     {
       "title": "Company",
@@ -23,9 +23,9 @@
     {
       "title": "Network",
       "links": [
-        { "label": "Mumbai", "href": "/locations" },
-        { "label": "Pune", "href": "/locations" },
-        { "label": "Nagpur", "href": "/locations" },
+        { "label": "Samastipur (HQ)", "href": "/locations" },
+        { "label": "Patna", "href": "/locations" },
+        { "label": "Ranchi", "href": "/locations" },
         { "label": "All Locations", "href": "/locations" }
       ]
     },

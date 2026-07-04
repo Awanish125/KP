@@ -768,6 +768,34 @@
 }
 
 /* ============================================================
+   CUSTOM CURSOR + SCROLLBAR
+   Classes are added by CustomCursor / CustomScrollbar only when
+   they activate (fine pointer, no reduced-motion) — touch and
+   accessibility users keep native UI.
+   ============================================================ */
+.kp-cursor-active,
+.kp-cursor-active a,
+.kp-cursor-active button,
+.kp-cursor-active [role='button'],
+.kp-cursor-active input,
+.kp-cursor-active select,
+.kp-cursor-active textarea,
+.kp-cursor-active label {
+  cursor: none;
+}
+
+.kp-scrollbar-active {
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* legacy Edge */
+}
+.kp-scrollbar-active::-webkit-scrollbar,
+.kp-scrollbar-active body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* ============================================================
    GLOBAL BASE
    ============================================================ */
 html, body { min-height: 100%; }

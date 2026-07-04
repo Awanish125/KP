@@ -10,7 +10,7 @@
     {
       "id": "billboards",
       "title": "Billboards & Hoardings",
-      "desc": "Premium large-format sites on Maharashtra's busiest highways and city junctions — engineered steel, front-lit, back-lit, and monumental.",
+      "desc": "Premium large-format sites on India's busiest highways and city junctions — engineered steel, front-lit, back-lit, and monumental.",
       "icon": "billboard",
       "features": ["400+ owned structures", "NH & flyover-facing sites", "Monsoon-certified steel", "Monthly photo proof"]
     },
@@ -26,12 +26,12 @@
       "title": "Transit Media",
       "desc": "Bus wraps, auto hoods, and metro panels moving through every artery of the state — your brand doing the commute with your customers.",
       "icon": "bus",
-      "features": ["MSRTC & city bus fleets", "Full & partial wraps", "Metro station panels", "Route-level planning"]
+      "features": ["State & city bus fleets", "Full & partial wraps", "Railway station panels", "Route-level planning"]
     },
     {
       "id": "airport-mall",
       "title": "Airport & Mall Media",
-      "desc": "Captive-audience placements inside Pune and Nagpur airports and Maharashtra's highest-footfall malls — dwell time you can't buy on a highway.",
+      "desc": "Captive-audience placements inside Patna and Ranchi airports and eastern India's highest-footfall malls — dwell time you can't buy on a highway.",
       "icon": "building",
       "features": ["Arrival & departure zones", "Atrium banners", "Digital totems", "Footfall reporting"]
     },
