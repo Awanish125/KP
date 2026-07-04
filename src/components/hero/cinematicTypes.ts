@@ -1,4 +1,4 @@
-export type HeroIntroState = "idle" | "IntroPlaying" | "Completed" | "Resetting";
+export type HeroIntroState = "Idle" | "Playing" | "Completed" | "Resetting";
 
 export interface HeroIntroConfig {
   camera: {
@@ -38,6 +38,9 @@ export interface EditorialMarqueeItem {
   fontSize?: string;
   letterSpacing?: string;
   italic?: boolean;
+  spacing?: string;
+  animationDelay?: number;
+  animationOrder?: number;
 }
 
 export interface EditorialMarqueeConfig {

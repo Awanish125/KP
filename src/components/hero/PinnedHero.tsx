@@ -36,8 +36,8 @@ export function PinnedHero({
 }: PinnedHeroProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
-  const marqueeTweenRef = useRef<gsap.core.Tween | null>(null);
-  const stateRef = useRef<HeroIntroState>("idle");
+  const scrollTweenRef = useRef<gsap.core.Tween | null>(null);
+  const stateRef = useRef<HeroIntroState>("Idle");
   const readyRef = useRef(false);
   const touchYRef = useRef<number | null>(null);
 
@@ -58,7 +58,7 @@ export function PinnedHero({
     const statValues = gsap.utils.toArray<HTMLElement>("[data-stat-value]", root);
     const marqueeRoot = root.querySelector<HTMLElement>("[data-hero-marquee]");
     const marqueeTrack = root.querySelector<HTMLElement>("[data-marquee-track]");
-    const marqueeGroup = root.querySelector<HTMLElement>("[data-marquee-group]");
+    const marqueeWords = gsap.utils.toArray<HTMLElement>("[data-marquee-word]", root);
     const indicator = root.querySelector<HTMLElement>("[data-scroll-indicator]");
     const camera = {
       zoom: intro.camera.initialZoom,
@@ -72,19 +72,21 @@ export function PinnedHero({
     applyCamera();
 
     let removeListeners = () => {};
-    let disposed = false;
     const context = gsap.context(() => {
+      // Set initial values
       gsap.set(statsPanel, { autoAlpha: 0, y: 28, scale: 0.985 });
       gsap.set([...statReveal, ...statItems], { autoAlpha: 0, y: 18 });
       gsap.set(marqueeRoot, { autoAlpha: 0, y: 24, clipPath: "inset(0 100% 0 0)" });
+      gsap.set(marqueeWords, { autoAlpha: 0, y: 15, filter: "blur(6px)" });
 
       if (reduced) {
         gsap.set(content, { autoAlpha: 0 });
         gsap.set(statsPanel, { autoAlpha: 1, y: 0, scale: 1 });
-        gsap.set([...statReveal, ...statItems, marqueeRoot], {
+        gsap.set([...statReveal, ...statItems, marqueeRoot, ...marqueeWords], {
           autoAlpha: 1,
           y: 0,
           clipPath: "inset(0 0% 0 0)",
+          filter: "blur(0px)",
         });
         statValues.forEach((el) => { el.textContent = el.dataset.value ?? "0"; });
         camera.zoom = intro.camera.initialZoom;
@@ -95,30 +97,6 @@ export function PinnedHero({
         return;
       }
 
-      const buildMarqueeLoop = () => {
-        if (disposed) return;
-        if (!marqueeTrack || !marqueeGroup) return;
-        marqueeTweenRef.current?.kill();
-        gsap.set(marqueeTrack, { x: 0 });
-        const distance = marqueeGroup.getBoundingClientRect().width;
-        if (distance <= 0) return;
-        marqueeTweenRef.current = gsap.to(marqueeTrack, {
-          x: -distance,
-          duration: distance / Math.max(marquee.pixelsPerSecond, 1),
-          ease: "none",
-          repeat: -1,
-          paused: true,
-        });
-      };
-
-      buildMarqueeLoop();
-      document.fonts.ready.then(buildMarqueeLoop);
-      const slowMarquee = () => gsap.to(marqueeTweenRef.current, { timeScale: marquee.hoverSpeedFactor, duration: 0.6, ease: "power2.out" });
-      const restoreMarquee = () => gsap.to(marqueeTweenRef.current, { timeScale: 1, duration: 0.8, ease: "power2.out" });
-      marqueeRoot?.addEventListener("pointerenter", slowMarquee);
-      marqueeRoot?.addEventListener("pointerleave", restoreMarquee);
-      window.addEventListener("resize", buildMarqueeLoop, { passive: true });
-
       // Create master timeline once
       const counters = statValues.map((el) => ({ el, value: 0, target: Number(el.dataset.value) || 0 }));
       const tl = gsap.timeline({
@@ -127,20 +105,6 @@ export function PinnedHero({
           setState("Completed");
           window.dispatchEvent(new CustomEvent("kp:scroll-unlock"));
           root.dispatchEvent(new CustomEvent("kp:hero-intro-complete"));
-        },
-        onReverseComplete: () => {
-          setState("idle");
-          counters.forEach((counter) => {
-            counter.value = 0;
-            counter.el.textContent = "0";
-          });
-          marqueeTweenRef.current?.pause();
-          if (marqueeTrack) {
-            gsap.set(marqueeTrack, { x: 0 });
-          }
-          camera.zoom = intro.camera.initialZoom;
-          camera.offsetX = window.innerWidth < 768 ? 0 : intro.camera.initialOffsetX;
-          applyCamera();
         }
       });
       timelineRef.current = tl;
@@ -209,38 +173,93 @@ export function PinnedHero({
           duration: intro.timing.marqueeReveal,
           ease: intro.easing.reveal,
         }, `reveal+=${marquee.revealDelay}`)
-        .call(() => {
-          if (tl.reversed()) {
-            marqueeTweenRef.current?.pause();
-          } else {
-            marqueeTweenRef.current?.play();
-          }
-        }, [], `reveal+=${marquee.revealDelay + 0.3}`);
+        .to(marqueeWords, {
+          autoAlpha: 1,
+          y: 0,
+          filter: "blur(0px)",
+          duration: 0.8,
+          stagger: 0.06,
+          ease: "power2.out",
+        }, `reveal+=${marquee.revealDelay + 0.15}`);
 
-      // ScrollTrigger to detect returning to Hero
-      const resetTrigger = ScrollTrigger.create({
+      // Scroll-controlled editorial typography movement (right to left)
+      const buildScrollAnimation = () => {
+        if (scrollTweenRef.current) {
+          scrollTweenRef.current.scrollTrigger?.kill();
+          scrollTweenRef.current.kill();
+        }
+
+        const containerWidth = marqueeRoot?.offsetWidth ?? 0;
+        const textWidth = marqueeTrack?.scrollWidth ?? 0;
+
+        scrollTweenRef.current = gsap.fromTo(marqueeTrack, {
+          x: containerWidth * 0.25,
+        }, {
+          x: -textWidth,
+          ease: "none",
+          scrollTrigger: {
+            trigger: root,
+            start: "top top",
+            end: "bottom top",
+            scrub: 1.2,
+            invalidateOnRefresh: true,
+          }
+        });
+      };
+
+      buildScrollAnimation();
+      window.addEventListener("resize", buildScrollAnimation, { passive: true });
+
+      // Reset to exact fresh load state cleanly & deterministically
+      const resetToInitial = () => {
+        setState("Resetting");
+        
+        // Return master timeline to beginning instantly
+        tl.progress(0).pause();
+
+        // Reset counters to exactly 0
+        counters.forEach((counter) => {
+          counter.value = 0;
+          counter.el.textContent = "0";
+        });
+
+        // Reset camera positions
+        camera.zoom = intro.camera.initialZoom;
+        camera.offsetX = window.innerWidth < 768 ? 0 : intro.camera.initialOffsetX;
+        applyCamera();
+
+        // Reset track position
+        if (marqueeTrack) {
+          const containerWidth = marqueeRoot?.offsetWidth ?? 0;
+          gsap.set(marqueeTrack, { x: containerWidth * 0.25 });
+        }
+
+        setState("Idle");
+      };
+
+      // ScrollTrigger to detect entering/leaving/re-entering Hero region
+      const heroTrigger = ScrollTrigger.create({
         trigger: root,
         start: "top top",
         end: "bottom top",
+        onLeave: () => {
+          if (stateRef.current === "Completed") {
+            resetToInitial();
+          }
+        },
         onEnterBack: () => {
           if (stateRef.current === "Completed") {
-            setState("Resetting");
-            marqueeTweenRef.current?.pause();
-            if (marqueeTrack) {
-              gsap.to(marqueeTrack, { x: 0, duration: 0.4, ease: "power2.out" });
-            }
-            tl.timeScale(1.8).reverse();
+            resetToInitial();
           }
         },
       });
 
       const play = () => {
         if (!readyRef.current) return;
-        if (stateRef.current === "idle" || stateRef.current === "Resetting") {
-          setState("IntroPlaying");
+        if (stateRef.current === "Idle" || stateRef.current === "Resetting") {
+          setState("Playing");
           window.dispatchEvent(new CustomEvent("kp:scroll-lock"));
-          buildMarqueeLoop();
-          tl.timeScale(1).play();
+          tl.play();
         }
       };
 
@@ -248,16 +267,16 @@ export function PinnedHero({
         if (stateRef.current === "Completed") return false;
         if (window.scrollY > 5) return false;
         event.preventDefault();
-        if (stateRef.current === "idle" || stateRef.current === "Resetting") {
+        if (stateRef.current === "Idle" || stateRef.current === "Resetting") {
           play();
         }
         return true;
       };
       const onWheel = (event: WheelEvent) => {
-        if (event.deltaY > 0 || stateRef.current === "IntroPlaying") consume(event);
+        if (event.deltaY > 0 || stateRef.current === "Playing") consume(event);
       };
       const onKeyDown = (event: KeyboardEvent) => {
-        if (TRIGGER_KEYS.has(event.key) && (!event.shiftKey || stateRef.current === "IntroPlaying")) consume(event);
+        if (TRIGGER_KEYS.has(event.key) && (!event.shiftKey || stateRef.current === "Playing")) consume(event);
       };
       const onTouchStart = (event: TouchEvent) => {
         touchYRef.current = event.touches[0]?.clientY ?? null;
@@ -265,7 +284,7 @@ export function PinnedHero({
       const onTouchMove = (event: TouchEvent) => {
         const currentY = event.touches[0]?.clientY;
         const startY = touchYRef.current;
-        if (stateRef.current === "IntroPlaying") consume(event);
+        if (stateRef.current === "Playing") consume(event);
         else if (startY != null && currentY != null && startY - currentY > 10) consume(event);
       };
 
@@ -284,24 +303,21 @@ export function PinnedHero({
         window.removeEventListener("touchstart", onTouchStart);
         window.removeEventListener("touchmove", onTouchMove);
         window.removeEventListener("kp:loaded", arm);
-        window.removeEventListener("resize", buildMarqueeLoop);
-        marqueeRoot?.removeEventListener("pointerenter", slowMarquee);
-        marqueeRoot?.removeEventListener("pointerleave", restoreMarquee);
+        window.removeEventListener("resize", buildScrollAnimation);
       };
     }, root);
 
     return () => {
-      disposed = true;
       removeListeners();
       timelineRef.current?.kill();
-      marqueeTweenRef.current?.kill();
+      scrollTweenRef.current?.kill();
       window.dispatchEvent(new CustomEvent("kp:scroll-unlock"));
       context.revert();
     };
   }, [intro, marquee, setState]);
 
   return (
-    <section ref={rootRef} className="hero-cinematic" data-intro-state="idle">
+    <section ref={rootRef} className="hero-cinematic" data-intro-state="Idle">
       <div className="hero-cinematic-stage">
         {children}
         <div className="hero-cinematic-lower">

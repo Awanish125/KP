@@ -40,43 +40,113 @@
       "location": "Across Maharashtra"
     },
     "editorialMarquee": {
-      "pixelsPerSecond": 74,
-      "hoverSpeedFactor": 0.42,
-      "gap": 36,
-      "separator": "◆",
-      "separatorColor": "#f5821f",
+      "gap": 64,
       "revealDelay": 0.5,
       "items": [
         {
-          "text": "OUTDOOR",
+          "text": "DIGITAL",
+          "fontSize": "clamp(2rem, 6vw, 6.5rem)",
           "fontWeight": 900,
-          "fontSize": "clamp(1.45rem, 3.4vw, 3.75rem)",
-          "letterSpacing": "0.12em",
-          "color": "#ffffff"
+          "letterSpacing": "0.15em",
+          "color": "#ffffff",
+          "spacing": "40px",
+          "animationDelay": 0.1,
+          "animationOrder": 1
         },
         {
-          "text": "MADE ICONIC",
+          "text": "OUTDOOR",
+          "fontSize": "clamp(1.8rem, 5.5vw, 6rem)",
           "fontWeight": 300,
-          "fontSize": "clamp(1.25rem, 3vw, 3.25rem)",
+          "letterSpacing": "0.2em",
+          "outline": true,
+          "outlineColor": "rgba(255, 255, 255, 0.65)",
+          "spacing": "45px",
+          "animationDelay": 0.15,
+          "animationOrder": 2
+        },
+        {
+          "text": "OOH",
+          "fontSize": "clamp(1.6rem, 5vw, 5.5rem)",
+          "fontWeight": 800,
+          "letterSpacing": "0.1em",
+          "gradient": ["#ffffff", "#f5b474", "#f5821f"],
+          "spacing": "35px",
+          "animationDelay": 0.2,
+          "animationOrder": 3
+        },
+        {
+          "text": "LED",
+          "fontSize": "clamp(2rem, 6vw, 6.5rem)",
+          "fontWeight": 900,
+          "letterSpacing": "0.15em",
+          "outline": true,
+          "outlineColor": "rgba(255, 255, 255, 0.8)",
+          "spacing": "40px",
+          "animationDelay": 0.25,
+          "animationOrder": 4
+        },
+        {
+          "text": "NETWORK",
+          "fontSize": "clamp(1.4rem, 4vw, 4.5rem)",
+          "fontWeight": 400,
+          "letterSpacing": "0.25em",
+          "opacity": 0.7,
+          "color": "#ffffff",
+          "spacing": "50px",
+          "animationDelay": 0.3,
+          "animationOrder": 5
+        },
+        {
+          "text": "PREMIUM",
+          "fontSize": "clamp(2.2rem, 7vw, 7.5rem)",
+          "fontWeight": 900,
+          "letterSpacing": "0.08em",
+          "gradient": ["#ffffff", "#f5b474", "#f5821f"],
+          "spacing": "40px",
+          "animationDelay": 0.35,
+          "animationOrder": 6
+        },
+        {
+          "text": "VISIBILITY",
+          "fontSize": "clamp(1.8rem, 5.5vw, 6rem)",
+          "fontWeight": 300,
           "letterSpacing": "0.18em",
           "outline": true,
-          "outlineColor": "rgba(255,255,255,0.72)"
+          "outlineColor": "rgba(255, 255, 255, 0.5)",
+          "spacing": "45px",
+          "animationDelay": 0.4,
+          "animationOrder": 7
         },
         {
-          "text": "CITY SCALE",
+          "text": "DOOH",
+          "fontSize": "clamp(1.5rem, 4.5vw, 5rem)",
           "fontWeight": 800,
-          "fontSize": "clamp(1.4rem, 3.25vw, 3.6rem)",
-          "letterSpacing": "0.1em",
-          "gradient": ["#ffffff", "#f5b474", "#f5821f"]
+          "letterSpacing": "0.12em",
+          "color": "#ffffff",
+          "spacing": "35px",
+          "animationDelay": 0.45,
+          "animationOrder": 8
         },
         {
-          "text": "REAL IMPACT",
+          "text": "TRANSIT",
+          "fontSize": "clamp(1.3rem, 4vw, 4.5rem)",
           "fontWeight": 400,
-          "fontSize": "clamp(1.2rem, 2.8vw, 3rem)",
           "letterSpacing": "0.2em",
-          "italic": true,
-          "opacity": 0.78,
-          "color": "#ffffff"
+          "opacity": 0.6,
+          "color": "#ffffff",
+          "spacing": "50px",
+          "animationDelay": 0.5,
+          "animationOrder": 9
+        },
+        {
+          "text": "SMART CITY",
+          "fontSize": "clamp(2rem, 6vw, 6.5rem)",
+          "fontWeight": 900,
+          "letterSpacing": "0.15em",
+          "gradient": ["#f5b474", "#f5821f", "#e65c00"],
+          "spacing": "40px",
+          "animationDelay": 0.55,
+          "animationOrder": 10
         }
       ]
     },
