@@ -1044,11 +1044,35 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
       );
     });
 
+    // Pause WebGL rendering loop when off-screen to maximize scroll performance
+    let isVisible = true;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible) {
+          if (!rafRef.current && !disposedRef.current) {
+            rafRef.current = requestAnimationFrame(tick);
+          }
+        } else {
+          if (rafRef.current) {
+            cancelAnimationFrame(rafRef.current);
+            rafRef.current = 0;
+          }
+        }
+      },
+      { threshold: 0.01 }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
     window.addEventListener("mousemove", onMouseMove, { passive: true });
     window.addEventListener("resize", onResize);
 
     return () => {
       disposedRef.current = true;
+      observer.disconnect();
       heroUniformBridge.setZoom    = null;
       heroUniformBridge.setOffsetX = null;
       cancelAnimationFrame(rafRef.current);
@@ -1058,10 +1082,6 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
       gsap.killTweensOf(uniforms.uKenBurnsNext);
       gsap.killTweensOf(uniforms.uProgress);
       delayedCallRef.current?.kill();
-      // gsap.globalTimeline.getChildren(true, false, true).forEach((t) => {
-      //   if ((t as gsap.core.Tween).vars?.onComplete === runTransition) t.kill();
-      // });
-      // renderer.gl.getExtension("WEBGL_lose_context")?.loseContext();
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("resize", onResize);
     };

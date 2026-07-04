@@ -90,21 +90,25 @@
   visibility: hidden;
   position: relative;
   overflow: hidden;
-  border-top: 1px solid rgba(255,255,255,.09);
-  background: rgba(5, 6, 8, .94);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(245, 130, 31, 0.13), transparent 34%),
+    linear-gradient(135deg, rgba(20, 23, 28, 0.86), rgba(5, 7, 10, 0.78));
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
   mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
 }
 .hero-editorial-track { display: flex; width: max-content; will-change: transform; }
 .hero-editorial-group { display: flex; flex: none; align-items: center; padding: 12px 18px; }
 .hero-editorial-pair { display: inline-flex; flex: none; align-items: center; gap: 36px; }
-.hero-editorial-word { color: var(--item-color); line-height: .92; text-transform: uppercase; white-space: nowrap; transition: filter 400ms ease; }
+.hero-editorial-word { color: var(--item-color); line-height: .92; text-transform: uppercase; white-space: nowrap; will-change: transform, opacity, filter; }
 .hero-editorial-word.is-outline { color: transparent; -webkit-text-stroke: 1px var(--item-outline); }
 .hero-editorial-word.is-gradient { color: transparent; background-clip: text; -webkit-background-clip: text; }
 .hero-editorial-separator { font-size: 9px; opacity: .85; }
 .hero-editorial-sweep { position: absolute; z-index: 2; inset: 0 auto 0 -30%; width: 20%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent); transform: skewX(-16deg); animation: hero-light-sweep 7s ease-in-out infinite 3s; pointer-events: none; }
 .hero-editorial-marquee:hover .hero-editorial-track { animation-play-state: running; }
-.hero-editorial-marquee:hover .hero-editorial-word { filter: brightness(1.28) drop-shadow(0 0 12px rgba(245,130,31,.2)); }
+.hero-editorial-marquee:hover .hero-editorial-word { filter: brightness(1.28) drop-shadow(0 0 12px rgba(245,130,31,.2)); transition: filter 400ms ease; }
 
 @keyframes hero-light-sweep { 0%, 68% { transform: translateX(0) skewX(-16deg); opacity: 0; } 74% { opacity: 1; } 92%, 100% { transform: translateX(650%) skewX(-16deg); opacity: 0; } }
 

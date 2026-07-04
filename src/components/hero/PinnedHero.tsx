@@ -71,9 +71,8 @@ export function PinnedHero({
 
     applyCamera();
 
-    let removeListeners = () => {};
     const context = gsap.context(() => {
-      // Set initial values
+      // Set initial state values
       gsap.set(statsPanel, { autoAlpha: 0, y: 28, scale: 0.985 });
       gsap.set([...statReveal, ...statItems], { autoAlpha: 0, y: 18 });
       gsap.set(marqueeRoot, { autoAlpha: 0, y: 24, clipPath: "inset(0 100% 0 0)" });
@@ -97,82 +96,103 @@ export function PinnedHero({
         return;
       }
 
-      // Create master timeline once
+      // Initial track translation position
+      const containerWidth = marqueeRoot?.offsetWidth ?? 0;
+      gsap.set(marqueeTrack, { x: containerWidth * 0.25 });
+
+      // Create master timeline driven entirely by scroll scrub
       const counters = statValues.map((el) => ({ el, value: 0, target: Number(el.dataset.value) || 0 }));
+      
       const tl = gsap.timeline({
-        paused: true,
-        onComplete: () => {
-          setState("Completed");
-          window.dispatchEvent(new CustomEvent("kp:scroll-unlock"));
-          root.dispatchEvent(new CustomEvent("kp:hero-intro-complete"));
+        scrollTrigger: {
+          trigger: root,
+          start: "top top",
+          end: () => `+=${window.innerHeight * 2.5}`,
+          scrub: 1.3,
+          pin: true,
+          pinSpacing: true,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            if (self.progress === 0) {
+              setState("Idle");
+            } else if (self.progress > 0 && self.progress < 0.98) {
+              setState("Playing");
+            } else {
+              setState("Completed");
+            }
+          }
         }
       });
       timelineRef.current = tl;
 
+      // 1. Depart Sequence
       tl.addLabel("depart")
         .to(content, {
           autoAlpha: 0,
           y: -54,
           scale: 0.975,
           filter: "blur(8px)",
-          duration: intro.timing.contentExit,
-          ease: intro.easing.exit,
+          duration: 1.0,
+          ease: "power2.inOut",
         }, "depart")
-        .to(indicator, { autoAlpha: 0, y: 10, duration: 0.35, ease: "power2.out" }, "depart")
+        .to(indicator, { autoAlpha: 0, y: 10, duration: 0.4 }, "depart")
         .to(camera, {
           zoom: intro.camera.peakZoom,
-          duration: intro.timing.cameraPush,
-          ease: intro.easing.camera,
+          duration: 1.0,
+          ease: "power2.inOut",
           onUpdate: applyCamera,
         }, "depart")
-        .addLabel("compose", `depart+=${Math.max(intro.timing.contentExit - 0.08, 0)}`)
+        
+        // 2. Compose Camera Zoom Return
+        .addLabel("compose", "depart+=0.8")
         .to(camera, {
           zoom: intro.camera.initialZoom,
           offsetX: 0,
-          duration: intro.timing.cameraReturn,
+          duration: 1.2,
           ease: "expo.inOut",
           onUpdate: applyCamera,
         }, "compose")
-        .addLabel("reveal", "compose+=0.42")
+        
+        // 3. Stats Reveal
+        .addLabel("reveal", "compose+=0.8")
         .to(statsPanel, {
           autoAlpha: 1,
           y: 0,
           scale: 1,
-          duration: intro.timing.statsReveal,
-          ease: intro.easing.reveal,
+          duration: 0.8,
+          ease: "power3.out",
         }, "reveal")
         .to(statReveal, {
           autoAlpha: 1,
           y: 0,
-          duration: 0.65,
+          duration: 0.6,
           stagger: 0.08,
-          ease: intro.easing.reveal,
-        }, "reveal+=0.12")
+          ease: "power2.out",
+        }, "reveal+=0.1")
         .to(statItems, {
           autoAlpha: 1,
           y: 0,
-          duration: 0.7,
-          stagger: 0.07,
-          ease: intro.easing.reveal,
-        }, "reveal+=0.2")
+          duration: 0.6,
+          stagger: 0.08,
+          ease: "power2.out",
+        }, "reveal+=0.15")
         .to(counters, {
           value: (index: number) => counters[index].target,
-          duration: intro.timing.counter,
-          stagger: 0.045,
-          ease: "power3.out",
+          duration: 1.0,
+          ease: "power2.out",
           onUpdate() {
             counters.forEach((counter) => {
               counter.el.textContent = Math.round(counter.value).toLocaleString("en-IN");
             });
           },
-        }, "reveal+=0.28")
+        }, "reveal+=0.2")
         .to(marqueeRoot, {
           autoAlpha: 1,
           y: 0,
           clipPath: "inset(0 0% 0 0)",
-          duration: intro.timing.marqueeReveal,
-          ease: intro.easing.reveal,
-        }, `reveal+=${marquee.revealDelay}`)
+          duration: 0.8,
+          ease: "power2.out",
+        }, "reveal+=0.25")
         .to(marqueeWords, {
           autoAlpha: 1,
           y: 0,
@@ -180,144 +200,28 @@ export function PinnedHero({
           duration: 0.8,
           stagger: 0.06,
           ease: "power2.out",
-        }, `reveal+=${marquee.revealDelay + 0.15}`);
+        }, "reveal+=0.3")
 
-      // Scroll-controlled editorial typography movement (right to left) with section pinning
-      const buildScrollAnimation = () => {
-        if (scrollTweenRef.current) {
-          scrollTweenRef.current.scrollTrigger?.kill();
-          scrollTweenRef.current.kill();
-        }
-
-        const containerWidth = marqueeRoot?.offsetWidth ?? 0;
-        const textWidth = marqueeTrack?.scrollWidth ?? 0;
-
-        // Stop translating when the right edge of the track aligns with the right edge of the screen
-        const targetX = containerWidth - textWidth;
-        const scrollDistance = Math.max(textWidth - containerWidth * 0.75, 300);
-
-        scrollTweenRef.current = gsap.fromTo(marqueeTrack, {
-          x: containerWidth * 0.25,
-        }, {
-          x: targetX,
+        // 4. Horizontal Editorial Scroll Animation
+        .addLabel("scrollMarquee", "reveal+=0.8")
+        .to(marqueeTrack, {
+          x: () => {
+            const containerW = marqueeRoot?.offsetWidth ?? 0;
+            const textW = marqueeTrack?.scrollWidth ?? 0;
+            return containerW - textW;
+          },
+          duration: 2.0,
           ease: "none",
-          scrollTrigger: {
-            trigger: root,
-            start: "top top",
-            end: () => `+=${scrollDistance}`,
-            scrub: 1.2,
-            pin: true,
-            pinSpacing: true,
-            invalidateOnRefresh: true,
-          }
-        });
-      };
-
-      buildScrollAnimation();
-      window.addEventListener("resize", buildScrollAnimation, { passive: true });
-
-      // Reset to exact fresh load state cleanly & deterministically
-      const resetToInitial = () => {
-        setState("Resetting");
-        
-        // Return master timeline to beginning instantly
-        tl.progress(0).pause();
-
-        // Reset counters to exactly 0
-        counters.forEach((counter) => {
-          counter.value = 0;
-          counter.el.textContent = "0";
-        });
-
-        // Reset camera positions
-        camera.zoom = intro.camera.initialZoom;
-        camera.offsetX = window.innerWidth < 768 ? 0 : intro.camera.initialOffsetX;
-        applyCamera();
-
-        // Reset track position
-        if (marqueeTrack) {
-          const containerWidth = marqueeRoot?.offsetWidth ?? 0;
-          gsap.set(marqueeTrack, { x: containerWidth * 0.25 });
-        }
-
-        setState("Idle");
-      };
-
-      // ScrollTrigger to detect entering/leaving/re-entering Hero region
-      const heroTrigger = ScrollTrigger.create({
-        trigger: root,
-        start: "top top",
-        end: "bottom top",
-        onLeave: () => {
-          if (stateRef.current === "Completed") {
-            resetToInitial();
-          }
-        },
-        onEnterBack: () => {
-          if (stateRef.current === "Completed") {
-            resetToInitial();
-          }
-        },
-      });
-
-      const play = () => {
-        if (!readyRef.current) return;
-        if (stateRef.current === "Idle" || stateRef.current === "Resetting") {
-          setState("Playing");
-          window.dispatchEvent(new CustomEvent("kp:scroll-lock"));
-          tl.play();
-        }
-      };
-
-      const consume = (event: Event) => {
-        if (stateRef.current === "Completed") return false;
-        if (window.scrollY > 5) return false;
-        event.preventDefault();
-        if (stateRef.current === "Idle" || stateRef.current === "Resetting") {
-          play();
-        }
-        return true;
-      };
-      const onWheel = (event: WheelEvent) => {
-        if (event.deltaY > 0 || stateRef.current === "Playing") consume(event);
-      };
-      const onKeyDown = (event: KeyboardEvent) => {
-        if (TRIGGER_KEYS.has(event.key) && (!event.shiftKey || stateRef.current === "Playing")) consume(event);
-      };
-      const onTouchStart = (event: TouchEvent) => {
-        touchYRef.current = event.touches[0]?.clientY ?? null;
-      };
-      const onTouchMove = (event: TouchEvent) => {
-        const currentY = event.touches[0]?.clientY;
-        const startY = touchYRef.current;
-        if (stateRef.current === "Playing") consume(event);
-        else if (startY != null && currentY != null && startY - currentY > 10) consume(event);
-      };
-
-      window.addEventListener("wheel", onWheel, { passive: false });
-      window.addEventListener("keydown", onKeyDown, { passive: false });
-      window.addEventListener("touchstart", onTouchStart, { passive: true });
-      window.addEventListener("touchmove", onTouchMove, { passive: false });
+        }, "scrollMarquee");
 
       const arm = () => { readyRef.current = true; };
       if (document.documentElement.classList.contains("page-revealed")) arm();
       else window.addEventListener("kp:loaded", arm, { once: true });
-
-      removeListeners = () => {
-        window.removeEventListener("wheel", onWheel);
-        window.removeEventListener("keydown", onKeyDown);
-        window.removeEventListener("touchstart", onTouchStart);
-        window.removeEventListener("touchmove", onTouchMove);
-        window.removeEventListener("kp:loaded", arm);
-        window.removeEventListener("resize", buildScrollAnimation);
-      };
     }, root);
 
     return () => {
-      removeListeners();
       timelineRef.current?.kill();
       scrollTweenRef.current?.kill();
-      window.dispatchEvent(new CustomEvent("kp:scroll-unlock"));
       context.revert();
     };
   }, [intro, marquee, setState]);
