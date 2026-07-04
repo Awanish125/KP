@@ -1,0 +1,12 @@
+{
+  "_comment": "Navbar links + CTA. Edit here — no code changes needed.",
+  "links": [
+    { "label": "Home", "href": "/" },
+    { "label": "About", "href": "/about" },
+    { "label": "Services", "href": "/services" },
+    { "label": "Locations", "href": "/locations" },
+    { "label": "Case Studies", "href": "/case-studies" },
+    { "label": "Gallery", "href": "/gallery" }
+  ],
+  "cta": { "label": "Start a Campaign", "href": "/contact" }
+}

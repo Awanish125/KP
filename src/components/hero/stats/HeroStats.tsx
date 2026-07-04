@@ -75,7 +75,7 @@ export function HeroStats({
   return (
     <div
       ref={wrapRef}
-      className={["pointer-events-none absolute inset-x-0 bottom-0 z-50", className ?? ""].join(" ")}
+      className={["pointer-events-none absolute inset-x-0 bottom-50 z-50", className ?? ""].join(" ")}
       style={{
         opacity:    0,
         transform:  "translate3d(0, 28px, 0)",

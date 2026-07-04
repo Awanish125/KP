@@ -8,15 +8,9 @@ import { X } from 'lucide-react';
 import gsap from 'gsap';
 import { NavLogo }       from './NavLogo';
 import { ThemeToggle3D } from './ThemeToggle3D';
+import navData from '@/data/nav.json';
 
-const NAV_LINKS = [
-  { label: 'Home',        href: '/' },
-  { label: 'About',       href: '/about' },
-  { label: 'Features',    href: '/features' },
-  { label: 'Pricing',     href: '/pricing' },
-  { label: 'Integration', href: '/integration' },
-  { label: 'Blog',        href: '/blog' },
-];
+const NAV_LINKS: { label: string; href: string }[] = navData.links;
 
 type Props = {
   isOpen:  boolean;

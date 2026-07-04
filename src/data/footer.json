@@ -1,0 +1,48 @@
+{
+  "_comment": "Footer content. Edit here — no code changes needed.",
+  "tagline": "Making brands impossible to ignore across Maharashtra since 1998.",
+  "columns": [
+    {
+      "title": "Company",
+      "links": [
+        { "label": "About Us", "href": "/about" },
+        { "label": "Case Studies", "href": "/case-studies" },
+        { "label": "Gallery", "href": "/gallery" },
+        { "label": "Contact", "href": "/contact" }
+      ]
+    },
+    {
+      "title": "Services",
+      "links": [
+        { "label": "Billboards & Hoardings", "href": "/services" },
+        { "label": "Transit Media", "href": "/services" },
+        { "label": "Digital LED Screens", "href": "/services" },
+        { "label": "Brand Activations", "href": "/services" }
+      ]
+    },
+    {
+      "title": "Network",
+      "links": [
+        { "label": "Mumbai", "href": "/locations" },
+        { "label": "Pune", "href": "/locations" },
+        { "label": "Nagpur", "href": "/locations" },
+        { "label": "All Locations", "href": "/locations" }
+      ]
+    },
+    {
+      "title": "Get in Touch",
+      "links": [
+        { "label": "hello@kiranpublicity.in", "href": "mailto:hello@kiranpublicity.in" },
+        { "label": "+91 98220 44210", "href": "tel:+919822044210" },
+        { "label": "Start a Campaign", "href": "/contact" }
+      ]
+    }
+  ],
+  "social": {
+    "instagram": "https://instagram.com/kiranpublicity",
+    "linkedin": "https://linkedin.com/company/kiranpublicity",
+    "facebook": "https://facebook.com/kiranpublicity",
+    "youtube": "https://youtube.com/@kiranpublicity"
+  },
+  "legal": "© 2026 Kiran Publicity Pvt. Ltd. All rights reserved."
+}

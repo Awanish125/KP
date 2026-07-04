@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
 @import "../styles/hero.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -75,11 +76,8 @@
    These power the glass / navbar / toggle / sidebar.
    ============================================================ */
 :root {
-  --bg:            #FFFFFF;   /* pure white light mode */
-  --bg-secondary:  #F4F6F8;   /* kp-ink-50 — subtle surface */
-  --fg:            #14181D;   /* kp-ink — near-black heading ink */
-  --fg-muted:      #5A646F;   /* kp-ink-500 */
-  --fg-subtle:     #AEB7C1;   /* kp-ink-300 */
+  /* --bg / --bg-secondary / --fg / --fg-muted / --fg-subtle now live in
+     src/styles/tokens.css — the single source of truth for theme colors. */
 
   /* Glass */
   --glass-bg:        rgba(255, 255, 255, 0.60);
@@ -127,11 +125,7 @@
 }
 
 .dark {
-  --bg:            #14181D;   /* kp-ink — billboard-dark */
-  --bg-secondary:  #1e242b;
-  --fg:            #F4F6F8;
-  --fg-muted:      #AEB7C1;
-  --fg-subtle:     #5A646F;
+  /* --bg / --bg-secondary / --fg / --fg-muted / --fg-subtle → tokens.css */
 
   --glass-bg:        rgba(255, 255, 255, 0.06);
   --glass-bg-hover:  rgba(255, 255, 255, 0.11);

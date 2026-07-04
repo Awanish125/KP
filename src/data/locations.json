@@ -1,0 +1,28 @@
+{
+  "_comment": "Locations page content. lat/lng are real coordinates — the map projects them onto the Maharashtra SVG.",
+  "hero": {
+    "label": "The Network",
+    "line1": "400+ SITES.",
+    "line2": "ONE STATE.",
+    "sub": "From Mumbai's sea link to Nagpur's zero mile — click a pin to explore the network."
+  },
+  "sites": [
+    { "name": "Western Express Highway Unipole", "city": "Mumbai", "lat": 19.076, "lng": 72.877, "type": "Billboard", "count": 86, "image": "https://picsum.photos/seed/kpmumbai/800/500" },
+    { "name": "Eastern Freeway Gantry", "city": "Thane", "lat": 19.218, "lng": 72.978, "type": "Billboard", "count": 34, "image": "https://picsum.photos/seed/kpthane/800/500" },
+    { "name": "Palm Beach Road LED", "city": "Navi Mumbai", "lat": 19.033, "lng": 73.029, "type": "Digital LED", "count": 22, "image": "https://picsum.photos/seed/kpnavimumbai/800/500" },
+    { "name": "University Road Screen", "city": "Pune", "lat": 18.52, "lng": 73.856, "type": "Digital LED", "count": 68, "image": "https://picsum.photos/seed/kppune/800/500" },
+    { "name": "Trimbak Road Hoarding", "city": "Nashik", "lat": 19.997, "lng": 73.789, "type": "Billboard", "count": 41, "image": "https://picsum.photos/seed/kpnashik/800/500" },
+    { "name": "Zero Mile LED Wall", "city": "Nagpur", "lat": 21.145, "lng": 79.088, "type": "Digital LED", "count": 47, "image": "https://picsum.photos/seed/kpnagpur/800/500" },
+    { "name": "Jalna Road Series", "city": "Chh. Sambhajinagar", "lat": 19.876, "lng": 75.343, "type": "Billboard", "count": 28, "image": "https://picsum.photos/seed/kpsambhaji/800/500" },
+    { "name": "Rankala Circle Sites", "city": "Kolhapur", "lat": 16.705, "lng": 74.243, "type": "Billboard", "count": 19, "image": "https://picsum.photos/seed/kpkolhapur/800/500" },
+    { "name": "Seven Roads Junction", "city": "Solapur", "lat": 17.659, "lng": 75.906, "type": "Transit", "count": 16, "image": "https://picsum.photos/seed/kpsolapur/800/500" },
+    { "name": "Rajapeth Flyover Face", "city": "Amravati", "lat": 20.937, "lng": 77.779, "type": "Billboard", "count": 14, "image": "https://picsum.photos/seed/kpamravati/800/500" },
+    { "name": "Powai Junction Gantry", "city": "Mumbai", "lat": 19.118, "lng": 72.906, "type": "Transit", "count": 30, "image": "https://picsum.photos/seed/kppowai/800/500" },
+    { "name": "Hinjawadi IT Corridor", "city": "Pune", "lat": 18.591, "lng": 73.739, "type": "Billboard", "count": 25, "image": "https://picsum.photos/seed/kphinjawadi/800/500" }
+  ],
+  "legend": [
+    { "type": "Billboard", "label": "Billboards & Hoardings" },
+    { "type": "Digital LED", "label": "Digital LED Screens" },
+    { "type": "Transit", "label": "Transit Hubs" }
+  ]
+}

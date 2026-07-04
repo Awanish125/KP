@@ -18,7 +18,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import { HeroSection, HeroSectionContent, PinnedHero } from "@/components/hero";
-import { Loading } from "@/components/ui";
+import { FirstVisitLoader } from "@/components/FirstVisitLoader";
 import { PremiumMarquee } from "@/components/PremiumMarquee";
 import { PremiumRevealSection } from "@/components/PremiumRevealSection";
 import { CampaignGallery, type Campaign } from "@/components/gallery";
@@ -117,7 +117,8 @@ export default function Home() {
   /* ── JSX ──────────────────────────────────────────────────────────────── */
   return (
     <div className="bg-white dark:bg-secondary" style={{ overflowX: "clip" }}>
-      <Loading />
+      {/* Cinematic brand reveal — first visit per session only (kp-visited gate) */}
+      <FirstVisitLoader />
 
       <PinnedHero stats={data.hero.stats} travelFactor={data.hero.marquee?.travelFactor ?? 2.5}>
         <HeroSection images={data.hero.images}>
