@@ -5,7 +5,7 @@ import NextImage from "next/image";
 import { gsap } from "gsap";
 import { Renderer, Program, Mesh, Triangle, Texture } from "ogl";
 import { useControls, folder } from "leva";
-
+import { heroUniformBridge } from "./heroUniformBridge";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface HeroProps {
@@ -983,6 +983,8 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
       uKbZoomScale: { value: 0.008 },
     };
     uniformsRef.current = uniforms;
+    heroUniformBridge.setZoom    = (v) => { if (uniformsRef.current) uniformsRef.current.uZoom.value    = v; };
+    heroUniformBridge.setOffsetX = (v) => { if (uniformsRef.current) uniformsRef.current.uOffsetX.value = v; };
 
     const program = new Program(gl, {
       vertex: VERTEX_SHADER,
@@ -1047,6 +1049,8 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
 
     return () => {
       disposedRef.current = true;
+      heroUniformBridge.setZoom    = null;
+      heroUniformBridge.setOffsetX = null;
       cancelAnimationFrame(rafRef.current);
       gsapCtxRef.current?.revert();
       gsapCtxRef.current = null;

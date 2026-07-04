@@ -30,28 +30,34 @@ export const HERO_CONFIG = {
 
   // ── Chapter 2: marquee entrance + hold ────────────────────────────────
   /**
-   * Rows are fully visible (opacity 1) by this progress.
-   * Entrance spans from HERO_PUSH_END to MARQUEE_ENTER_END.
-   * Keep the gap small for a crisp appearance.
+   * Reference: last word (index 10 globally) finishes its entrance at
+   * HERO_PUSH_END + 10 × WORD_STAGGER + WORD_ENTRANCE_WINDOW ≈ 0.53.
+   * Set slightly above that so the hold window starts clean.
    */
-  MARQUEE_ENTER_END: 0.40,
+  MARQUEE_ENTER_END: 0.54,
 
   /**
    * Rows stop holding and begin their exit at this progress.
-   * The window from MARQUEE_ENTER_END to MARQUEE_HOLD_END is the
-   * readable pause — long enough to read, short enough to feel alive.
+   * Hold window (0.54 → 0.62) is the readable pause.
    */
-  MARQUEE_HOLD_END: 0.56,
+  MARQUEE_HOLD_END: 0.62,
 
   // ── Chapter 3: marquee exit ────────────────────────────────────────────
   /** Top and middle rows fully exited (off-screen or invisible). */
-  ROW_EXIT_END: 0.74,
+  ROW_EXIT_END: 0.80,
 
   /**
    * Bottom row exits slightly later for a cinematic cascade.
-   * Must be ≤ heroStatsData.revealStart to avoid overlap with stats.
+   * Stats begin revealing (revealStart ≈ 0.76) before this, giving
+   * a smooth overlap between row exit and count-up.
    */
-  ROW2_EXIT_END: 0.78,
+  ROW2_EXIT_END: 0.84,
+
+  // ── Per-word stagger entrance ──────────────────────────────────────────
+  /** Progress gap between each word's entrance start (global stagger). */
+  WORD_STAGGER: 0.015,
+  /** How long a single word takes to complete its entrance animation. */
+  WORD_ENTRANCE_WINDOW: 0.10,
 
   // ── Glass morphism (builds as heading fades) ───────────────────────────
   GLASS_DEFAULT: {
@@ -66,7 +72,7 @@ export const HERO_CONFIG = {
 
   // ── Marquee layout ─────────────────────────────────────────────────────
   /** Z-depth offsets for the 3D perspective stack (top → bottom row). */
-  LAYER_ROW_DEPTHS: [160, 72, 0] as const,
+  LAYER_ROW_DEPTHS: [60, 72, 0] as const,
 
   /**
    * Number of word-list copies inside each track.

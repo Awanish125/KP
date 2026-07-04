@@ -153,6 +153,7 @@ const HeroSectionContent = ({
     const headline = section.querySelector<HTMLElement>("[data-hero-headline]");
     const subtitle = section.querySelector<HTMLElement>("[data-hero-subtitle]");
     const description = section.querySelector<HTMLElement>("[data-hero-description]");
+    const divider = section.querySelector<HTMLElement>("[data-hero-divider]");
     const indicator = indicatorRef.current;
 
     const setHeadlineAlpha = headline ? gsap.quickSetter(headline, "opacity") : null;
@@ -163,6 +164,7 @@ const HeroSectionContent = ({
     const setSubtitleY = subtitle ? gsap.quickSetter(subtitle, "y", "px") : null;
     const setDescriptionAlpha = description ? gsap.quickSetter(description, "opacity") : null;
     const setDescriptionY = description ? gsap.quickSetter(description, "y", "px") : null;
+    const setDividerAlpha = divider ? gsap.quickSetter(divider, "opacity") : null;
     const setIndAlpha = indicator
       ? gsap.quickSetter(indicator, "opacity")
       : null;
@@ -254,6 +256,7 @@ const HeroSectionContent = ({
       setSubtitleY?.(subtitleY);
       setDescriptionAlpha?.(descriptionAlpha);
       setDescriptionY?.(descriptionY);
+      setDividerAlpha?.(subtitleAlpha);
       setIndAlpha?.(subtitleAlpha);
     };
 
@@ -346,6 +349,7 @@ const HeroSectionContent = ({
         {/* Divider */}
         <span
           data-hero-item
+          data-hero-divider
           aria-hidden
           className="mt-6 block h-px w-16 bg-gradient-to-r from-accent/80 to-transparent md:mt-8 md:w-24"
         />

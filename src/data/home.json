@@ -1,5 +1,5 @@
 {
-  "_comment": "Home page content — edit values here to update the site. No code changes needed.",
+  "_comment": "Home page content â€” edit values here to update the site. No code changes needed.",
   "hero": {
     "images": [
       "/homepage/herosection/1.png",
@@ -63,14 +63,19 @@
         "particleOpacity": 0.8,
         "particleGlow": 0.18
       },
+      "idleAnimation": {
+        "enabled": false,
+        "staggerSeconds": 1.0,
+        "default": "auto"
+      },
       "layers": [
         {
           "direction": "left",
           "speed": 0.72,
           "opacity": 1,
           "y": 0,
-          "scale": 1.04,
-          "gap": 42,
+          "scale": 0.9,
+          "gap": 30,
           "separator": {
             "type": "icon",
             "icon": "Diamond",
@@ -84,20 +89,22 @@
               "value": "OUTDOOR",
               "color": "#FFFFFF",
               "fontWeight": 900,
-              "fontSize": "clamp(1.8rem, 3.2vw, 3.8rem)",
+              "fontSize": "clamp(0.9rem, 3.2vw, 3.8rem)",
               "uppercase": true,
               "tracking": "0.14em",
-              "animation": "lift"
+              "animation": "lift",
+              "idleAnim": "rotateX"
             },
             {
               "type": "text",
               "value": "CAMPAIGNS",
               "color": "#FFFFFF",
               "fontWeight": 900,
-              "fontSize": "clamp(2rem, 3.6vw, 4.2rem)",
+              "fontSize": "clamp(0.95rem, 3.6vw, 4.2rem)",
               "uppercase": true,
               "tracking": "0.08em",
               "animation": "maskReveal",
+              "idleAnim": "float",
               "separator": {
                 "type": "text",
                 "value": "/",
@@ -111,13 +118,14 @@
               "value": "BILLBOARD",
               "color": "#FFFFFF",
               "fontWeight": 800,
-              "fontSize": "clamp(1.7rem, 3vw, 3.5rem)",
+              "fontSize": "clamp(0.85rem, 3vw, 3.5rem)",
               "uppercase": true,
               "tracking": "0.12em",
               "outline": true,
               "outlineColor": "#FFFFFF",
               "outlineWidth": "1px",
               "animation": "blur",
+              "idleAnim": "rotateY",
               "separator": {
                 "type": "icon",
                 "icon": "Sparkles",
@@ -131,10 +139,11 @@
               "value": "REACH",
               "color": "#F5B474",
               "fontWeight": 700,
-              "fontSize": "clamp(1.6rem, 2.8vw, 3.2rem)",
+              "fontSize": "clamp(0.8rem, 2.8vw, 3.2rem)",
               "uppercase": true,
               "tracking": "0.16em",
               "animation": "scale",
+              "idleAnim": "rotateX",
               "separator": {
                 "type": "text",
                 "value": "/",
@@ -164,21 +173,23 @@
               "value": "DIGITAL",
               "color": "#F5F7FA",
               "fontWeight": 600,
-              "fontSize": "clamp(1.9rem, 3.8vw, 4.2rem)",
+              "fontSize": "clamp(1rem, 3.8vw, 4.2rem)",
               "uppercase": true,
               "tracking": "0.18em",
-              "animation": "fade"
+              "animation": "fade",
+              "idleAnim": "float"
             },
             {
               "type": "text",
               "value": "MEDIA",
               "color": "#FFFFFF",
               "fontWeight": 300,
-              "fontSize": "clamp(1.85rem, 3.6vw, 4rem)",
+              "fontSize": "clamp(0.95rem, 3.6vw, 4rem)",
               "uppercase": true,
               "tracking": "0.18em",
               "italic": true,
               "animation": "lift",
+              "idleAnim": "rotateY",
               "separator": {
                 "type": "icon",
                 "icon": "ChevronRight",
@@ -192,12 +203,13 @@
               "value": "BRANDING",
               "color": "#FFFFFF",
               "fontWeight": 700,
-              "fontSize": "clamp(2rem, 4vw, 4.4rem)",
+              "fontSize": "clamp(1rem, 4vw, 4.4rem)",
               "uppercase": true,
               "tracking": "0.14em",
               "outline": true,
               "outlineColor": "#F5F7FA",
               "animation": "sweep",
+              "idleAnim": "rotateX",
               "separator": {
                 "type": "text",
                 "value": "|",
@@ -211,10 +223,11 @@
               "value": "CITY",
               "color": "#B86CCB",
               "fontWeight": 500,
-              "fontSize": "clamp(1.8rem, 3.6vw, 4rem)",
+              "fontSize": "clamp(0.9rem, 3.6vw, 4rem)",
               "uppercase": true,
               "tracking": "0.2em",
-              "animation": "maskReveal"
+              "animation": "maskReveal",
+              "idleAnim": "float"
             }
           ]
         },
@@ -239,20 +252,22 @@
               "value": "LAUNCH",
               "color": "#FFFFFF",
               "fontWeight": 700,
-              "fontSize": "clamp(1.5rem, 3vw, 3.2rem)",
+              "fontSize": "clamp(0.78rem, 3vw, 3.2rem)",
               "uppercase": true,
               "tracking": "0.24em",
-              "animation": "fade"
+              "animation": "fade",
+              "idleAnim": "rotateY"
             },
             {
               "type": "text",
               "value": "LIVE",
               "color": "#F5821F",
               "fontWeight": 900,
-              "fontSize": "clamp(1.7rem, 3.2vw, 3.6rem)",
+              "fontSize": "clamp(0.85rem, 3.2vw, 3.6rem)",
               "uppercase": true,
               "tracking": "0.18em",
               "animation": "scale",
+              "idleAnim": "rotateX",
               "separator": {
                 "type": "icon",
                 "icon": "Star",
@@ -270,7 +285,8 @@
               "uppercase": true,
               "tracking": "0.28em",
               "opacity": 0.78,
-              "animation": "lift"
+              "animation": "lift",
+              "idleAnim": "float"
             }
           ]
         }
@@ -301,7 +317,7 @@
     "heading": "India's Premier\nOutdoor",
     "headingEmphasis": "Advertising",
     "headingSuffix": " Network",
-    "paragraph": "For over two decades, Kiran Publicity has been transforming cityscapes into powerful brand narratives — from highways to high streets, across Maharashtra.",
+    "paragraph": "For over two decades, Kiran Publicity has been transforming cityscapes into powerful brand narratives â€” from highways to high streets, across Maharashtra.",
     "stats": [
       {
         "value": 20,
@@ -355,7 +371,7 @@
     "sectionLabel": "Our Portfolio",
     "heading": "Campaigns That\nCommand",
     "headingEmphasis": "Attention",
-    "body": "From concept to installation, we craft outdoor campaigns that stop traffic — literally. Trusted by 100+ brands across Maharashtra.",
+    "body": "From concept to installation, we craft outdoor campaigns that stop traffic â€” literally. Trusted by 100+ brands across Maharashtra.",
     "cta": "View All Work",
     "images": [
       {

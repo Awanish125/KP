@@ -1,6 +1,8 @@
-import type { HeroStat as HeroMarqueeStat } from "../marqueeTypes";
-
-export type HeroStat = HeroMarqueeStat;
+export interface HeroStat {
+  value: number;
+  suffix: string;
+  label: string;
+}
 
 export interface HeroStatsParticleEffect {
   enableSnapEffect?: boolean;
