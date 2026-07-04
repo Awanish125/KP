@@ -8,6 +8,7 @@ export function ScrollIndicator({ scrollIndicatorRef }: ScrollIndicatorProps) {
   return (
     <div
       ref={scrollIndicatorRef}
+      data-scroll-indicator
       className="pointer-events-none absolute inset-x-0 bottom-7 z-30 flex justify-center opacity-100"
     >
       <div className="hero-bounce flex flex-col items-center gap-3 text-white/72">

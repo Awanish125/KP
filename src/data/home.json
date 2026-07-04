@@ -13,6 +13,73 @@
     "line1": "MAKING BRANDS",
     "line2": "IMPOSSIBLE",
     "line3": "TO IGNORE",
+    "description": "Billboards, transit and digital placements engineered to stop traffic — from concept to installation, handled end to end.",
+    "intro": {
+      "camera": {
+        "initialZoom": 0.9,
+        "peakZoom": 1.14,
+        "initialOffsetX": -0.25
+      },
+      "timing": {
+        "contentExit": 0.9,
+        "cameraPush": 1.15,
+        "cameraReturn": 1.35,
+        "statsReveal": 0.9,
+        "counter": 0.85,
+        "marqueeReveal": 0.95
+      },
+      "easing": {
+        "exit": "power3.inOut",
+        "camera": "power2.inOut",
+        "reveal": "expo.out"
+      }
+    },
+    "statsPresentation": {
+      "eyebrow": "India's Premier OOH Network",
+      "heading": "Delivering Impact at Scale",
+      "location": "Across Maharashtra"
+    },
+    "editorialMarquee": {
+      "pixelsPerSecond": 74,
+      "hoverSpeedFactor": 0.42,
+      "gap": 36,
+      "separator": "◆",
+      "separatorColor": "#f5821f",
+      "revealDelay": 0.5,
+      "items": [
+        {
+          "text": "OUTDOOR",
+          "fontWeight": 900,
+          "fontSize": "clamp(1.45rem, 3.4vw, 3.75rem)",
+          "letterSpacing": "0.12em",
+          "color": "#ffffff"
+        },
+        {
+          "text": "MADE ICONIC",
+          "fontWeight": 300,
+          "fontSize": "clamp(1.25rem, 3vw, 3.25rem)",
+          "letterSpacing": "0.18em",
+          "outline": true,
+          "outlineColor": "rgba(255,255,255,0.72)"
+        },
+        {
+          "text": "CITY SCALE",
+          "fontWeight": 800,
+          "fontSize": "clamp(1.4rem, 3.25vw, 3.6rem)",
+          "letterSpacing": "0.1em",
+          "gradient": ["#ffffff", "#f5b474", "#f5821f"]
+        },
+        {
+          "text": "REAL IMPACT",
+          "fontWeight": 400,
+          "fontSize": "clamp(1.2rem, 2.8vw, 3rem)",
+          "letterSpacing": "0.2em",
+          "italic": true,
+          "opacity": 0.78,
+          "color": "#ffffff"
+        }
+      ]
+    },
     "stats": [
       {
         "value": 48,

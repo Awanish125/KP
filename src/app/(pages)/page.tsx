@@ -11,25 +11,21 @@
  * wrapper block below.
  */
 
-import { useRef, useEffect, Fragment } from "react";
+import { useRef, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import Lenis from "lenis";
 import { HeroSection, HeroSectionContent, PinnedHero } from "@/components/hero";
 import { FirstVisitLoader } from "@/components/FirstVisitLoader";
-import { PremiumMarquee } from "@/components/PremiumMarquee";
 import { PremiumRevealSection } from "@/components/PremiumRevealSection";
 import { CampaignGallery, type Campaign } from "@/components/gallery";
 import { GALLERY_CATEGORIES } from "@/data/categories";
 import data from "@/data/home.json";
+import { PremiumMarquee } from "@/components/PremiumMarquee";
 
 gsap.registerPlugin(ScrollTrigger);
-
-// Transform brands list into the shape PremiumMarquee expects.
 const BRANDS = data.brands.map((text) => ({ type: "text" as const, text }));
-
 // Category cards for the homepage gallery section — one premium card per
 // category, showing that category's own cover image. Clicking one opens the
 // gallery page pre-filtered to it. Covers are configured in data/categories.ts.
@@ -51,26 +47,9 @@ const SHOWCASE_IMAGES = data.showcase.images;
 
 export default function Home() {
   const router = useRouter();
-  const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
   const counterRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   /* ── Lenis smooth scroll ─────────────────────────────────────────────── */
-  useEffect(() => {
-    const lenis = new Lenis({
-      lerp: 0.08,
-      smoothWheel: true,
-      syncTouch: false,
-    });
-    lenis.on("scroll", () => ScrollTrigger.update());
-    const tick = (t: number) => lenis.raf(t * 1000);
-    gsap.ticker.add(tick);
-    gsap.ticker.lagSmoothing(0);
-    return () => {
-      gsap.ticker.remove(tick);
-      lenis.destroy();
-    };
-  }, []);
-
   /* ── Scroll animations (counters + text reveals) ────────────────────── */
   useGSAP(() => {
     data.about.stats.forEach((stat, i) => {
@@ -120,13 +99,19 @@ export default function Home() {
       {/* Cinematic brand reveal — first visit per session only (kp-visited gate) */}
       <FirstVisitLoader />
 
-      <PinnedHero stats={data.hero.stats} travelFactor={data.hero.marquee?.travelFactor ?? 2.5}>
+      <PinnedHero
+        stats={data.hero.stats}
+        statsPresentation={data.hero.statsPresentation}
+        intro={data.hero.intro}
+        marquee={data.hero.editorialMarquee}
+      >
         <HeroSection images={data.hero.images}>
           <HeroSectionContent
             subtitle={data.hero.subtitle}
             line1={data.hero.line1}
             line2={data.hero.line2}
             line3={data.hero.line3}
+            description={data.hero.description}
             gradientColors={data.hero.gradientColors}
             primaryCta={null}
             secondaryCta={null}
@@ -184,7 +169,6 @@ export default function Home() {
         showSeparatorAnimation
         pauseOnHover
       />
-      
       <PremiumRevealSection
         images={SHOWCASE_IMAGES}
         animationStyle="cameraZoom"

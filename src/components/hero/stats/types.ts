@@ -27,11 +27,3 @@ export interface HeroStatsConfig {
   desktopSize?: string;
   labelSize?: string;
 }
-
-export interface HeroStatsProps {
-  heroStats: HeroStat[];
-  progress?: number;
-  className?: string;
-  config?: HeroStatsConfig;
-  particleEffect?: HeroStatsParticleEffect;
-}

@@ -29,12 +29,18 @@ export function SmoothScroll() {
     };
 
     lenis.on("scroll", ScrollTrigger.update);
+    const stop = () => lenis.stop();
+    const start = () => lenis.start();
+    window.addEventListener("kp:scroll-lock", stop);
+    window.addEventListener("kp:scroll-unlock", start);
     gsap.ticker.add(raf);
     gsap.ticker.lagSmoothing(0);
     ScrollTrigger.refresh();
 
     return () => {
       gsap.ticker.remove(raf);
+      window.removeEventListener("kp:scroll-lock", stop);
+      window.removeEventListener("kp:scroll-unlock", start);
       lenis.destroy();
     };
   }, []);
