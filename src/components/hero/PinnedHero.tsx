@@ -182,7 +182,7 @@ export function PinnedHero({
           ease: "power2.out",
         }, `reveal+=${marquee.revealDelay + 0.15}`);
 
-      // Scroll-controlled editorial typography movement (right to left)
+      // Scroll-controlled editorial typography movement (right to left) with section pinning
       const buildScrollAnimation = () => {
         if (scrollTweenRef.current) {
           scrollTweenRef.current.scrollTrigger?.kill();
@@ -192,16 +192,22 @@ export function PinnedHero({
         const containerWidth = marqueeRoot?.offsetWidth ?? 0;
         const textWidth = marqueeTrack?.scrollWidth ?? 0;
 
+        // Stop translating when the right edge of the track aligns with the right edge of the screen
+        const targetX = containerWidth - textWidth;
+        const scrollDistance = Math.max(textWidth - containerWidth * 0.75, 300);
+
         scrollTweenRef.current = gsap.fromTo(marqueeTrack, {
           x: containerWidth * 0.25,
         }, {
-          x: -textWidth,
+          x: targetX,
           ease: "none",
           scrollTrigger: {
             trigger: root,
             start: "top top",
-            end: "bottom top",
+            end: () => `+=${scrollDistance}`,
             scrub: 1.2,
+            pin: true,
+            pinSpacing: true,
             invalidateOnRefresh: true,
           }
         });

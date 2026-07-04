@@ -44,11 +44,11 @@ export interface EditorialMarqueeItem {
 }
 
 export interface EditorialMarqueeConfig {
-  pixelsPerSecond: number;
-  hoverSpeedFactor: number;
+  pixelsPerSecond?: number;
+  hoverSpeedFactor?: number;
   gap: number;
-  separator: string;
-  separatorColor: string;
+  separator?: string;
+  separatorColor?: string;
   revealDelay: number;
   items: EditorialMarqueeItem[];
 }
