@@ -150,6 +150,7 @@ export function VideoShowcase({
               playsInline
               preload="none"
               className="h-full w-full object-cover"
+              style={{ transform: "translate3d(0, 0, 0)", willChange: "transform" }}
             />
             <div
               aria-hidden
@@ -163,7 +164,7 @@ export function VideoShowcase({
             <div className="absolute inset-0 flex items-center justify-center">
               <MagneticButton>
                 <span
-                  className="flex h-20 w-20 items-center justify-center rounded-full backdrop-blur-sm transition-transform duration-300 group-hover:scale-110 md:h-24 md:w-24"
+                  className="flex h-20 w-20 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-110 md:h-24 md:w-24"
                   style={{
                     background: "var(--kp-orange)",
                     color: "var(--kp-dark)",

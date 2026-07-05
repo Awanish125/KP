@@ -119,8 +119,15 @@ export function HorizontalScrollGallery({
       lastProgress = -1; // force a repaint on next tick
     };
     measure();
-    window.addEventListener("resize", measure);
-    const ro = new ResizeObserver(measure);
+
+    let measureTimeout: any = null;
+    const debouncedMeasure = () => {
+      if (measureTimeout) clearTimeout(measureTimeout);
+      measureTimeout = setTimeout(measure, 60);
+    };
+
+    window.addEventListener("resize", debouncedMeasure);
+    const ro = new ResizeObserver(debouncedMeasure);
     ro.observe(document.body);
 
     const tick = () => {
@@ -149,7 +156,8 @@ export function HorizontalScrollGallery({
 
     return () => {
       cleanup();
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", debouncedMeasure);
+      if (measureTimeout) clearTimeout(measureTimeout);
       ro.disconnect();
       track.style.willChange = "auto";
     };

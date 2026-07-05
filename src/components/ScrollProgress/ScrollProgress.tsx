@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import gsap from "gsap";
 import { prefersReducedMotion } from "@/lib/motion";
 import { SCROLL_PROGRESS_DEFAULTS } from "./scrollProgressConfig";
@@ -26,6 +27,7 @@ export function ScrollProgress({
   zIndex = SCROLL_PROGRESS_DEFAULTS.zIndex,
 }: ScrollProgressProps) {
   const barRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     const bar = barRef.current;
@@ -50,12 +52,20 @@ export function ScrollProgress({
       setScaleX(p);
     };
 
+    // Recalculate if the body size shifts during loading
+    const ro = new ResizeObserver(() => {
+      measure();
+      tick();
+    });
+    ro.observe(document.body);
+
     if (prefersReducedMotion()) {
       // Still functional, just driven by the native scroll cadence.
       const onScroll = () => tick();
       window.addEventListener("scroll", onScroll, { passive: true });
       window.addEventListener("resize", measure);
       return () => {
+        ro.disconnect();
         window.removeEventListener("scroll", onScroll);
         window.removeEventListener("resize", measure);
       };
@@ -64,10 +74,11 @@ export function ScrollProgress({
     gsap.ticker.add(tick);
     window.addEventListener("resize", measure);
     return () => {
+      ro.disconnect();
       gsap.ticker.remove(tick);
       window.removeEventListener("resize", measure);
     };
-  }, []);
+  }, [pathname]);
 
   return (
     <div

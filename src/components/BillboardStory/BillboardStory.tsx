@@ -53,7 +53,7 @@ export function BillboardStory({
   useEffect(() => {
     const host = canvasHostRef.current;
     if (!host || prefersReducedMotion()) return;
-    return observeOnce(host, () => setShouldLoad(true), "400px 0px 400px 0px");
+    return observeOnce(host, () => setShouldLoad(true), "100px 0px 100px 0px");
   }, []);
 
   /* Scroll → step index (state changes only at boundaries). */

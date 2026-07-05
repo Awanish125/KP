@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import gsap from "gsap";
 import { prefersReducedMotion } from "@/lib/motion";
 import { CUSTOM_SCROLLBAR_DEFAULTS } from "./customScrollbarConfig";
@@ -30,6 +31,7 @@ export function CustomScrollbar({
   const [active, setActive] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     const finePointer = window.matchMedia("(pointer: fine)").matches;
@@ -140,7 +142,7 @@ export function CustomScrollbar({
       window.removeEventListener("pointerup", endDrag);
       document.body.style.userSelect = "";
     };
-  }, [active, minThumb, hideAfter]);
+  }, [active, minThumb, hideAfter, pathname]);
 
   if (!active) return null;
 

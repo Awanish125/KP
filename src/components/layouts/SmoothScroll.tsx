@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Lenis from "lenis";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -14,6 +15,8 @@ declare global {
 }
 
 export function SmoothScroll() {
+  const pathname = usePathname();
+
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
@@ -57,6 +60,21 @@ export function SmoothScroll() {
       delete window.__kpLenis;
     };
   }, []);
+
+  // Guarantee that scroll is never locked on page transition, and refresh ScrollTrigger/Lenis dimensions.
+  useEffect(() => {
+    const lenis = window.__kpLenis;
+    if (lenis) {
+      lenis.start();
+      window.dispatchEvent(new Event("resize"));
+      requestAnimationFrame(() => {
+        lenis.resize();
+        ScrollTrigger.refresh();
+      });
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+  }, [pathname]);
 
   return null;
 }
