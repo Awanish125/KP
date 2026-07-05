@@ -240,10 +240,15 @@ export function PinnedHero({
        screen (IntersectionObserver gate, per project scroll rules). */
     const topGuard = () => {
       const tl = timelineRef.current;
-      if (!tl) return;
-      if (window.scrollY <= 1 && tl.progress() > 0.001) {
-        tl.scrollTrigger?.getTween()?.kill(); // kill a wedged scrub tween
-        tl.progress(0);
+      if (!tl || window.scrollY > 1) return;
+      if (tl.progress() > 0.001) {
+        // Complete the scrub lerp instantly rather than killing it.
+        // kill() orphans the scrub mechanism — ScrollTrigger can't build
+        // a new tween off a dead one, so the forward scrub never fires
+        // again after a back-to-top.  progress(1) finishes the existing
+        // lerp to its target (progress=0 at scroll=0) without destroying it.
+        tl.scrollTrigger?.getTween()?.progress(1);
+        ScrollTrigger.update();
         setState("Idle");
       }
     };

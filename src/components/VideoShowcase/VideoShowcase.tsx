@@ -137,9 +137,14 @@ export function VideoShowcase({
                 nears the viewport (IO calls play(), which starts the load).
                 No hover transform on the <video> — scaling a playing video
                 re-rasterizes its layer continuously. */}
+            {/* poster: first frame placeholder while the video buffers so the
+                section never shows a blank black rectangle.
+                preload="none" still defers the full download — the poster is
+                encoded in the <img> cache and costs almost nothing. */}
             <video
               ref={loopRef}
               src={src}
+              poster="/homepage/herosection/1.png"
               muted
               loop
               playsInline

@@ -806,8 +806,11 @@
    The loader is SSR-rendered so it covers the very first paint,
    but only first-time sessions actually see it: the inline head
    script in layout.tsx adds .kp-first-visit before paint.      */
-.kp-loader-root { display: none; }
-html.kp-first-visit .kp-loader-root { display: flex; }
+/* Use visibility (not display) so the wipe-out clipPath animation can
+   complete before the element disappears — display:none cuts clip-path
+   mid-tween, making the wipe look like an instant vanish in Chrome. */
+.kp-loader-root { visibility: hidden; display: flex; }
+html.kp-first-visit .kp-loader-root { visibility: visible; }
 .kp-scrollbar-active::-webkit-scrollbar,
 .kp-scrollbar-active body::-webkit-scrollbar {
   width: 0;
@@ -822,6 +825,25 @@ html, body { min-height: 100%; }
 
 /* clip keeps sticky children working; hidden creates a scroll container that breaks them */
 html { overflow-x: clip; }
+
+/* GSAP's ScrollTrigger pin captures element width at mount time.  If the
+   native scrollbar was still visible then, it writes width:1425px inline,
+   leaving a 15px gap on the right.  Forcing 100vw here overrides the inline
+   style and keeps the hero flush with the viewport in all conditions. */
+.hero-cinematic { width: 100vw !important; left: 0 !important; }
+
+/* Hide native scrollbar globally — the custom JS scrollbar replaces it on
+   desktop.  Hiding unconditionally (not just under .kp-scrollbar-active)
+   prevents the ~15px scrollbar gutter from shrinking the hero below 100vw
+   before React hydrates and adds the class.  Scrolling still works via
+   Lenis + JS; mobile browsers never show a persistent gutter anyway. */
+html {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE/Edge legacy */
+}
+html::-webkit-scrollbar {
+  display: none;                /* Chrome / Safari */
+}
 
 body {
   overflow-x: clip;

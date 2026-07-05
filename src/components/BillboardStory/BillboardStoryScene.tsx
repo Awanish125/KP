@@ -59,7 +59,9 @@ function loadStepTexture(
     video.muted = true;
     video.loop = true;
     video.playsInline = true;
-    video.preload = "metadata";
+    // "auto" pre-buffers enough frames for smooth playback when the step
+    // becomes active — "none" caused visible buffering lag in Chrome.
+    video.preload = "auto";
     video.crossOrigin = "anonymous";
     video.addEventListener("loadeddata", onLoad, { once: true });
     const texture = new THREE.VideoTexture(video);
@@ -155,6 +157,7 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
   const backMatRef = useRef<THREE.MeshStandardMaterial>(null);
   const texturesRef = useRef<StepTexture[]>([]);
   const rotRef = useRef({ y: 0 });
+  const dragOffsetRef = useRef(0); // user horizontal drag offset (radians)
   const readyRef = useRef(onReady);
   readyRef.current = onReady;
 
@@ -227,7 +230,7 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
       duration: flipDuration,
       ease: "power3.inOut",
       onUpdate: () => {
-        group.rotation.y = rotRef.current.y;
+        group.rotation.y = rotRef.current.y + dragOffsetRef.current;
         invalidate();
       },
     });
@@ -243,24 +246,88 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
     return tickWhileVisible(gl.domElement, () => invalidate());
   }, [stepIndex, gl, invalidate]);
 
-  /* Subtle pointer parallax — event-driven, demand-rendered. */
+  /* Pointer interaction — horizontal drag (Y rotation) + vertical parallax tilt (X).
+     Both are merged into one handler set to avoid conflicting listeners.
+     The drag offset springs back to 0 on pointer-up so the board returns to
+     its current step angle, keeping the flip choreography intact. */
   useEffect(() => {
     if (prefersReducedMotion()) return;
     const group = groupRef.current;
     if (!group) return;
     const host = gl.domElement;
-    const toX = gsap.quickTo(group.rotation, "x", { duration: 0.8, ease: "power2.out", onUpdate: invalidate });
-    const onMove = (e: PointerEvent) => {
-      const rect = host.getBoundingClientRect();
-      const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-      toX(ny * -0.035);
+
+    const toX = gsap.quickTo(group.rotation, "x", {
+      duration: 0.8,
+      ease: "power2.out",
+      onUpdate: invalidate,
+    });
+
+    let dragging = false;
+    let startX = 0;
+    let dragStart = 0;
+    const dragProxy = { offset: 0 };
+
+    const onPointerDown = (e: PointerEvent) => {
+      dragging = true;
+      startX = e.clientX;
+      dragStart = dragOffsetRef.current;
+      host.setPointerCapture(e.pointerId);
+      gsap.killTweensOf(dragProxy);
+      host.style.cursor = "grabbing";
     };
-    const onLeave = () => toX(0);
-    host.addEventListener("pointermove", onMove);
-    host.addEventListener("pointerleave", onLeave);
+
+    const onPointerMove = (e: PointerEvent) => {
+      const rect = host.getBoundingClientRect();
+      if (dragging) {
+        const dx = e.clientX - startX;
+        dragOffsetRef.current = dragStart + dx * 0.009;
+        dragProxy.offset = dragOffsetRef.current;
+        group.rotation.y = rotRef.current.y + dragOffsetRef.current;
+        invalidate();
+      } else {
+        // Vertical tilt only when not dragging
+        const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+        toX(ny * -0.035);
+      }
+    };
+
+    const onPointerUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      host.style.cursor = "grab";
+      // Spring drag offset back to 0
+      gsap.to(dragProxy, {
+        offset: 0,
+        duration: 0.85,
+        ease: "power2.out",
+        onUpdate: () => {
+          dragOffsetRef.current = dragProxy.offset;
+          group.rotation.y = rotRef.current.y + dragOffsetRef.current;
+          invalidate();
+        },
+        onComplete: () => {
+          dragOffsetRef.current = 0;
+        },
+      });
+    };
+
+    const onPointerLeave = () => {
+      if (!dragging) toX(0);
+    };
+
+    host.style.cursor = "grab";
+    host.addEventListener("pointerdown", onPointerDown);
+    host.addEventListener("pointermove", onPointerMove);
+    host.addEventListener("pointerleave", onPointerLeave);
+    window.addEventListener("pointerup", onPointerUp);
+
     return () => {
-      host.removeEventListener("pointermove", onMove);
-      host.removeEventListener("pointerleave", onLeave);
+      host.style.cursor = "";
+      host.removeEventListener("pointerdown", onPointerDown);
+      host.removeEventListener("pointermove", onPointerMove);
+      host.removeEventListener("pointerleave", onPointerLeave);
+      window.removeEventListener("pointerup", onPointerUp);
+      gsap.killTweensOf(dragProxy);
     };
   }, [gl, invalidate]);
 
@@ -329,13 +396,10 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
           )),
         )}
 
-        {/* Floodlights — inside the assembly so the shown face is always lit */}
-        {[-1.5, 0, 1.5].map((x) => (
-          <Floodlight key={`f${x}`} x={x} side={1} />
-        ))}
-        {[-1.5, 0, 1.5].map((x) => (
-          <Floodlight key={`b${x}`} x={x} side={-1} />
-        ))}
+        {/* Two floodlights (one per face, centered) — enough for the lit-hoarding
+            look at lower GPU cost; 6 SpotLights were too heavy for Chrome. */}
+        <Floodlight x={0} side={1} />
+        <Floodlight x={0} side={-1} />
       </group>
 
       {/* ── Base light rig + baked ground shadow ────────────────────── */}
@@ -363,8 +427,8 @@ export default function BillboardStoryScene(props: BillboardSceneProps) {
   return (
     <Canvas
       frameloop="demand"
-      dpr={[1, 1.6]}
-      gl={{ antialias: true, alpha: true }}
+      dpr={[1, 1.5]}
+      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       camera={{ position: [0.3, 0.55, 7.9], fov: 33 }}
       style={{ position: "absolute", inset: 0 }}
     >

@@ -45,7 +45,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${archivo.variable} ${manrope.variable} ${spaceMono.variable} ${oswald.variable} h-full antialiased`}
+      className={`${archivo.variable} ${manrope.variable} ${spaceMono.variable} ${oswald.variable} h-full antialiased dark`}
     >
       {/* bg and color come from CSS vars in globals.css — no Tailwind hardcoding */}
       <body className="min-h-full overflow-x-hidden">

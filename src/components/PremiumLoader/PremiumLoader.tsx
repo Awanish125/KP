@@ -217,6 +217,7 @@ export function PremiumLoader({
         background: "var(--kp-dark)",
         clipPath: "inset(0 0 0% 0)",
         pointerEvents: "none",
+        display: "flex",   // explicit — CSS gate controls visibility, not display
         alignItems: "center",
         justifyContent: "center",
       }}
