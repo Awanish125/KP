@@ -14,7 +14,6 @@
 import { Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { HeroSection, HeroSectionContent, PinnedHero } from "@/components/hero";
-import { FirstVisitLoader } from "@/components/FirstVisitLoader";
 import { PremiumRevealSection } from "@/components/PremiumRevealSection";
 import { CampaignGallery, type Campaign } from "@/components/gallery";
 import { ServicesStrip } from "@/components/ServicesStrip";
@@ -24,10 +23,25 @@ import { TestimonialSlider } from "@/components/TestimonialSlider";
 import { SectionReveal } from "@/components/SectionReveal";
 import { CTABanner } from "@/components/CTABanner";
 import { Footer } from "@/components/Footer";
+import { ClientLogoWall } from "@/components/ClientLogoWall";
+import { VideoShowcase } from "@/components/VideoShowcase";
+import { HorizontalScrollGallery } from "@/components/HorizontalScrollGallery";
+import { BillboardStory, BILLBOARD_STORY_STEPS } from "@/components/BillboardStory";
 import { GALLERY_CATEGORIES } from "@/data/categories";
 import data from "@/data/home.json";
 import aboutData from "@/data/about.json";
 import contactData from "@/data/contact.json";
+import clientsData from "@/data/clients.json";
+import caseStudiesData from "@/data/caseStudies.json";
+
+// Horizontal gallery cards come from the case-study covers — each one
+// links straight to its full story.
+const PLACEMENT_ITEMS = caseStudiesData.items.map((cs) => ({
+  image: cs.hero,
+  title: cs.title,
+  meta: `${cs.brand} · ${cs.category}`,
+  href: `/case-studies/${cs.slug}`,
+}));
 import { PremiumMarquee } from "@/components/PremiumMarquee";
 
 const BRANDS = data.brands.map((text) => ({ type: "text" as const, text }));
@@ -56,9 +70,7 @@ export default function Home() {
   /* ── JSX ──────────────────────────────────────────────────────────────── */
   return (
     <div className="bg-white dark:bg-secondary" style={{ overflowX: "clip" }}>
-      {/* Cinematic brand reveal — first visit per session only (kp-visited gate) */}
-      <FirstVisitLoader />
-
+      {/* The first-visit / refresh loader is mounted globally in providers.tsx */}
       <PinnedHero
         stats={data.hero.stats}
         statsPresentation={data.hero.statsPresentation}
@@ -208,6 +220,13 @@ export default function Home() {
 
       <ProcessSteps steps={data.process.steps} />
 
+      <HorizontalScrollGallery items={PLACEMENT_ITEMS} />
+
+      <VideoShowcase />
+
+      {/* Pinned billboard story — flips a photoreal 3D board per step */}
+      <BillboardStory steps={BILLBOARD_STORY_STEPS} />
+
       {/* Testimonials */}
       <section
         className="py-24"
@@ -228,6 +247,8 @@ export default function Home() {
         </SectionReveal>
         <TestimonialSlider items={aboutData.testimonials.items} />
       </section>
+
+      <ClientLogoWall industries={clientsData.industries} />
 
       <OfficeGrid offices={contactData.offices} />
 

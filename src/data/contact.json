@@ -50,6 +50,11 @@
     "linkedin": "https://linkedin.com/company/kiranpublicity",
     "facebook": "https://facebook.com/kiranpublicity"
   },
+  "mediaKit": {
+    "label": "Download Media Kit",
+    "file": "/media/kp-media-kit.pdf",
+    "note": "Company profile · rate structure · network map"
+  },
   "fields": [
     { "name": "name", "label": "Your Name", "type": "text", "placeholder": "Priya Sharma", "required": true },
     { "name": "company", "label": "Company", "type": "text", "placeholder": "Brand or agency name", "required": false },

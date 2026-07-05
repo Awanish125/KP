@@ -49,6 +49,19 @@ export default function RootLayout({
     >
       {/* bg and color come from CSS vars in globals.css — no Tailwind hardcoding */}
       <body className="min-h-full overflow-x-hidden">
+        {/* Plain inline script (NOT next/script — its beforeInteractive
+            timing is unreliable for inline code in the app router). The
+            parser executes this synchronously before any content below is
+            painted. EVERY hard load gets the loader cover (full cinematic
+            on first visit, quick brand wipe on refreshes) so raw unloaded
+            content is never the first thing on screen. PremiumLoader
+            removes the class when its reveal completes, which is also how
+            PageTransition knows a hard load from an SPA navigation. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "document.documentElement.classList.add('kp-first-visit')",
+          }}
+        />
         <Providers>{children}</Providers>
       </body>
     </html>

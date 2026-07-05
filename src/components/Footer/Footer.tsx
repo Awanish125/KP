@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { FaFacebookF, FaInstagram, FaLinkedinIn, FaYoutube } from "react-icons/fa6";
 import { SectionReveal } from "@/components/SectionReveal";
+import { CredentialsStrip } from "@/components/CredentialsStrip";
 import { FOOTER_DEFAULTS } from "./footerConfig";
 import type { FooterProps } from "./footerTypes";
 
@@ -133,9 +134,12 @@ export function Footer({
           ))}
         </div>
 
+        {/* Statutory registrations — trust band for govt/corporate clients */}
+        <CredentialsStrip className="mt-16 pt-6" />
+
         {/* Legal */}
         <div
-          className="mt-16 flex flex-col gap-2 pt-6 md:flex-row md:items-center md:justify-between"
+          className="mt-8 flex flex-col gap-2 pt-6 md:flex-row md:items-center md:justify-between"
           style={{ borderTop: "1px solid rgba(245, 247, 250, 0.08)" }}
         >
           <p

@@ -11,6 +11,7 @@ import Link from "next/link";
 import { SectionReveal } from "@/components/SectionReveal";
 import { TextReveal } from "@/components/TextReveal";
 import { ParallaxImage } from "@/components/ParallaxImage";
+import { BeforeAfterSlider } from "@/components/BeforeAfterSlider";
 import { CTABanner } from "@/components/CTABanner";
 import type { CaseStudyStoryProps } from "./caseStudyStoryTypes";
 
@@ -122,6 +123,27 @@ export function CaseStudyStory({ study, prev, next }: CaseStudyStoryProps) {
           ))}
         </SectionReveal>
       </section>
+
+      {/* ── Site transformation — drag to compare ─────────────────────── */}
+      <SectionReveal className="mx-auto max-w-5xl px-6 pb-20" staggerChildren={false}>
+        <p
+          className="mb-6"
+          style={{
+            fontFamily: "var(--kp-font-mono)",
+            fontSize: "var(--text-label)",
+            letterSpacing: "0.45em",
+            textTransform: "uppercase",
+            color: "var(--kp-orange)",
+          }}
+        >
+          Drag to see the takeover
+        </p>
+        <BeforeAfterSlider
+          before={`${study.hero}?grayscale`}
+          after={study.hero}
+          alt={`${study.brand} site before and after the campaign`}
+        />
+      </SectionReveal>
 
       {/* ── Imagery ───────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-6 pb-20">

@@ -8,5 +8,11 @@
     { "label": "Case Studies", "href": "/case-studies" },
     { "label": "Gallery", "href": "/gallery" }
   ],
-  "cta": { "label": "Start a Campaign", "href": "/contact" }
+  "cta": { "label": "Start a Campaign", "href": "/contact" },
+  "announcement": {
+    "enabled": true,
+    "text": "New: 3 digital LED screens now live in Patna",
+    "linkLabel": "See the network",
+    "href": "/locations"
+  }
 }

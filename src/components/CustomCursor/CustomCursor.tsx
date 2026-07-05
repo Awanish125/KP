@@ -156,7 +156,8 @@ export function CustomCursor({
           marginTop: -ringSize / 2,
           border: "1.5px solid var(--kp-orange-glow)",
           transition: "border-color 250ms ease, opacity 250ms ease",
-          mixBlendMode: "exclusion",
+          // NOTE: no mix-blend-mode here — blend modes on a fixed overlay
+          // force the entire page into expensive compositing every frame.
         }}
       />
     </>

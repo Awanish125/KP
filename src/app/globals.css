@@ -788,6 +788,26 @@
   scrollbar-width: none;      /* Firefox */
   -ms-overflow-style: none;   /* legacy Edge */
 }
+
+/* ── Announcement bar shift ─────────────────────────────────
+   While the bar is visible, push the floating navbar and the
+   scroll-progress hairline below it. The base transition also
+   animates the collapse when the bar is dismissed.            */
+:root { --kp-announce-h: 38px; }
+.navbar-fixed-wrapper { transition: top 400ms ease; }
+.kp-announce-visible .navbar-fixed-wrapper {
+  top: calc(20px + var(--kp-announce-h));
+}
+.kp-announce-visible [data-kp-scroll-progress] {
+  top: var(--kp-announce-h) !important; /* overrides the inline top: 0 */
+}
+
+/* ── First-visit loading screen gate ────────────────────────
+   The loader is SSR-rendered so it covers the very first paint,
+   but only first-time sessions actually see it: the inline head
+   script in layout.tsx adds .kp-first-visit before paint.      */
+.kp-loader-root { display: none; }
+html.kp-first-visit .kp-loader-root { display: flex; }
 .kp-scrollbar-active::-webkit-scrollbar,
 .kp-scrollbar-active body::-webkit-scrollbar {
   width: 0;

@@ -73,6 +73,7 @@ export function ScrollProgress({
     <div
       className={className}
       aria-hidden
+      data-kp-scroll-progress
       style={{
         position: "fixed",
         top: 0,

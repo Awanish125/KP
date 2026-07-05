@@ -1,0 +1,31 @@
+{
+  "_comment": "FAQ accordion content. Edit here — no code changes needed.",
+  "label": "Questions",
+  "heading": "Everything advertisers ask us.",
+  "items": [
+    {
+      "q": "How much does a hoarding campaign cost?",
+      "a": "Rates depend on city, junction, size, and lighting. A prime Patna site reads very differently from a highway gantry. Send us your target cities on WhatsApp and you'll have a site-by-site rate card within one working day."
+    },
+    {
+      "q": "What is the minimum booking period?",
+      "a": "One month for static hoardings and two weeks for digital LED slots. For launches we also run short high-intensity bursts across multiple sites — ask us about launch packages."
+    },
+    {
+      "q": "How do I know my ad is actually up?",
+      "a": "Every campaign gets photographic proof-of-display — geotagged photos of every site, every month, delivered to your inbox. It has been our standard practice since 1998, not an add-on."
+    },
+    {
+      "q": "How fast can you put a campaign live?",
+      "a": "72 hours from artwork approval to live sites, including printing and installation — our printing and fabrication units are in-house, so there is no vendor queue."
+    },
+    {
+      "q": "Do you handle permits and municipal approvals?",
+      "a": "Yes, end-to-end. All our structures are licensed, engineering-certified, and audited annually. You never deal with a municipal office — that's our job."
+    },
+    {
+      "q": "Can you design the creative too?",
+      "a": "Our in-house studio handles artwork, adaptation, and print files at no extra design fee for confirmed campaigns. Bring a brief or a finished file — either works."
+    }
+  ]
+}

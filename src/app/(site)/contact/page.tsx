@@ -11,7 +11,10 @@ import { FaWhatsapp } from "react-icons/fa6";
 import { PageHero } from "@/components/PageHero";
 import { SectionReveal } from "@/components/SectionReveal";
 import { DottedGlobe, type GlobeSite } from "@/components/DottedGlobe";
+import { FAQAccordion } from "@/components/FAQAccordion";
+import { MediaKitButton } from "@/components/MediaKitButton";
 import data from "@/data/contact.json";
+import faqData from "@/data/faq.json";
 
 /* The HQ pin on the contact globe — derived from office data. */
 const HQ_SITE: GlobeSite[] = [
@@ -156,6 +159,9 @@ export default function ContactPage() {
               ))}
             </ul>
           </div>
+
+          {/* Media kit download — no forms, take the profile with you */}
+          <MediaKitButton className="mt-2" />
         </SectionReveal>
 
         {/* Globe */}
@@ -173,6 +179,12 @@ export default function ContactPage() {
           </div>
         </SectionReveal>
       </section>
+
+      {/* FAQ — answers the questions the form used to collect */}
+      <FAQAccordion
+        items={faqData.items}
+        className="mx-auto max-w-4xl px-6 pb-28"
+      />
     </div>
   );
 }

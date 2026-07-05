@@ -480,26 +480,32 @@
     "items": [
       {
         "title": "Billboards & Hoardings",
+        "image": "https://picsum.photos/seed/kpsvc1/640/420",
         "description": "Large-format roadside displays at premium traffic junctions."
       },
       {
         "title": "Unipoles & Gantries",
+        "image": "https://picsum.photos/seed/kpsvc2/640/420",
         "description": "Sky-high single-pole structures and highway arch gantries."
       },
       {
         "title": "Digital LED Displays",
+        "image": "https://picsum.photos/seed/kpsvc3/640/420",
         "description": "Dynamic full-colour LED screens with real-time content."
       },
       {
         "title": "Transit Advertising",
+        "image": "https://picsum.photos/seed/kpsvc4/640/420",
         "description": "Bus, auto and fleet wraps that move your brand city-wide."
       },
       {
         "title": "Bus Shelter Branding",
+        "image": "https://picsum.photos/seed/kpsvc5/640/420",
         "description": "Eye-level panels at high-dwell commuter shelters."
       },
       {
         "title": "Wall Wraps & Murals",
+        "image": "https://picsum.photos/seed/kpsvc6/640/420",
         "description": "Large-scale building wraps and hand-painted murals."
       }
     ]
@@ -663,5 +669,11 @@
         "body": "Site scouting, permits, installation, maintenance and reports."
       }
     ]
+  },
+  "showreel": {
+    "label": "Showreel",
+    "heading": "90 seconds of the network at night.",
+    "cta": "Watch the film",
+    "src": "/homepage/herosection/hero-light.mp4"
   }
 }

@@ -49,15 +49,29 @@ export function tickWhileVisible(
   options?: { onEnter?: () => void; onLeave?: () => void },
 ): () => void {
   let active = false;
+
+  // Safety fuse: gsap.ticker is shared with Lenis — an exception thrown
+  // from one component's tick must never take page scrolling down with it.
+  // A throwing callback logs once and ejects itself.
+  const safeTick = () => {
+    try {
+      onTick();
+    } catch (err) {
+      console.error("[kp] ticker callback failed — removing it:", err);
+      active = false;
+      gsap.ticker.remove(safeTick);
+    }
+  };
+
   const obs = new IntersectionObserver(
     ([entry]) => {
       if (entry.isIntersecting && !active) {
         active = true;
         options?.onEnter?.();
-        gsap.ticker.add(onTick);
+        gsap.ticker.add(safeTick);
       } else if (!entry.isIntersecting && active) {
         active = false;
-        gsap.ticker.remove(onTick);
+        gsap.ticker.remove(safeTick);
         options?.onLeave?.();
       }
     },
@@ -66,7 +80,7 @@ export function tickWhileVisible(
   obs.observe(el);
   return () => {
     obs.disconnect();
-    if (active) gsap.ticker.remove(onTick);
+    if (active) gsap.ticker.remove(safeTick);
   };
 }
 

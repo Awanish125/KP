@@ -24,10 +24,12 @@ export function SmoothScroll() {
     }
 
     const lenis = new Lenis({
-      lerp: 0.08,
+      // lerp raised 0.08→0.1 and multiplier 0.95→1.2 after user reports:
+      // the page is long, and a slow catch-up reads as "gesture stuck".
+      lerp: 0.1,
       smoothWheel: true,
       syncTouch: false,
-      wheelMultiplier: 0.95,
+      wheelMultiplier: 1.2,
     });
 
     const raf = (time: number) => {

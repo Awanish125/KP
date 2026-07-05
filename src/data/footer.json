@@ -44,5 +44,11 @@
     "facebook": "https://facebook.com/kiranpublicity",
     "youtube": "https://youtube.com/@kiranpublicity"
   },
+  "credentials": [
+    { "label": "GSTIN", "value": "10AAACK0000A1Z5" },
+    { "label": "CIN", "value": "U74999BR1998PTC008421" },
+    { "label": "MSME", "value": "UDYAM-BR-26-0004120" },
+    { "label": "In Business", "value": "Since 1998" }
+  ],
   "legal": "© 2026 Kiran Publicity Pvt. Ltd. All rights reserved."
 }

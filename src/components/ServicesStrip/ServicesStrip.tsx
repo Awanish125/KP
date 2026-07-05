@@ -7,9 +7,11 @@
  * the row and warms the number. Content from home.json services.
  */
 
+import { useState } from "react";
 import Link from "next/link";
 import { SectionReveal } from "@/components/SectionReveal";
 import { TextReveal } from "@/components/TextReveal";
+import { HoverImagePreview } from "@/components/HoverImagePreview";
 import { SERVICES_STRIP_DEFAULTS } from "./servicesStripConfig";
 import type { ServicesStripProps } from "./servicesStripTypes";
 
@@ -22,6 +24,9 @@ export function ServicesStrip({
   href = SERVICES_STRIP_DEFAULTS.href,
   linkLabel = SERVICES_STRIP_DEFAULTS.linkLabel,
 }: ServicesStripProps) {
+  // Which row's format photo floats beside the cursor (null = none).
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+
   return (
     <section
       className={className}
@@ -67,6 +72,8 @@ export function ServicesStrip({
                 href={href}
                 className="group grid grid-cols-[auto_1fr_auto] items-baseline gap-x-6 py-6 no-underline transition-transform duration-300 hover:translate-x-2 md:grid-cols-[6rem_1fr_1fr_auto] md:items-center"
                 style={{ borderTop: "1px solid var(--border-soft)" }}
+                onMouseEnter={() => setPreviewSrc(item.image ?? null)}
+                onMouseLeave={() => setPreviewSrc(null)}
               >
                 <span
                   className="transition-colors duration-300"
@@ -130,6 +137,9 @@ export function ServicesStrip({
           </Link>
         </SectionReveal>
       </div>
+
+      {/* Cursor-following format photo for the hovered row */}
+      <HoverImagePreview src={previewSrc} />
     </section>
   );
 }

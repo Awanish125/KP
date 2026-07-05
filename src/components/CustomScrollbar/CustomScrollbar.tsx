@@ -51,8 +51,10 @@ export function CustomScrollbar({
     let trackH = 1;
     let thumbH = minThumb;
     let lastY = -1;
-    let hideTimer = 0;
     let dragging = false;
+    // Timestamp-based auto-hide: zero timer churn (no setTimeout per frame).
+    let hideAt = 0;
+    let shown = false;
 
     const measure = () => {
       max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
@@ -64,18 +66,23 @@ export function CustomScrollbar({
     };
 
     const show = () => {
-      track.style.opacity = "1";
-      window.clearTimeout(hideTimer);
-      if (!dragging) {
-        hideTimer = window.setTimeout(() => {
-          track.style.opacity = "0";
-        }, hideAfter);
+      hideAt = performance.now() + hideAfter;
+      if (!shown) {
+        shown = true;
+        track.style.opacity = "1";
       }
     };
 
     const tick = () => {
       const y = window.scrollY;
-      if (y === lastY) return;
+      if (y === lastY) {
+        // Idle: only the cheap hide check remains.
+        if (shown && !dragging && performance.now() > hideAt) {
+          shown = false;
+          track.style.opacity = "0";
+        }
+        return;
+      }
       lastY = y;
       const t = Math.min(y / max, 1) * (trackH - thumbH);
       thumb.style.transform = `translateY(${t}px)`;
@@ -131,7 +138,6 @@ export function CustomScrollbar({
       thumb.removeEventListener("pointerdown", onThumbDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", endDrag);
-      window.clearTimeout(hideTimer);
       document.body.style.userSelect = "";
     };
   }, [active, minThumb, hideAfter]);

@@ -111,7 +111,11 @@ export function PinnedHero({
           scrub: 1.3,
           pin: true,
           pinSpacing: true,
-          invalidateOnRefresh: true,
+          // NOT invalidateOnRefresh: a refresh while scrolled past the hero
+          // (e.g. late image loads firing window 'load') would re-record the
+          // depart tween's start values from the CURRENT (hidden) state —
+          // after which scrolling back to top can never restore the content.
+          // All tween values here are static, so invalidation isn't needed.
           onUpdate: (self) => {
             if (self.progress === 0) {
               setState("Idle");
@@ -126,8 +130,19 @@ export function PinnedHero({
       timelineRef.current = tl;
 
       // 1. Depart Sequence
+      // fromTo (NOT .to): the content is temporarily hidden by
+      // HeroSectionContent while the loading screen plays, and .to() would
+      // capture whatever opacity it happens to have when the scrub first
+      // renders (in dev, StrictMode's remount makes that "hidden") — after
+      // which scrolling back to top could never restore the hero. Explicit
+      // start values make the rewind state deterministic.
       tl.addLabel("depart")
-        .to(content, {
+        .fromTo(content, {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          filter: "blur(0px)",
+        }, {
           autoAlpha: 0,
           y: -54,
           scale: 0.975,
@@ -135,7 +150,7 @@ export function PinnedHero({
           duration: 1.0,
           ease: "power2.inOut",
         }, "depart")
-        .to(indicator, { autoAlpha: 0, y: 10, duration: 0.4 }, "depart")
+        .fromTo(indicator, { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: 10, duration: 0.4 }, "depart")
         .to(camera, {
           zoom: intro.camera.peakZoom,
           duration: 1.0,
@@ -216,7 +231,37 @@ export function PinnedHero({
       else window.addEventListener("kp:loaded", arm, { once: true });
     }, root);
 
+    /* ── Top watchdog ────────────────────────────────────────────────
+       Whatever brings the user back to the very top (wheel, back-to-top
+       button, keyboard), the intro MUST sit on its first frame. Smoothed
+       scrubs (scrub: 1.3) can wedge mid-progress when scroll updates stop
+       near 0, leaving the hero content invisible at the top. The check is
+       two number reads per frame and only runs while the hero is on
+       screen (IntersectionObserver gate, per project scroll rules). */
+    const topGuard = () => {
+      const tl = timelineRef.current;
+      if (!tl) return;
+      if (window.scrollY <= 1 && tl.progress() > 0.001) {
+        tl.scrollTrigger?.getTween()?.kill(); // kill a wedged scrub tween
+        tl.progress(0);
+        setState("Idle");
+      }
+    };
+    let guardActive = false;
+    const guardObserver = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !guardActive) {
+        guardActive = true;
+        gsap.ticker.add(topGuard);
+      } else if (!entry.isIntersecting && guardActive) {
+        guardActive = false;
+        gsap.ticker.remove(topGuard);
+      }
+    });
+    guardObserver.observe(root);
+
     return () => {
+      guardObserver.disconnect();
+      if (guardActive) gsap.ticker.remove(topGuard);
       timelineRef.current?.kill();
       scrollTweenRef.current?.kill();
       context.revert();

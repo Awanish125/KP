@@ -1,6 +1,8 @@
 export interface ServicesStripItem {
   title: string;
   description: string;
+  /** Optional format photo shown by HoverImagePreview on row hover. */
+  image?: string;
 }
 
 export interface ServicesStripConfig {

@@ -1,17 +1,21 @@
 "use client";
 
 /**
- * FirstVisitLoader — session gate around the cinematic <Loading /> reveal.
+ * FirstVisitLoader — session bookkeeping around <PremiumLoader />.
  *
- * Rules (per loading-screen spec):
- *  - Shows only when sessionStorage 'kp-visited' is null.
- *  - Sets 'kp-visited' = '1' on completion so it never repeats this session.
- *  - Completion is detected via the 'page-revealed' class the loader adds
- *    to <html> when its timeline ends (PremiumLoader, was Loading.tsx).
- *  - Repeat visitors render nothing: the page is immediately interactive.
+ * The loader itself is rendered unconditionally (SSR included) so it
+ * covers the very first paint; whether it actually SHOWS is decided
+ * before paint by the inline head script in layout.tsx, which adds
+ * `kp-first-visit` to <html> for new sessions (CSS gate in globals.css).
+ * PremiumLoader reads that class and either plays or silently emits the
+ * reveal signals and unmounts.
+ *
+ * This wrapper's only job: set sessionStorage 'kp-visited' = '1' when the
+ * reveal completes ('page-revealed' appears on <html>), so the cinematic
+ * never repeats within a session.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { PremiumLoader } from "@/components/PremiumLoader";
 import { FIRST_VISIT_LOADER_DEFAULTS } from "./firstVisitLoaderConfig";
 import type { FirstVisitLoaderProps } from "./firstVisitLoaderTypes";
@@ -20,35 +24,7 @@ export function FirstVisitLoader({
   storageKey = FIRST_VISIT_LOADER_DEFAULTS.storageKey,
   fallbackMs = FIRST_VISIT_LOADER_DEFAULTS.fallbackMs,
 }: FirstVisitLoaderProps) {
-  // null = undecided (SSR + first client frame renders nothing, so repeat
-  // visitors never see a flash of loader).
-  const [show, setShow] = useState<boolean | null>(null);
-
   useEffect(() => {
-    let visited: string | null = null;
-    try {
-      visited = sessionStorage.getItem(storageKey);
-    } catch {
-      // Storage blocked → treat as visited, skip the cinematic.
-      visited = "1";
-    }
-
-    if (visited !== null) {
-      // Skipping the loader — emit the completion signals Loading.tsx would
-      // have produced, so components gated on them (HeroSectionContent's
-      // entrance, anything on .page-revealed) still play immediately.
-      // Class first: late-mounting components check it before listening.
-      document.documentElement.classList.add("page-revealed");
-      window.dispatchEvent(new Event("kp:loaded"));
-      setShow(false);
-      return;
-    }
-    setShow(true);
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (show !== true) return;
-
     const markVisited = () => {
       try {
         sessionStorage.setItem(storageKey, "1");
@@ -57,7 +33,6 @@ export function FirstVisitLoader({
       }
     };
 
-    // Loading.tsx adds 'page-revealed' to <html> when its outro finishes.
     if (document.documentElement.classList.contains("page-revealed")) {
       markVisited();
       return;
@@ -83,8 +58,7 @@ export function FirstVisitLoader({
       obs.disconnect();
       window.clearTimeout(timer);
     };
-  }, [show, storageKey, fallbackMs]);
+  }, [storageKey, fallbackMs]);
 
-  if (show !== true) return null;
   return <PremiumLoader />;
 }

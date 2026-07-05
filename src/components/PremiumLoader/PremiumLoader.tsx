@@ -7,16 +7,23 @@
  * 0→100 against a hairline progress bar → a soft orange bloom breathes
  * behind the wordmark → the whole field wipes upward, unveiling the page.
  *
- * Contract (same as the old loader, so nothing downstream changes):
- *  - adds `page-revealed` to <html> and dispatches `kp:loaded` as the exit
- *    wipe begins — the hero entrance plays WHILE being revealed.
+ * First-paint contract (the loader must NEVER appear late):
+ *  - Rendered in the SSR HTML (no portal, no state gate), so it covers
+ *    the page from the first frame even while everything else loads.
+ *  - Visibility is CSS-gated: the inline head script in layout.tsx adds
+ *    `kp-first-visit` to <html> BEFORE paint when the session is new;
+ *    repeat visitors never see a flash (display: none).
+ *
+ * Reveal contract (same as the original Loading.tsx):
+ *  - `page-revealed` on <html> + `kp:loaded` fire when the timeline ENDS,
+ *    so the hero entrance plays in full view.
+ *  - When the loader is skipped (repeat visit / reduced motion), the same
+ *    signals fire — but only after the PageTransition veil has finished,
+ *    so the hero entrance is never hidden behind the veil.
  *  - pointer-events: none — the page underneath is interactive throughout.
- *  - prefers-reduced-motion → signals fire immediately, nothing renders.
- *  - Unmounts itself when done (no lingering DOM).
  */
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import gsap from "gsap";
 import { prefersReducedMotion } from "@/lib/motion";
 import { PREMIUM_LOADER_DEFAULTS } from "./premiumLoaderConfig";
@@ -27,6 +34,22 @@ function emitRevealSignals() {
   window.dispatchEvent(new Event("kp:loaded"));
 }
 
+/** Fire the reveal signals once the route veil (if any) is out of the way. */
+function emitRevealSignalsAfterVeil() {
+  let fired = false;
+  const fire = () => {
+    if (fired) return;
+    fired = true;
+    emitRevealSignals();
+  };
+  if (window.__kpVeilActive) {
+    window.addEventListener("kp:veil-done", fire, { once: true });
+    window.setTimeout(fire, 1600); // safety net — never leave the hero hidden
+  } else {
+    fire();
+  }
+}
+
 export function PremiumLoader({
   word1 = PREMIUM_LOADER_DEFAULTS.word1,
   word2 = PREMIUM_LOADER_DEFAULTS.word2,
@@ -34,11 +57,6 @@ export function PremiumLoader({
   exitDuration = PREMIUM_LOADER_DEFAULTS.exitDuration,
 }: PremiumLoaderProps) {
   const [done, setDone] = useState(false);
-  // Portal target: pages with ScrollTrigger pinning restructure their own
-  // DOM (pin-spacers), which breaks sibling insertion for late-mounting
-  // components. Rendering into <body> avoids that entirely.
-  const [portalReady, setPortalReady] = useState(false);
-  useEffect(() => setPortalReady(true), []);
   const overlayRef = useRef<HTMLDivElement>(null);
   const wordRef = useRef<HTMLDivElement>(null);
   const bloomRef = useRef<HTMLDivElement>(null);
@@ -47,12 +65,28 @@ export function PremiumLoader({
   const footRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (prefersReducedMotion()) {
-      emitRevealSignals();
+    // The pre-paint flag marks a HARD document load (the inline head
+    // script sets it; we retire it below, so SPA navigations never see
+    // it). Every hard load gets covered — the full cinematic for a brand
+    // new session, a quick brand wipe for refreshes/returns — so raw
+    // half-loaded content is never the first paint.
+    const hardLoad = document.documentElement.classList.contains("kp-first-visit");
+    let seen = false;
+    try {
+      seen = !!sessionStorage.getItem("kp-visited");
+    } catch {
+      /* storage blocked — treat as seen */
+      seen = true;
+    }
+
+    if (!hardLoad || prefersReducedMotion()) {
+      document.documentElement.classList.remove("kp-first-visit");
+      emitRevealSignalsAfterVeil();
       setDone(true);
       return;
     }
-    if (!portalReady) return; // refs exist only after the portal mounts
+
+    const short = seen; // refresh / returning this session → quick wipe
 
     const overlay = overlayRef.current;
     const word = wordRef.current;
@@ -67,11 +101,50 @@ export function PremiumLoader({
 
     const tl = gsap.timeline({
       defaults: { ease: "power4.out" },
-      onComplete: () => setDone(true),
+      onComplete: () => {
+        // Same contract as the original Loading.tsx: signals fire when the
+        // loader timeline ENDS, so the hero entrance plays in full view
+        // after the wipe — never hidden behind the overlay. The CSS gate
+        // is retired so later mounts (SPA navs) never replay the reveal.
+        document.documentElement.classList.remove("kp-first-visit");
+        emitRevealSignals();
+        setDone(true);
+      },
     });
 
+    if (short) {
+      // ── Quick brand wipe (~1.3s) for refreshes / returning sessions ──
+      gsap.set(foot, { opacity: 0 });
+      tl.fromTo(
+        letters,
+        { yPercent: 120 },
+        { yPercent: 0, duration: 0.5, stagger: 0.018 },
+        0.05,
+      );
+      tl.fromTo(
+        bloom,
+        { opacity: 0, scale: 0.7 },
+        { opacity: 0.45, scale: 1.05, duration: 0.5, ease: "power2.inOut" },
+        0.15,
+      );
+      tl.to(
+        word,
+        { yPercent: -160, opacity: 0, duration: 0.4, ease: "power3.in" },
+        0.72,
+      );
+      tl.to(
+        overlay,
+        { clipPath: "inset(0 0 100% 0)", duration: 0.7, ease: "power4.inOut" },
+        0.8,
+      );
+      return () => {
+        tl.kill();
+      };
+    }
+
+    // ── Full cinematic (first visit of the session) ──────────────────
+
     // 1 — letters rise into view, tracking breathes open.
-    tl.set(overlay, { autoAlpha: 1 });
     tl.fromTo(
       letters,
       { yPercent: 120 },
@@ -109,9 +182,7 @@ export function PremiumLoader({
       countDuration - 0.55,
     );
 
-    // 4 — exit: signals fire as the wipe starts so the hero entrance
-    //     plays while being unveiled.
-    tl.call(emitRevealSignals);
+    // 4 — exit wipe. Reveal signals fire in onComplete (above), not here.
     tl.to(
       [word, foot],
       { yPercent: -160, opacity: 0, duration: exitDuration * 0.7, ease: "power3.in" },
@@ -130,14 +201,15 @@ export function PremiumLoader({
     return () => {
       tl.kill();
     };
-  }, [portalReady, countDuration, exitDuration]);
+  }, [countDuration, exitDuration]);
 
-  if (done || !portalReady) return null;
+  if (done) return null;
 
-  return createPortal(
+  return (
     <div
       ref={overlayRef}
       aria-hidden
+      className="kp-loader-root"
       style={{
         position: "fixed",
         inset: 0,
@@ -145,10 +217,8 @@ export function PremiumLoader({
         background: "var(--kp-dark)",
         clipPath: "inset(0 0 0% 0)",
         pointerEvents: "none",
-        display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        visibility: "hidden",
       }}
     >
       {/* Orange bloom */}
@@ -210,7 +280,6 @@ export function PremiumLoader({
           right: 0,
           bottom: 0,
           padding: "0 clamp(1.5rem, 5vw, 4rem) clamp(1.25rem, 4vh, 2.5rem)",
-          opacity: 0,
         }}
       >
         <div
@@ -266,7 +335,6 @@ export function PremiumLoader({
           />
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>
   );
 }

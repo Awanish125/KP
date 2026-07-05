@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 import { SectionReveal } from "@/components/SectionReveal";
+import { MagneticButton } from "@/components/MagneticButton";
 import { CTA_BANNER_DEFAULTS } from "./ctaBannerConfig";
 import type { CTABannerProps } from "./ctaBannerTypes";
 
@@ -53,26 +54,28 @@ export function CTABanner({
           </p>
         </div>
 
-        <Link
-          href={button.href}
-          className="group inline-flex shrink-0 items-center gap-3 rounded-full px-9 py-5 no-underline transition-transform duration-300 hover:scale-[1.04]"
-          style={{
-            background: "var(--kp-orange)",
-            color: "var(--kp-dark)",
-            fontFamily: "var(--kp-font-body)",
-            fontWeight: 700,
-            fontSize: "1rem",
-            boxShadow: "0 8px 40px var(--kp-orange-glow)",
-          }}
-        >
-          {button.label}
-          <span
-            aria-hidden
-            className="inline-block transition-transform duration-300 group-hover:translate-x-1"
+        <MagneticButton className="shrink-0">
+          <Link
+            href={button.href}
+            className="group inline-flex items-center gap-3 rounded-full px-9 py-5 no-underline"
+            style={{
+              background: "var(--kp-orange)",
+              color: "var(--kp-dark)",
+              fontFamily: "var(--kp-font-body)",
+              fontWeight: 700,
+              fontSize: "1rem",
+              boxShadow: "0 8px 40px var(--kp-orange-glow)",
+            }}
           >
-            →
-          </span>
-        </Link>
+            {button.label}
+            <span
+              aria-hidden
+              className="inline-block transition-transform duration-300 group-hover:translate-x-1"
+            >
+              →
+            </span>
+          </Link>
+        </MagneticButton>
       </div>
     </SectionReveal>
   );
