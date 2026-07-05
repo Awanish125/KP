@@ -7,6 +7,12 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
+declare global {
+  interface Window {
+    __kpLenis?: Lenis;
+  }
+}
+
 export function SmoothScroll() {
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia(
@@ -18,10 +24,12 @@ export function SmoothScroll() {
     }
 
     const lenis = new Lenis({
-      lerp: 0.08,
+      // lerp raised 0.08→0.1 and multiplier 0.95→1.2 after user reports:
+      // the page is long, and a slow catch-up reads as "gesture stuck".
+      lerp: 0.1,
       smoothWheel: true,
       syncTouch: false,
-      wheelMultiplier: 0.95,
+      wheelMultiplier: 1.2,
     });
 
     const raf = (time: number) => {
@@ -29,13 +37,24 @@ export function SmoothScroll() {
     };
 
     lenis.on("scroll", ScrollTrigger.update);
+    const stop = () => lenis.stop();
+    const start = () => lenis.start();
+    window.addEventListener("kp:scroll-lock", stop);
+    window.addEventListener("kp:scroll-unlock", start);
     gsap.ticker.add(raf);
     gsap.ticker.lagSmoothing(0);
     ScrollTrigger.refresh();
 
+    // Expose for components that need programmatic scrolling in sync with
+    // Lenis (e.g. CustomScrollbar drag). Cleared on unmount.
+    window.__kpLenis = lenis;
+
     return () => {
       gsap.ticker.remove(raf);
+      window.removeEventListener("kp:scroll-lock", stop);
+      window.removeEventListener("kp:scroll-unlock", start);
       lenis.destroy();
+      delete window.__kpLenis;
     };
   }, []);
 

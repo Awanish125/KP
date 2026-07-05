@@ -1,0 +1,73 @@
+/* ============================================================
+   KP DESIGN TOKENS — single source of truth for all colors.
+   :root = light mode.  .dark = dark mode overrides.
+   Components must reference these vars — zero hardcoded hex
+   values in any .tsx file.
+   ============================================================ */
+
+:root {
+  /* ── Brand constants (identical in both modes) ─────────── */
+  --kp-orange:        #F5821F;
+  --kp-orange-soft:   rgba(245, 130, 31, 0.12);
+  --kp-orange-glow:   rgba(245, 130, 31, 0.35);
+  --kp-blue:          #5BA3D6;
+  --kp-blue-soft:     rgba(91, 163, 214, 0.14);
+  --kp-purple:        #B86CCB;
+  --kp-purple-soft:   rgba(184, 108, 203, 0.14);
+  --kp-dark:          #0D0D14;
+  --kp-dark-2:        #1A1A2E;
+  --kp-light:         #F5F7FA;
+
+  /* ── Theme-dynamic surfaces & text (light mode) ─────────── */
+  --bg:               #F5F7FA;
+  --bg-secondary:     #FFFFFF;
+  --surface:          #FFFFFF;
+  --surface-2:        #EDF1F6;
+  --text:             #0D0D14;
+  --text-muted:       rgba(13, 13, 20, 0.62);
+  --text-subtle:      rgba(13, 13, 20, 0.38);
+  --border-soft:      rgba(13, 13, 20, 0.10);
+  --border-strong:    rgba(13, 13, 20, 0.18);
+  --shadow-ambient:   0 24px 64px rgba(13, 13, 20, 0.10);
+  --scrim:            rgba(245, 247, 250, 0.86);
+
+  /* Legacy aliases — existing components read these names.
+     Values follow the canonical tokens above.                 */
+  --fg:               #0D0D14;
+  --fg-muted:         rgba(13, 13, 20, 0.62);
+  --fg-subtle:        rgba(13, 13, 20, 0.38);
+
+  /* ── Typography (fonts loaded via next/font in layout) ──── */
+  --kp-font-display:  var(--font-oswald, "Oswald", var(--font-archivo, ui-sans-serif));
+  --kp-font-body:     var(--font-manrope, "Manrope", ui-sans-serif, system-ui, sans-serif);
+  --kp-font-mono:     var(--font-space-mono, "Space Mono", ui-monospace, monospace);
+
+  /* Fluid type scale */
+  --text-hero:        clamp(2.8rem, 8vw, 9rem);
+  --text-section:     clamp(2rem, 5vw, 5rem);
+  --text-lead:        clamp(1.05rem, 1.6vw, 1.35rem);
+  --text-body:        clamp(0.9rem, 1.1vw, 1.1rem);
+  --text-label:       clamp(0.68rem, 0.8vw, 0.78rem);
+
+  /* ── Motion ─────────────────────────────────────────────── */
+  --ease-out-expo:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.dark {
+  --bg:               #0D0D14;
+  --bg-secondary:     #1A1A2E;
+  --surface:          #1A1A2E;
+  --surface-2:        #232338;
+  --text:             #F5F7FA;
+  --text-muted:       rgba(245, 247, 250, 0.64);
+  --text-subtle:      rgba(245, 247, 250, 0.38);
+  --border-soft:      rgba(245, 247, 250, 0.10);
+  --border-strong:    rgba(245, 247, 250, 0.20);
+  --shadow-ambient:   0 24px 64px rgba(0, 0, 0, 0.55);
+  --scrim:            rgba(13, 13, 20, 0.86);
+
+  --fg:               #F5F7FA;
+  --fg-muted:         rgba(245, 247, 250, 0.64);
+  --fg-subtle:        rgba(245, 247, 250, 0.38);
+}

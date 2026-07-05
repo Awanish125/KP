@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useLayoutEffect, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -8,15 +8,9 @@ import { X } from 'lucide-react';
 import gsap from 'gsap';
 import { NavLogo }       from './NavLogo';
 import { ThemeToggle3D } from './ThemeToggle3D';
+import navData from '@/data/nav.json';
 
-const NAV_LINKS = [
-  { label: 'Home',        href: '/' },
-  { label: 'About',       href: '/about' },
-  { label: 'Features',    href: '/features' },
-  { label: 'Pricing',     href: '/pricing' },
-  { label: 'Integration', href: '/integration' },
-  { label: 'Blog',        href: '/blog' },
-];
+const NAV_LINKS: { label: string; href: string }[] = navData.links;
 
 type Props = {
   isOpen:  boolean;
@@ -39,7 +33,10 @@ export function MobileSidebar({ isOpen, onClose }: Props) {
     setPortalMounted(true);
   }, []);
 
-  useEffect(() => {
+  /* useLayoutEffect (NOT useEffect): passive effects run AFTER paint, which
+     let the panel flash fully-open for a frame on slow/heavy loads. Layout
+     effects run before the browser paints the portal content. */
+  useLayoutEffect(() => {
     if (!portalMounted) return;
     gsap.set(backdropRef.current, { autoAlpha: 0 });
     gsap.set(panelRef.current, {

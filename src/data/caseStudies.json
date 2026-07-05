@@ -1,0 +1,138 @@
+{
+  "_comment": "Case studies content. Each item powers a card, a modal, and the /case-studies/[slug] page.",
+  "hero": {
+    "label": "Proof of Work",
+    "line1": "CAMPAIGNS THAT",
+    "line2": "MOVED CITIES",
+    "sub": "Real briefs, real junctions, real numbers. Filter by format to see how each one was built."
+  },
+  "categories": ["All", "Billboards", "Digital LED", "Transit", "Activations"],
+  "items": [
+    {
+      "slug": "suvarna-finance-ipo",
+      "title": "The IPO the Whole Highway Read",
+      "brand": "Suvarna Finance",
+      "category": "Billboards",
+      "year": "2025",
+      "hero": "https://picsum.photos/seed/kpcs1/1600/900",
+      "images": [
+        "https://picsum.photos/seed/kpcs1a/1200/800",
+        "https://picsum.photos/seed/kpcs1b/1200/800",
+        "https://picsum.photos/seed/kpcs1c/1200/800"
+      ],
+      "results": { "impressions": "22M", "sites": "48", "cities": "6", "upliftLabel": "Brand recall", "uplift": "+41%" },
+      "summary": "48 premium sites on Mumbai–Pune arteries carried a countdown creative that changed weekly for the six weeks before listing day.",
+      "body": [
+        "Suvarna Finance came to us eight weeks before their IPO with one instruction: every commuter between Mumbai and Pune should know the listing date.",
+        "We mapped the morning crawl — the exact junctions where traffic sits longest — and locked 48 front-lit and LED sites facing the slow lanes. The creative ran as a countdown, re-printed and re-installed every Sunday night so Monday's commute always showed a new number.",
+        "By listing week, unaided brand recall in intercept surveys had risen 41%. The issue was oversubscribed 3.2 times. The CFO sent the installation crew a crate of pedhas."
+      ],
+      "quote": { "text": "KP's sites carried our IPO to 20 million commuters. Flawless.", "name": "Meera Nair", "role": "CMO, Suvarna Finance" }
+    },
+    {
+      "slug": "zephyr-mobility-launch",
+      "title": "Nine Cities in 72 Hours",
+      "brand": "Zephyr Mobility",
+      "category": "Transit",
+      "year": "2025",
+      "hero": "https://picsum.photos/seed/kpcs2/1600/900",
+      "images": [
+        "https://picsum.photos/seed/kpcs2a/1200/800",
+        "https://picsum.photos/seed/kpcs2b/1200/800",
+        "https://picsum.photos/seed/kpcs2c/1200/800"
+      ],
+      "results": { "impressions": "14M", "sites": "212", "cities": "9", "upliftLabel": "App installs", "uplift": "+180K" },
+      "summary": "An EV scooter launch wrapped 200 buses and 12 metro stations across nine cities — from artwork approval to full installation in three days.",
+      "body": [
+        "Zephyr's launch date was fixed by a national TV spot. Outdoor had to be live the same morning — in nine cities simultaneously.",
+        "Our in-house printing units in Samastipur and Patna ran around the clock. Installation crews worked in parallel overnight shifts, photographing each wrap at dawn for the proof-of-display dashboard.",
+        "The scooter did the commute with its customers for eight weeks. Zephyr tracked 180,000 app installs with OOH-exclusive promo codes."
+      ],
+      "quote": { "text": "From artwork to installation in 72 hours across 9 cities. Nobody else moves this fast.", "name": "Sanjana Rao", "role": "Marketing Director, Zephyr Mobility" }
+    },
+    {
+      "slug": "novamart-diwali-led",
+      "title": "The Diwali Screen Takeover",
+      "brand": "NovaMart",
+      "category": "Digital LED",
+      "year": "2024",
+      "hero": "https://picsum.photos/seed/kpcs3/1600/900",
+      "images": [
+        "https://picsum.photos/seed/kpcs3a/1200/800",
+        "https://picsum.photos/seed/kpcs3b/1200/800",
+        "https://picsum.photos/seed/kpcs3c/1200/800"
+      ],
+      "results": { "impressions": "9M", "sites": "31", "cities": "3", "upliftLabel": "Store footfall", "uplift": "+3×" },
+      "summary": "Dayparted LED creative that changed with the hour — morning offers for commuters, evening spectacle for families — across Pune and Nagpur.",
+      "body": [
+        "NovaMart's brief was footfall, not fame: get families into 14 stores during the two Diwali weekends.",
+        "We ran their entire creative calendar through our LED network's dayparting engine. Office hours showed express-delivery offers; after 6 PM the screens switched to full-motion firework creative synced across every screen in the city centre.",
+        "Footfall tracking against the previous year's OOH campaign showed a 3× lift. NovaMart has renewed for every festival window since."
+      ],
+      "quote": { "text": "3× the footfall lift of our previous OOH partner. The reporting is best-in-class.", "name": "Vikram Sethi", "role": "Growth Lead, NovaMart" }
+    },
+    {
+      "slug": "cafe-arabia-nashik",
+      "title": "Owning a City Before Opening Day",
+      "brand": "Café Arabia",
+      "category": "Billboards",
+      "year": "2024",
+      "hero": "https://picsum.photos/seed/kpcs4/1600/900",
+      "images": [
+        "https://picsum.photos/seed/kpcs4a/1200/800",
+        "https://picsum.photos/seed/kpcs4b/1200/800",
+        "https://picsum.photos/seed/kpcs4c/1200/800"
+      ],
+      "results": { "impressions": "4M", "sites": "18", "cities": "1", "upliftLabel": "Opening-week queue", "uplift": "2hr wait" },
+      "summary": "A teaser campaign with no brand name — just an aroma line and a date — turned a café opening into a city-wide guessing game.",
+      "body": [
+        "Café Arabia wanted their Patna flagship to open famous. We proposed the opposite of a logo blast: three weeks of unbranded black hoardings reading only 'The coffee is coming. 14.09.'",
+        "Local press picked up the mystery within days. Radio jockeys ran guessing segments. On reveal night we re-skinned all 18 sites in four hours with the full brand creative.",
+        "Opening weekend saw two-hour queues. The campaign cost less than a single week of the radio spots it earned for free."
+      ],
+      "quote": { "text": "The only vendor who told us NOT to buy a site because the sightline was blocked.", "name": "Arjun Bhatt", "role": "Brand Head, Café Arabia" }
+    },
+    {
+      "slug": "statewide-vaccination-drive",
+      "title": "Public Health at Highway Scale",
+      "brand": "Govt. of Bihar",
+      "category": "Activations",
+      "year": "2023",
+      "hero": "https://picsum.photos/seed/kpcs5/1600/900",
+      "images": [
+        "https://picsum.photos/seed/kpcs5a/1200/800",
+        "https://picsum.photos/seed/kpcs5b/1200/800",
+        "https://picsum.photos/seed/kpcs5c/1200/800"
+      ],
+      "results": { "impressions": "60M", "sites": "380", "cities": "12", "upliftLabel": "Camp attendance", "uplift": "+62%" },
+      "summary": "Every KP site in the state carried multilingual vaccination-camp information, updated district-by-district as camp schedules changed.",
+      "body": [
+        "When the state health department needed camp schedules visible in every district, the challenge wasn't creative — it was logistics: 380 sites, 3 languages, schedules changing weekly.",
+        "We built a district-level artwork matrix so each site always showed its nearest camp's dates in the dominant local language, and treated schedule changes like LED creative swaps — printed, shipped, and installed inside 48 hours.",
+        "District health officers reported camp attendance up 62% in covered talukas versus the previous drive."
+      ],
+      "quote": { "text": "The rare partner that treats a public-health brief with corporate-launch urgency.", "name": "Dr. S. Kale", "role": "State Health Department" }
+    },
+    {
+      "slug": "skyline-realty-monsoon",
+      "title": "Selling Sea Views in the Rain",
+      "brand": "Skyline Realty",
+      "category": "Digital LED",
+      "year": "2023",
+      "hero": "https://picsum.photos/seed/kpcs6/1600/900",
+      "images": [
+        "https://picsum.photos/seed/kpcs6a/1200/800",
+        "https://picsum.photos/seed/kpcs6b/1200/800",
+        "https://picsum.photos/seed/kpcs6c/1200/800"
+      ],
+      "results": { "impressions": "7M", "sites": "12", "cities": "2", "upliftLabel": "Site visits booked", "uplift": "+340" },
+      "summary": "Weather-triggered LED creative: when it rained, the screens showed the view from the 40th floor — above the clouds.",
+      "body": [
+        "Monsoon is real estate's dead season. Skyline Realty asked us to make it their launch window.",
+        "We wired our Mumbai LED network to a weather API. Clear skies showed standard project creative; the moment rain was detected, screens switched to a shot from the tower's 40th floor — sunlight above the cloud line — with the line 'Live above the weather.'",
+        "The campaign booked 340 site visits in eight weeks, and the rain-triggered creative earned national trade-press coverage."
+      ],
+      "quote": { "text": "They turned the worst season on the calendar into our best quarter.", "name": "Rahul Wagh", "role": "Sales Director, Skyline Realty" }
+    }
+  ]
+}

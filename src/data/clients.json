@@ -1,0 +1,12 @@
+{
+  "_comment": "Client logo wall content. Brands are rendered as styled logotypes — swap in real logo images later by adding an 'img' key per brand.",
+  "label": "Trusted By",
+  "heading": "Brands that own their streets.",
+  "industries": [
+    { "name": "Finance & Insurance", "brands": ["Suvarna Finance", "Magadh Capital", "Trust Line", "Ganga Credit"] },
+    { "name": "Auto & Mobility", "brands": ["Zephyr Mobility", "RideOn Motors", "Vayu EV", "Eastern Wheels"] },
+    { "name": "Retail & FMCG", "brands": ["NovaMart", "Mithila Foods", "Café Arabia", "AnnaPurna Dairy"] },
+    { "name": "Real Estate & Infra", "brands": ["Skyline Realty", "Patliputra Homes", "Chhath Constructions", "MetroEdge"] },
+    { "name": "Public Sector", "brands": ["Govt. of Bihar", "Smart City Patna", "Jharkhand Tourism", "State Health Dept."] }
+  ]
+}

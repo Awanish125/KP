@@ -6,32 +6,45 @@
  * All copy / content lives in src/data/home.json.
  * Edit that file to change text, images, stats, or brand names.
  *
- * The 3D billboard is fully isolated in BillboardController.
- * To disable it (no WebGL, no Three.js loaded at all):
- *   1. Comment out the BillboardController import below
- *   2. Comment out <BillboardController stepRefs={stepRefs} /> in JSX
+ * The 3D billboard is fully isolated in HeroSection.
+ * To disable it (no WebGL, no Three.js loaded at all), remove the hero
+ * wrapper block below.
  */
 
-import { useRef, useEffect, Fragment } from "react";
+import { Fragment } from "react";
 import { useRouter } from "next/navigation";
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import Lenis from "lenis";
-//import { BillboardController } from "@/components/ThreeDObject/Billboard/BillboardController";
-import { HeroSection, HeroSectionContent, PinnedHeroMarquee } from "@/components/hero";
-import { Loading } from "@/components/ui";
-import { PremiumMarquee } from "@/components/PremiumMarquee";
+import { HeroSection, HeroSectionContent, PinnedHero } from "@/components/hero";
 import { PremiumRevealSection } from "@/components/PremiumRevealSection";
 import { CampaignGallery, type Campaign } from "@/components/gallery";
+import { ServicesStrip } from "@/components/ServicesStrip";
+import { ProcessSteps } from "@/components/ProcessSteps";
+import { OfficeGrid } from "@/components/OfficeGrid";
+import { TestimonialSlider } from "@/components/TestimonialSlider";
+import { SectionReveal } from "@/components/SectionReveal";
+import { CTABanner } from "@/components/CTABanner";
+import { Footer } from "@/components/Footer";
+import { ClientLogoWall } from "@/components/ClientLogoWall";
+import { VideoShowcase } from "@/components/VideoShowcase";
+import { HorizontalScrollGallery } from "@/components/HorizontalScrollGallery";
+import { BillboardStory, BILLBOARD_STORY_STEPS } from "@/components/BillboardStory";
 import { GALLERY_CATEGORIES } from "@/data/categories";
 import data from "@/data/home.json";
+import aboutData from "@/data/about.json";
+import contactData from "@/data/contact.json";
+import clientsData from "@/data/clients.json";
+import caseStudiesData from "@/data/caseStudies.json";
 
-gsap.registerPlugin(ScrollTrigger);
+// Horizontal gallery cards come from the case-study covers — each one
+// links straight to its full story.
+const PLACEMENT_ITEMS = caseStudiesData.items.map((cs) => ({
+  image: cs.hero,
+  title: cs.title,
+  meta: `${cs.brand} · ${cs.category}`,
+  href: `/case-studies/${cs.slug}`,
+}));
+import { PremiumMarquee } from "@/components/PremiumMarquee";
 
-// Transform brands list into the shape PremiumMarquee expects.
 const BRANDS = data.brands.map((text) => ({ type: "text" as const, text }));
-
 // Category cards for the homepage gallery section — one premium card per
 // category, showing that category's own cover image. Clicking one opens the
 // gallery page pre-filtered to it. Covers are configured in data/categories.ts.
@@ -53,92 +66,31 @@ const SHOWCASE_IMAGES = data.showcase.images;
 
 export default function Home() {
   const router = useRouter();
-  const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const counterRefs = useRef<(HTMLSpanElement | null)[]>([]);
-
-  /* ── Lenis smooth scroll ─────────────────────────────────────────────── */
-  useEffect(() => {
-    const lenis = new Lenis({
-      lerp: 0.08,
-      smoothWheel: true,
-      syncTouch: false,
-    });
-    lenis.on("scroll", () => ScrollTrigger.update());
-    const tick = (t: number) => lenis.raf(t * 1000);
-    gsap.ticker.add(tick);
-    gsap.ticker.lagSmoothing(0);
-    return () => {
-      gsap.ticker.remove(tick);
-      lenis.destroy();
-    };
-  }, []);
-
-  /* ── Scroll animations (counters + text reveals) ────────────────────── */
-  useGSAP(() => {
-    data.about.stats.forEach((stat, i) => {
-      const el = counterRefs.current[i];
-      if (!el) return;
-      const obj = { val: 0 };
-      gsap.to(obj, {
-        val: stat.value,
-        duration: 1.6,
-        ease: "power2.out",
-        scrollTrigger: { trigger: "#s2", start: "top 60%" },
-        onUpdate: () => {
-          el.textContent = Math.round(obj.val).toString();
-        },
-      });
-    });
-
-    gsap.fromTo(
-      "#s2-content > *",
-      { opacity: 0, y: 30 },
-      {
-        opacity: 1,
-        y: 0,
-        stagger: 0.12,
-        duration: 0.9,
-        ease: "power3.out",
-        scrollTrigger: { trigger: "#s2", start: "top 65%" },
-      },
-    );
-    gsap.fromTo(
-      "#s3-content > *",
-      { opacity: 0, x: 30 },
-      {
-        opacity: 1,
-        x: 0,
-        stagger: 0.07,
-        duration: 0.7,
-        ease: "power3.out",
-        scrollTrigger: { trigger: "#s3", start: "top 65%" },
-      },
-    );
-  }, []);
 
   /* ── JSX ──────────────────────────────────────────────────────────────── */
   return (
     <div className="bg-white dark:bg-secondary" style={{ overflowX: "clip" }}>
-      <Loading />
-
-      {/* <BillboardController stepRefs={stepRefs} /> */}
-
-      
-      <PinnedHeroMarquee scrollText={data.hero.scrollText}>
+      {/* The first-visit / refresh loader is mounted globally in providers.tsx */}
+      <PinnedHero
+        stats={data.hero.stats}
+        statsPresentation={data.hero.statsPresentation}
+        intro={data.hero.intro}
+        marquee={data.hero.editorialMarquee}
+      >
         <HeroSection images={data.hero.images}>
           <HeroSectionContent
             subtitle={data.hero.subtitle}
             line1={data.hero.line1}
             line2={data.hero.line2}
             line3={data.hero.line3}
+            description={data.hero.description}
             gradientColors={data.hero.gradientColors}
             primaryCta={null}
             secondaryCta={null}
           />
         </HeroSection>
-      </PinnedHeroMarquee>
+      </PinnedHero>
 
-      {/* ── Brands marquee ─────────────────────────────────────────────── */}
       <PremiumMarquee
         items={BRANDS}
         speed={60}
@@ -189,105 +141,6 @@ export default function Home() {
         showSeparatorAnimation
         pauseOnHover
       />
-      {/* ── S-2: About ─────────────────────────────────────────────────── */}
-      <section id="s2" className="relative flex h-screen">
-        <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
-          <div id="s2-content" className="w-full max-w-md">
-            <div className="flex items-center gap-3 mb-8">
-              <span className="block w-6 h-px bg-kp-orange/60" />
-              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
-                {data.about.sectionLabel}
-              </span>
-            </div>
-
-            <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.1] text-secondary dark:text-white mb-8">
-              {data.about.heading.split("\n").map((line, i) => (
-                <Fragment key={i}>
-                  {line}
-                  <br />
-                </Fragment>
-              ))}
-              <em className="not-italic text-secondary/40 dark:text-white/40">
-                {data.about.headingEmphasis}
-              </em>
-              {data.about.headingSuffix}
-            </h2>
-
-            <div className="grid grid-cols-3 gap-4 mb-8 pt-6 border-t border-secondary/8 dark:border-white/8">
-              {data.about.stats.map((s, i) => (
-                <div key={i}>
-                  <div className="flex items-baseline gap-0.5">
-                    <span
-                      ref={(el) => {
-                        counterRefs.current[i] = el;
-                      }}
-                      className="text-3xl lg:text-4xl font-extralight text-secondary dark:text-white tabular-nums"
-                    >
-                      0
-                    </span>
-                    <span className="text-lg font-light text-kp-orange">
-                      {s.suffix}
-                    </span>
-                  </div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-secondary/55 dark:text-white/55 mt-1 whitespace-pre-line">
-                    {s.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-sm text-secondary/60 dark:text-white/60 leading-relaxed">
-              {data.about.paragraph}
-            </p>
-          </div>
-        </div>
-
-        <div className="hidden md:block w-1/2 h-full" aria-hidden="true" />
-      </section>
-
-      {/* ── S-3: Services ──────────────────────────────────────────────── */}
-      <section id="s3" className="relative flex h-screen">
-        <div className="hidden md:block w-1/2 h-full" aria-hidden="true" />
-
-        <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
-          <div id="s3-content" className="w-full max-w-md">
-            <div className="flex items-center gap-3 mb-8">
-              <span className="block w-6 h-px bg-kp-orange/60" />
-              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
-                {data.services.sectionLabel}
-              </span>
-            </div>
-
-            <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.1] text-secondary dark:text-white mb-10">
-              {data.services.heading}
-              <br />
-              <em className="not-italic text-secondary/40 dark:text-white/40">
-                {data.services.headingEmphasis}
-              </em>
-            </h2>
-
-            <ul className="divide-y divide-secondary/8 dark:divide-white/6">
-              {data.services.items.map((s, i) => (
-                <li key={i} className="group flex items-start gap-4 py-3.5">
-                  <span className="text-[10px] font-mono text-secondary/55 dark:text-white/55 mt-0.5 w-5 flex-shrink-0">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <div>
-                    <p className="text-sm font-light text-secondary/80 dark:text-white/80 group-hover:text-secondary dark:group-hover:text-white transition-colors">
-                      {s.title}
-                    </p>
-                    <p className="text-[11px] text-secondary/55 dark:text-white/55 mt-0.5 leading-snug">
-                      {s.description}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* ── S-5: Showcase (image reveal) ───────────────────────────────── */}
       <PremiumRevealSection
         images={SHOWCASE_IMAGES}
         animationStyle="cameraZoom"
@@ -316,7 +169,6 @@ export default function Home() {
         showNoiseTexture={true}
         showGlow={false}
       >
-        {/* Centred content sits above the floating images */}
         <div className="relative flex items-center justify-center min-h-screen px-6">
           <div className="text-center max-w-lg">
             <div className="flex items-center justify-center gap-3 mb-8">
@@ -351,69 +203,58 @@ export default function Home() {
         </div>
       </PremiumRevealSection>
 
-      {/* ── S-6: Gallery categories — click opens /gallery pre-filtered ── */}
+      
       <CampaignGallery
         campaigns={CATEGORY_CARDS}
         glowColor="rgba(0,100,177,0.5)"
         onCardClick={(card) => router.push(`/gallery?category=${encodeURIComponent(card.title)}`)}
       />
 
-      {/* ── S-4: Process (pinned scroll) ───────────────────────────────── */}
-      <div id="s4-wrapper" style={{ height: "400vh" }}>
-        <section className="sticky top-0 h-screen flex overflow-hidden">
-          <div className="relative z-10 w-full md:w-1/2 flex items-center px-8 md:px-16 lg:px-20">
-            <div className="absolute top-8 left-8 md:left-16 lg:left-20 flex items-center gap-3">
-              <span className="block w-6 h-px bg-kp-orange/60" />
-              <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
-                {data.process.sectionLabel}
-              </span>
-            </div>
+      {/* ── Business sections (JSON-driven) ─────────────────────────────── */}
+      <ServicesStrip
+        items={data.services.items}
+        label={data.services.sectionLabel}
+        heading={data.services.heading}
+        headingEmphasis={data.services.headingEmphasis}
+      />
 
-            <div
-              className="relative w-full max-w-md"
-              style={{ minHeight: 280 }}
-            >
-              {data.process.steps.map((step, i) => (
-                <div
-                  key={i}
-                  ref={(el) => {
-                    stepRefs.current[i] = el;
-                  }}
-                  className="absolute inset-0 flex flex-col justify-center"
-                  style={{ opacity: i === 0 ? 1 : 0 }}
-                >
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className="block w-6 h-px bg-kp-orange/60" />
-                    <span className="text-[10px] uppercase tracking-[0.45em] text-kp-orange/80">
-                      {step.label}
-                    </span>
-                  </div>
-                  <h2 className="text-4xl lg:text-5xl font-extralight leading-[1.15] text-secondary dark:text-white mb-6 whitespace-pre-line">
-                    {step.heading}
-                  </h2>
-                  <p className="text-sm text-secondary/60 dark:text-white/60 leading-relaxed max-w-xs">
-                    {step.body}
-                  </p>
-                  <div className="flex gap-2 mt-8">
-                    {data.process.steps.map((_, j) => (
-                      <span
-                        key={j}
-                        className={`block h-px w-6 transition-colors duration-300 ${
-                          j === i
-                            ? "bg-kp-orange"
-                            : "bg-secondary/20 dark:bg-white/20"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+      <ProcessSteps steps={data.process.steps} />
 
-          <div className="hidden md:block w-1/2 h-full" aria-hidden="true" />
-        </section>
-      </div>
+      <HorizontalScrollGallery items={PLACEMENT_ITEMS} />
+
+      <VideoShowcase />
+
+      {/* Pinned billboard story — flips a photoreal 3D board per step */}
+      <BillboardStory steps={BILLBOARD_STORY_STEPS} />
+
+      {/* Testimonials */}
+      <section
+        className="py-24"
+        style={{ background: "var(--surface)", borderTop: "1px solid var(--border-soft)" }}
+      >
+        <SectionReveal as="div" className="mx-auto mb-12 max-w-6xl px-6">
+          <p
+            style={{
+              fontFamily: "var(--kp-font-mono)",
+              fontSize: "var(--text-label)",
+              letterSpacing: "0.45em",
+              textTransform: "uppercase",
+              color: "var(--kp-orange)",
+            }}
+          >
+            {aboutData.testimonials.label}
+          </p>
+        </SectionReveal>
+        <TestimonialSlider items={aboutData.testimonials.items} />
+      </section>
+
+      <ClientLogoWall industries={clientsData.industries} />
+
+      <OfficeGrid offices={contactData.offices} />
+
+      <CTABanner />
+
+      <Footer />
     </div>
   );
 }

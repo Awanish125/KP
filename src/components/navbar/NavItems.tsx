@@ -4,15 +4,9 @@ import { useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import gsap from 'gsap';
+import navData from '@/data/nav.json';
 
-const NAV_LINKS = [
-  { label: 'Home',        href: '/' },
-  { label: 'About',       href: '/about' },
-  { label: 'Features',    href: '/features' },
-  { label: 'Pricing',     href: '/pricing' },
-  { label: 'Integration', href: '/integration' },
-  { label: 'Blog',        href: '/blog' },
-];
+const NAV_LINKS: { label: string; href: string }[] = navData.links;
 
 export function NavItems() {
   const pathname = usePathname();

@@ -1,0 +1,247 @@
+"use client";
+
+/**
+ * HorizontalScrollGallery — pinned section where the gallery track glides
+ * sideways as the page scrolls down.
+ *
+ * Perf contract (project scroll rules):
+ *  - NO ScrollTrigger: a sticky inner viewport + gsap.ticker reading one
+ *    getBoundingClientRect per frame, gated by IntersectionObserver.
+ *  - Track x via quickSetter with lerp; will-change on enter/leave only.
+ *  - Reduced motion → a plain horizontally-scrollable row.
+ */
+
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import gsap from "gsap";
+import { prefersReducedMotion, tickWhileVisible } from "@/lib/motion";
+import { HORIZONTAL_SCROLL_GALLERY_DEFAULTS } from "./horizontalScrollGalleryConfig";
+import type {
+  HorizontalGalleryItem,
+  HorizontalScrollGalleryProps,
+} from "./horizontalScrollGalleryTypes";
+
+function GalleryCard({ item }: { item: HorizontalGalleryItem }) {
+  const inner = (
+    <figure
+      className="group relative m-0 h-[52vh] w-[68vw] shrink-0 overflow-hidden rounded-2xl sm:w-[44vw] lg:w-[30vw]"
+      style={{ background: "var(--kp-dark-2)" }}
+    >
+      <Image
+        src={item.image}
+        alt={item.title}
+        fill
+        sizes="(max-width: 640px) 68vw, (max-width: 1024px) 44vw, 30vw"
+        style={{ objectFit: "cover" }}
+        className="transition-transform duration-700 ease-out group-hover:scale-[1.06]"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(180deg, transparent 50%, rgba(13,13,20,0.85) 100%)",
+        }}
+      />
+      <figcaption className="absolute inset-x-0 bottom-0 p-6">
+        <div
+          style={{
+            fontFamily: "var(--kp-font-mono)",
+            fontSize: "0.62rem",
+            letterSpacing: "0.26em",
+            textTransform: "uppercase",
+            color: "var(--kp-orange)",
+          }}
+        >
+          {item.meta}
+        </div>
+        <div
+          className="mt-2"
+          style={{
+            fontFamily: "var(--kp-font-display)",
+            fontSize: "1.3rem",
+            lineHeight: 1.12,
+            textTransform: "uppercase",
+            color: "var(--kp-light)",
+          }}
+        >
+          {item.title}
+        </div>
+      </figcaption>
+    </figure>
+  );
+
+  return item.href ? (
+    <Link href={item.href} className="no-underline">
+      {inner}
+    </Link>
+  ) : (
+    inner
+  );
+}
+
+export function HorizontalScrollGallery({
+  items,
+  className,
+  label = HORIZONTAL_SCROLL_GALLERY_DEFAULTS.label,
+  heading = HORIZONTAL_SCROLL_GALLERY_DEFAULTS.heading,
+  vhPerItem = HORIZONTAL_SCROLL_GALLERY_DEFAULTS.vhPerItem,
+  lerp = HORIZONTAL_SCROLL_GALLERY_DEFAULTS.lerp,
+}: HorizontalScrollGalleryProps) {
+  const outerRef = useRef<HTMLElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    setReduced(prefersReducedMotion());
+  }, []);
+
+  useEffect(() => {
+    const outer = outerRef.current;
+    const track = trackRef.current;
+    const progressEl = progressRef.current;
+    if (!outer || !track || prefersReducedMotion()) return;
+
+    const setX = gsap.quickSetter(track, "x", "px");
+    let x = 0;
+    let maxShift = 0;
+    let scrollRange = 1;
+    let outerTop = 0;
+    let lastProgress = -1;
+
+    // All layout reads happen HERE, never per frame. ResizeObserver on
+    // <body> re-measures when content above shifts (images/fonts loading).
+    const measure = () => {
+      outerTop = outer.getBoundingClientRect().top + window.scrollY;
+      maxShift = Math.max(track.scrollWidth - window.innerWidth, 0);
+      scrollRange = Math.max(outer.offsetHeight - window.innerHeight, 1);
+      lastProgress = -1; // force a repaint on next tick
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    const ro = new ResizeObserver(measure);
+    ro.observe(document.body);
+
+    const tick = () => {
+      // Pure math from cached offsets — zero layout cost per frame.
+      const progress = Math.min(Math.max((window.scrollY - outerTop) / scrollRange, 0), 1);
+      const target = -progress * maxShift;
+      const delta = target - x;
+      // Skip settled frames entirely.
+      if (progress === lastProgress && Math.abs(delta) < 0.05) return;
+      x = Math.abs(delta) < 0.05 ? target : x + delta * lerp;
+      setX(x);
+      if (progress !== lastProgress && progressEl) {
+        progressEl.style.transform = `scaleX(${progress})`;
+      }
+      lastProgress = progress;
+    };
+
+    const cleanup = tickWhileVisible(outer, tick, {
+      onEnter: () => {
+        track.style.willChange = "transform";
+      },
+      onLeave: () => {
+        track.style.willChange = "auto";
+      },
+    });
+
+    return () => {
+      cleanup();
+      window.removeEventListener("resize", measure);
+      ro.disconnect();
+      track.style.willChange = "auto";
+    };
+  }, [lerp, items.length]);
+
+  const header = (
+    <div className="mx-auto w-full max-w-6xl px-6">
+      <p
+        style={{
+          fontFamily: "var(--kp-font-mono)",
+          fontSize: "var(--text-label)",
+          letterSpacing: "0.45em",
+          textTransform: "uppercase",
+          color: "var(--kp-orange)",
+        }}
+      >
+        {label}
+      </p>
+      <h2
+        className="mt-4"
+        style={{
+          fontFamily: "var(--kp-font-display)",
+          fontSize: "var(--text-section)",
+          lineHeight: 1.02,
+          textTransform: "uppercase",
+          color: "var(--text)",
+          maxWidth: "18ch",
+        }}
+      >
+        {heading}
+      </h2>
+    </div>
+  );
+
+  if (reduced) {
+    // Accessible fallback: a normal horizontally scrollable row.
+    return (
+      <section className={className} style={{ background: "var(--bg)" }}>
+        <div className="py-24">
+          {header}
+          <div className="mt-10 flex gap-5 overflow-x-auto px-6 pb-4">
+            {items.map((item) => (
+              <GalleryCard key={item.title} item={item} />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      ref={outerRef}
+      className={className}
+      style={{
+        background: "var(--bg)",
+        // Total scroll length: one viewport + N × vhPerItem.
+        height: `${100 + items.length * vhPerItem * 100}vh`,
+        borderTop: "1px solid var(--border-soft)",
+      }}
+    >
+      <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden">
+        {header}
+        <div ref={trackRef} className="mt-10 flex w-max gap-5 pl-6">
+          {items.map((item) => (
+            <GalleryCard key={item.title} item={item} />
+          ))}
+          {/* Breathing room at the end of the run */}
+          <div className="w-[10vw] shrink-0" aria-hidden />
+        </div>
+        {/* Progress hairline */}
+        <div className="mx-auto mt-10 w-full max-w-6xl px-6">
+          <div
+            style={{
+              height: 2,
+              background: "var(--border-soft)",
+              borderRadius: 999,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              ref={progressRef}
+              style={{
+                height: "100%",
+                background: "var(--kp-orange)",
+                transform: "scaleX(0)",
+                transformOrigin: "left center",
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

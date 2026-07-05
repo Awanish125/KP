@@ -1,5 +1,5 @@
 {
-  "_comment": "Home page content — edit values here to update the site. No code changes needed.",
+  "_comment": "Home page content â€” edit values here to update the site. No code changes needed.",
   "hero": {
     "images": [
       "/homepage/herosection/1.png",
@@ -13,7 +13,422 @@
     "line1": "MAKING BRANDS",
     "line2": "IMPOSSIBLE",
     "line3": "TO IGNORE",
-    "scrollText": "OUTDOOR ADVERTISING THAT COMMANDS ATTENTION ACROSS MAHARASHTRA",
+    "description": "Billboards, transit and digital placements engineered to stop traffic — from concept to installation, handled end to end.",
+    "intro": {
+      "camera": {
+        "initialZoom": 0.9,
+        "peakZoom": 1.14,
+        "initialOffsetX": -0.25
+      },
+      "timing": {
+        "contentExit": 0.9,
+        "cameraPush": 1.15,
+        "cameraReturn": 1.35,
+        "statsReveal": 0.9,
+        "counter": 0.85,
+        "marqueeReveal": 0.95
+      },
+      "easing": {
+        "exit": "power3.inOut",
+        "camera": "power2.inOut",
+        "reveal": "expo.out"
+      }
+    },
+    "statsPresentation": {
+      "eyebrow": "India's Premier OOH Network",
+      "heading": "Delivering Impact at Scale",
+      "location": "Across India"
+    },
+    "editorialMarquee": {
+      "gap": 64,
+      "revealDelay": 0.5,
+      "items": [
+        {
+          "text": "DIGITAL",
+          "fontSize": "clamp(2rem, 6vw, 6.5rem)",
+          "fontWeight": 900,
+          "letterSpacing": "0.15em",
+          "color": "#ffffff",
+          "spacing": "40px",
+          "animationDelay": 0.1,
+          "animationOrder": 1
+        },
+        {
+          "text": "OUTDOOR",
+          "fontSize": "clamp(1.8rem, 5.5vw, 6rem)",
+          "fontWeight": 300,
+          "letterSpacing": "0.2em",
+          "outline": true,
+          "outlineColor": "rgba(255, 255, 255, 0.65)",
+          "spacing": "45px",
+          "animationDelay": 0.15,
+          "animationOrder": 2
+        },
+        {
+          "text": "OOH",
+          "fontSize": "clamp(1.6rem, 5vw, 5.5rem)",
+          "fontWeight": 800,
+          "letterSpacing": "0.1em",
+          "gradient": ["#ffffff", "#f5b474", "#f5821f"],
+          "spacing": "35px",
+          "animationDelay": 0.2,
+          "animationOrder": 3
+        },
+        {
+          "text": "LED",
+          "fontSize": "clamp(2rem, 6vw, 6.5rem)",
+          "fontWeight": 900,
+          "letterSpacing": "0.15em",
+          "outline": true,
+          "outlineColor": "rgba(255, 255, 255, 0.8)",
+          "spacing": "40px",
+          "animationDelay": 0.25,
+          "animationOrder": 4
+        },
+        {
+          "text": "NETWORK",
+          "fontSize": "clamp(1.4rem, 4vw, 4.5rem)",
+          "fontWeight": 400,
+          "letterSpacing": "0.25em",
+          "opacity": 0.7,
+          "color": "#ffffff",
+          "spacing": "50px",
+          "animationDelay": 0.3,
+          "animationOrder": 5
+        },
+        {
+          "text": "PREMIUM",
+          "fontSize": "clamp(2.2rem, 7vw, 7.5rem)",
+          "fontWeight": 900,
+          "letterSpacing": "0.08em",
+          "gradient": ["#ffffff", "#f5b474", "#f5821f"],
+          "spacing": "40px",
+          "animationDelay": 0.35,
+          "animationOrder": 6
+        },
+        {
+          "text": "VISIBILITY",
+          "fontSize": "clamp(1.8rem, 5.5vw, 6rem)",
+          "fontWeight": 300,
+          "letterSpacing": "0.18em",
+          "outline": true,
+          "outlineColor": "rgba(255, 255, 255, 0.5)",
+          "spacing": "45px",
+          "animationDelay": 0.4,
+          "animationOrder": 7
+        },
+        {
+          "text": "DOOH",
+          "fontSize": "clamp(1.5rem, 4.5vw, 5rem)",
+          "fontWeight": 800,
+          "letterSpacing": "0.12em",
+          "color": "#ffffff",
+          "spacing": "35px",
+          "animationDelay": 0.45,
+          "animationOrder": 8
+        },
+        {
+          "text": "TRANSIT",
+          "fontSize": "clamp(1.3rem, 4vw, 4.5rem)",
+          "fontWeight": 400,
+          "letterSpacing": "0.2em",
+          "opacity": 0.6,
+          "color": "#ffffff",
+          "spacing": "50px",
+          "animationDelay": 0.5,
+          "animationOrder": 9
+        },
+        {
+          "text": "SMART CITY",
+          "fontSize": "clamp(2rem, 6vw, 6.5rem)",
+          "fontWeight": 900,
+          "letterSpacing": "0.15em",
+          "gradient": ["#f5b474", "#f5821f", "#e65c00"],
+          "spacing": "40px",
+          "animationDelay": 0.55,
+          "animationOrder": 10
+        }
+      ]
+    },
+    "stats": [
+      {
+        "value": 48,
+        "suffix": "M+",
+        "label": "Campaign Reach"
+      },
+      {
+        "value": 320,
+        "suffix": "+",
+        "label": "Successful Campaigns"
+      },
+      {
+        "value": 96,
+        "suffix": "%",
+        "label": "Retention Rate"
+      },
+      {
+        "value": 12,
+        "suffix": "+",
+        "label": "Cities Covered"
+      }
+    ],
+    "marquee": {
+      "travelFactor": 2.5,
+      "textBandY": "calc(50% - 120px)",
+      "billboardGlow": {
+        "x": "72%",
+        "y": "43%",
+        "color": "rgba(245,131,32,0.42)"
+      },
+      "glass": {
+        "color": "rgba(255,255,255,0.08)",
+        "opacityStart": 0,
+        "opacityMid": 0.05,
+        "opacityMax": 0.16,
+        "blurStart": 0,
+        "blurMid": 10,
+        "blurMax": 22
+      },
+      "particleEffect": {
+        "enableSnapEffect": true,
+        "particleCount": 10,
+        "particleSize": 4,
+        "particleDuration": 0.85,
+        "particleColor": "rgba(255,255,255,0.78)",
+        "particleSpeed": 1,
+        "particleSpread": 32,
+        "particleOpacity": 0.8,
+        "particleGlow": 0.18
+      },
+      "idleAnimation": {
+        "enabled": false,
+        "staggerSeconds": 1.0,
+        "default": "auto"
+      },
+      "layers": [
+        {
+          "direction": "left",
+          "speed": 0.72,
+          "opacity": 1,
+          "y": 0,
+          "scale": 0.9,
+          "gap": 30,
+          "separator": {
+            "type": "icon",
+            "icon": "Diamond",
+            "color": "#F5821F",
+            "size": 16,
+            "opacity": 0.7
+          },
+          "items": [
+            {
+              "type": "text",
+              "value": "OUTDOOR",
+              "color": "#FFFFFF",
+              "fontWeight": 900,
+              "fontSize": "clamp(0.9rem, 3.2vw, 3.8rem)",
+              "uppercase": true,
+              "tracking": "0.14em",
+              "animation": "lift",
+              "idleAnim": "rotateX"
+            },
+            {
+              "type": "text",
+              "value": "CAMPAIGNS",
+              "color": "#FFFFFF",
+              "fontWeight": 900,
+              "fontSize": "clamp(0.95rem, 3.6vw, 4.2rem)",
+              "uppercase": true,
+              "tracking": "0.08em",
+              "animation": "maskReveal",
+              "idleAnim": "float",
+              "separator": {
+                "type": "text",
+                "value": "/",
+                "color": "#F5F7FA",
+                "fontWeight": 400,
+                "opacity": 0.55
+              }
+            },
+            {
+              "type": "text",
+              "value": "BILLBOARD",
+              "color": "#FFFFFF",
+              "fontWeight": 800,
+              "fontSize": "clamp(0.85rem, 3vw, 3.5rem)",
+              "uppercase": true,
+              "tracking": "0.12em",
+              "outline": true,
+              "outlineColor": "#FFFFFF",
+              "outlineWidth": "1px",
+              "animation": "blur",
+              "idleAnim": "rotateY",
+              "separator": {
+                "type": "icon",
+                "icon": "Sparkles",
+                "color": "#5BA3D6",
+                "size": 14,
+                "opacity": 0.65
+              }
+            },
+            {
+              "type": "text",
+              "value": "REACH",
+              "color": "#F5B474",
+              "fontWeight": 700,
+              "fontSize": "clamp(0.8rem, 2.8vw, 3.2rem)",
+              "uppercase": true,
+              "tracking": "0.16em",
+              "animation": "scale",
+              "idleAnim": "rotateX",
+              "separator": {
+                "type": "text",
+                "value": "/",
+                "color": "#FFFFFF",
+                "opacity": 0.45
+              }
+            }
+          ]
+        },
+        {
+          "direction": "right",
+          "speed": 0.96,
+          "opacity": 0.55,
+          "y": 96,
+          "scale": 0.9,
+          "gap": 34,
+          "separator": {
+            "type": "icon",
+            "icon": "ArrowRight",
+            "color": "#8CBFE8",
+            "size": 14,
+            "opacity": 0.55
+          },
+          "items": [
+            {
+              "type": "text",
+              "value": "DIGITAL",
+              "color": "#F5F7FA",
+              "fontWeight": 600,
+              "fontSize": "clamp(1rem, 3.8vw, 4.2rem)",
+              "uppercase": true,
+              "tracking": "0.18em",
+              "animation": "fade",
+              "idleAnim": "float"
+            },
+            {
+              "type": "text",
+              "value": "MEDIA",
+              "color": "#FFFFFF",
+              "fontWeight": 300,
+              "fontSize": "clamp(0.95rem, 3.6vw, 4rem)",
+              "uppercase": true,
+              "tracking": "0.18em",
+              "italic": true,
+              "animation": "lift",
+              "idleAnim": "rotateY",
+              "separator": {
+                "type": "icon",
+                "icon": "ChevronRight",
+                "color": "#FFFFFF",
+                "size": 13,
+                "opacity": 0.4
+              }
+            },
+            {
+              "type": "text",
+              "value": "BRANDING",
+              "color": "#FFFFFF",
+              "fontWeight": 700,
+              "fontSize": "clamp(1rem, 4vw, 4.4rem)",
+              "uppercase": true,
+              "tracking": "0.14em",
+              "outline": true,
+              "outlineColor": "#F5F7FA",
+              "animation": "sweep",
+              "idleAnim": "rotateX",
+              "separator": {
+                "type": "text",
+                "value": "|",
+                "color": "#F16B57",
+                "fontWeight": 300,
+                "opacity": 0.6
+              }
+            },
+            {
+              "type": "text",
+              "value": "CITY",
+              "color": "#B86CCB",
+              "fontWeight": 500,
+              "fontSize": "clamp(0.9rem, 3.6vw, 4rem)",
+              "uppercase": true,
+              "tracking": "0.2em",
+              "animation": "maskReveal",
+              "idleAnim": "float"
+            }
+          ]
+        },
+        {
+          "direction": "left",
+          "speed": 1.12,
+          "opacity": 0.18,
+          "y": 192,
+          "scale": 0.78,
+          "gap": 28,
+          "separator": {
+            "type": "image",
+            "src": "/homepage/herosection/kp.png",
+            "alt": "Kiran Publicity",
+            "width": 18,
+            "height": 18,
+            "opacity": 0.88
+          },
+          "items": [
+            {
+              "type": "text",
+              "value": "LAUNCH",
+              "color": "#FFFFFF",
+              "fontWeight": 700,
+              "fontSize": "clamp(0.78rem, 3vw, 3.2rem)",
+              "uppercase": true,
+              "tracking": "0.24em",
+              "animation": "fade",
+              "idleAnim": "rotateY"
+            },
+            {
+              "type": "text",
+              "value": "LIVE",
+              "color": "#F5821F",
+              "fontWeight": 900,
+              "fontSize": "clamp(0.85rem, 3.2vw, 3.6rem)",
+              "uppercase": true,
+              "tracking": "0.18em",
+              "animation": "scale",
+              "idleAnim": "rotateX",
+              "separator": {
+                "type": "icon",
+                "icon": "Star",
+                "color": "#F5821F",
+                "size": 12,
+                "opacity": 0.6
+              }
+            },
+            {
+              "type": "text",
+              "value": "MAHARASHTRA",
+              "color": "#FFFFFF",
+              "fontWeight": 500,
+              "fontSize": "clamp(1.35rem, 2.8vw, 3rem)",
+              "uppercase": true,
+              "tracking": "0.28em",
+              "opacity": 0.78,
+              "animation": "lift",
+              "idleAnim": "float"
+            }
+          ]
+        }
+      ]
+    },
     "gradientColors": [
       "#6F5BFF",
       "#B86CCB",
@@ -39,7 +454,7 @@
     "heading": "India's Premier\nOutdoor",
     "headingEmphasis": "Advertising",
     "headingSuffix": " Network",
-    "paragraph": "For over two decades, Kiran Publicity has been transforming cityscapes into powerful brand narratives — from highways to high streets, across Maharashtra.",
+    "paragraph": "For over two decades, Kiran Publicity has been transforming cityscapes into powerful brand narratives — from highways to high streets, across Bihar, Jharkhand, and all of India.",
     "stats": [
       {
         "value": 20,
@@ -65,26 +480,32 @@
     "items": [
       {
         "title": "Billboards & Hoardings",
+        "image": "https://picsum.photos/seed/kpsvc1/640/420",
         "description": "Large-format roadside displays at premium traffic junctions."
       },
       {
         "title": "Unipoles & Gantries",
+        "image": "https://picsum.photos/seed/kpsvc2/640/420",
         "description": "Sky-high single-pole structures and highway arch gantries."
       },
       {
         "title": "Digital LED Displays",
+        "image": "https://picsum.photos/seed/kpsvc3/640/420",
         "description": "Dynamic full-colour LED screens with real-time content."
       },
       {
         "title": "Transit Advertising",
+        "image": "https://picsum.photos/seed/kpsvc4/640/420",
         "description": "Bus, auto and fleet wraps that move your brand city-wide."
       },
       {
         "title": "Bus Shelter Branding",
+        "image": "https://picsum.photos/seed/kpsvc5/640/420",
         "description": "Eye-level panels at high-dwell commuter shelters."
       },
       {
         "title": "Wall Wraps & Murals",
+        "image": "https://picsum.photos/seed/kpsvc6/640/420",
         "description": "Large-scale building wraps and hand-painted murals."
       }
     ]
@@ -93,7 +514,7 @@
     "sectionLabel": "Our Portfolio",
     "heading": "Campaigns That\nCommand",
     "headingEmphasis": "Attention",
-    "body": "From concept to installation, we craft outdoor campaigns that stop traffic — literally. Trusted by 100+ brands across Maharashtra.",
+    "body": "From concept to installation, we craft outdoor campaigns that stop traffic — literally. Trusted by 100+ brands across India.",
     "cta": "View All Work",
     "images": [
       {
@@ -230,7 +651,7 @@
       {
         "label": "Prime Locations",
         "heading": "Hand-curated\nSites",
-        "body": "Highest-traffic junctions, highways, and corridors across Maharashtra."
+        "body": "Highest-traffic junctions, highways, and corridors across Bihar, Jharkhand & beyond."
       },
       {
         "label": "Creative Partnership",
@@ -248,5 +669,11 @@
         "body": "Site scouting, permits, installation, maintenance and reports."
       }
     ]
+  },
+  "showreel": {
+    "label": "Showreel",
+    "heading": "90 seconds of the network at night.",
+    "cta": "Watch the film",
+    "src": "/homepage/herosection/hero-light.mp4"
   }
 }

@@ -1,0 +1,65 @@
+{
+  "_comment": "About page content. Edit here — no code changes needed.",
+  "hero": {
+    "label": "Since 1998",
+    "line1": "WE OWN",
+    "line2": "THE SKYLINE",
+    "sub": "Kiran Publicity is one of India's most trusted outdoor advertising houses — headquartered in Samastipur, strongest across Bihar and Jharkhand, and live in every metro that matters."
+  },
+  "story": {
+    "label": "Our Story",
+    "heading": "From one hoarding in Samastipur to 400+ sites across India.",
+    "paragraphs": [
+      "In 1998, Kiran Deshmukh leased a single 20×10 hoarding on Samastipur's Station Road and painted it by hand for a local jeweller. The phone didn't stop ringing for a month.",
+      "Today we operate one of eastern India's largest independent outdoor networks — premium billboards, transit fleets, and digital LED screens across Bihar, Jharkhand, and every major metro — still run by the same family, still obsessed with the same question: will people stop and look?",
+      "We don't sell media space. We engineer attention — the right structure, on the right junction, lit the right way, at the right hour."
+    ],
+    "image": "https://picsum.photos/seed/kpstory/1200/1500"
+  },
+  "stats": [
+    { "value": 27, "suffix": "+", "label": "Years in Business" },
+    { "value": 400, "suffix": "+", "label": "Media Sites Owned" },
+    { "value": 12, "suffix": "", "label": "Cities Covered" },
+    { "value": 48, "suffix": "M+", "label": "Monthly Impressions" }
+  ],
+  "timeline": [
+    { "year": "1998", "title": "The First Hoarding", "body": "Kiran Deshmukh leases and hand-paints a single hoarding on Station Road, Samastipur." },
+    { "year": "2004", "title": "Mumbai Calling", "body": "First premium sites on the Western Express Highway — the network goes metro." },
+    { "year": "2010", "title": "Transit Media", "body": "500 bus wraps across Bihar and Jharkhand routes make KP the region's largest transit advertiser." },
+    { "year": "2016", "title": "Going Digital", "body": "First large-format LED screens installed in Pune and Nagpur city centres." },
+    { "year": "2021", "title": "400 Sites", "body": "The owned network crosses 400 structures — every major NH junction covered." },
+    { "year": "2025", "title": "Programmatic OOH", "body": "Real-time booking and audience analytics roll out across the digital network." }
+  ],
+  "values": [
+    { "title": "Visibility First", "body": "A site that doesn't stop traffic doesn't make the network. We walk every junction before we build.", "icon": "eye" },
+    { "title": "Straight Dealing", "body": "Photographic proof-of-display for every campaign, every month. No surprises on the invoice.", "icon": "handshake" },
+    { "title": "Built to Last", "body": "Our structures outlive monsoons. Engineering-certified steel, annual audits, zero downtime.", "icon": "shield" },
+    { "title": "Local Depth", "body": "We know which side of the flyover gets the evening crawl. Thirty years of street-level data.", "icon": "map" }
+  ],
+  "team": {
+    "label": "The People",
+    "heading": "Run by owners, not account managers.",
+    "members": [
+      { "name": "Kiran Deshmukh", "role": "Founder & Chairman", "image": "https://picsum.photos/seed/kpteam1/600/750" },
+      { "name": "Aditi Deshmukh", "role": "Managing Director", "image": "https://picsum.photos/seed/kpteam2/600/750" },
+      { "name": "Rohan Kulkarni", "role": "Head of Network", "image": "https://picsum.photos/seed/kpteam3/600/750" },
+      { "name": "Sneha Patil", "role": "Digital OOH Lead", "image": "https://picsum.photos/seed/kpteam4/600/750" },
+      { "name": "Imran Shaikh", "role": "Operations Head", "image": "https://picsum.photos/seed/kpteam5/600/750" },
+      { "name": "Priya Joshi", "role": "Client Strategy", "image": "https://picsum.photos/seed/kpteam6/600/750" }
+    ]
+  },
+  "testimonials": {
+    "label": "What Clients Say",
+    "items": [
+      { "quote": "KP's Western Express sites carried our IPO campaign to 20 million commuters. Flawless execution, weekly photo proofs.", "name": "Meera Nair", "role": "CMO, Suvarna Finance" },
+      { "quote": "The only vendor who told us NOT to buy a site because the sightline was blocked. That honesty bought a decade of business.", "name": "Arjun Bhatt", "role": "Brand Head, Café Arabia" },
+      { "quote": "From artwork to installation in 72 hours across 9 cities. Nobody else in the country moves this fast.", "name": "Sanjana Rao", "role": "Marketing Director, Zephyr Mobility" },
+      { "quote": "Their Pune LED network delivered 3× the footfall lift of our previous OOH partner. The data reporting is genuinely best-in-class.", "name": "Vikram Sethi", "role": "Growth Lead, NovaMart" }
+    ]
+  },
+  "cta": {
+    "heading": "Your brand belongs up there.",
+    "sub": "Talk to the team that owns the skyline.",
+    "button": { "label": "Start a Campaign", "href": "/contact" }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "_comment": "Footer content. Edit here — no code changes needed.",
+  "tagline": "Making brands impossible to ignore — HQ in Samastipur, strongest in Bihar & Jharkhand, live pan-India since 1998.",
+  "columns": [
+    {
+      "title": "Company",
+      "links": [
+        { "label": "About Us", "href": "/about" },
+        { "label": "Case Studies", "href": "/case-studies" },
+        { "label": "Gallery", "href": "/gallery" },
+        { "label": "Contact", "href": "/contact" }
+      ]
+    },
+    {
+      "title": "Services",
+      "links": [
+        { "label": "Billboards & Hoardings", "href": "/services" },
+        { "label": "Transit Media", "href": "/services" },
+        { "label": "Digital LED Screens", "href": "/services" },
+        { "label": "Brand Activations", "href": "/services" }
+      ]
+    },
+    {
+      "title": "Network",
+      "links": [
+        { "label": "Samastipur (HQ)", "href": "/locations" },
+        { "label": "Patna", "href": "/locations" },
+        { "label": "Ranchi", "href": "/locations" },
+        { "label": "All Locations", "href": "/locations" }
+      ]
+    },
+    {
+      "title": "Get in Touch",
+      "links": [
+        { "label": "hello@kiranpublicity.in", "href": "mailto:hello@kiranpublicity.in" },
+        { "label": "+91 98220 44210", "href": "tel:+919822044210" },
+        { "label": "Start a Campaign", "href": "/contact" }
+      ]
+    }
+  ],
+  "social": {
+    "instagram": "https://instagram.com/kiranpublicity",
+    "linkedin": "https://linkedin.com/company/kiranpublicity",
+    "facebook": "https://facebook.com/kiranpublicity",
+    "youtube": "https://youtube.com/@kiranpublicity"
+  },
+  "credentials": [
+    { "label": "GSTIN", "value": "10AAACK0000A1Z5" },
+    { "label": "CIN", "value": "U74999BR1998PTC008421" },
+    { "label": "MSME", "value": "UDYAM-BR-26-0004120" },
+    { "label": "In Business", "value": "Since 1998" }
+  ],
+  "legal": "© 2026 Kiran Publicity Pvt. Ltd. All rights reserved."
+}
