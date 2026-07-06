@@ -151,7 +151,7 @@ function Floodlight({ x, side }: { x: number; side: 1 | -1 }) {
 /* ── The unipole billboard (inside the Canvas) ───────────────────────── */
 
 function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps) {
-  const { invalidate, gl } = useThree();
+  const { invalidate, gl, scene, camera } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const frontMatRef = useRef<THREE.MeshStandardMaterial>(null);
   const backMatRef = useRef<THREE.MeshStandardMaterial>(null);
@@ -182,6 +182,33 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
     setPoster(backMatRef.current, textures[1]);
     invalidate();
     readyRef.current();
+
+    /* ── GPU warm-up ─────────────────────────────────────────────────
+       The scene mounts on browser idle, usually while it is still far
+       below the fold. Compile every shader program and upload textures
+       NOW — profiling showed the first visible render otherwise paying
+       ~200ms inside the R3F loop mid-scroll. */
+    gl.compileAsync?.(scene, camera)?.catch?.(() => {});
+
+    /* Video steps: spin the decoder once (play → pause at frame 0) so the
+       first flip onto a video face doesn't stall on decoder init. */
+    textures.forEach((t) => {
+      if (!t.video) return;
+      const v = t.video;
+      const warm = () => {
+        v.play()
+          .then(() => {
+            requestAnimationFrame(() => {
+              v.pause();
+              try { v.currentTime = 0; } catch { /* not seekable yet */ }
+              invalidate();
+            });
+          })
+          .catch(() => {});
+      };
+      if (v.readyState >= 2) warm();
+      else v.addEventListener("loadeddata", warm, { once: true });
+    });
 
     // Environment/shadow bakes land async — nudge a few repaints.
     const nudges = [0.3, 0.8, 1.6].map((t) => gsap.delayedCall(t, invalidate));

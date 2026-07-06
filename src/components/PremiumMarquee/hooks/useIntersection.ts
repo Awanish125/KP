@@ -5,11 +5,13 @@ import { RefObject, useState, useEffect } from 'react';
 // use this so they pause when the marquee is scrolled off-screen.
 export function useIntersection(
   ref: RefObject<Element | null>,
+  enabled: boolean = true,
   options: IntersectionObserverInit = {},
 ): boolean {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(enabled);
 
   useEffect(() => {
+    if (!enabled) return;
     const el = ref.current;
     if (!el) return;
 
@@ -20,7 +22,7 @@ export function useIntersection(
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [ref]);
+  }, [ref, enabled]);
 
   return visible;
 }

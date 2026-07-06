@@ -202,7 +202,8 @@ export function PremiumMarquee({
   const containerRef = useRef<HTMLDivElement>(null);
   const prefersReduced = useReducedMotion();
   const motion         = !prefersReduced;
-  const isVisible      = useIntersection(containerRef);
+  const needsIntersection = motion && (showCenterHighlight || showEntranceAnimation || showItemReveal);
+  const isVisible      = useIntersection(containerRef, needsIntersection);
   const isVertical     = direction === 'up' || direction === 'down';
 
   // ── Animation hooks ───────────────────────────────────────────────────────

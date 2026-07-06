@@ -163,7 +163,7 @@ function GalleryCardInner({
               <img
                 src={campaign.image}
                 alt={campaign.title}
-                loading="lazy"
+                loading="eager"
                 decoding="async"
                 draggable={false}
                 className="h-full w-full select-none object-cover transition-transform duration-700 ease-out group-hover:scale-[1.08]"

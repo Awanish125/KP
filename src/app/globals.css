@@ -85,10 +85,10 @@
   --glass-border:    rgba(0, 0, 0, 0.08);
   --glass-highlight: rgba(255, 255, 255, 0.96);
   --glass-shadow:    rgba(0, 0, 0, 0.06);
-  --glass-blur:      24px;
+  --glass-blur:      10px;
 
   /* Navbar — white frosted glass */
-  --navbar-bg:          rgba(255, 255, 255, 0.80);
+  --navbar-bg:          rgba(255, 255, 255, 0.90);
   --navbar-border:      rgba(0, 100, 177, 0.12);
   --navbar-shadow:
     0 4px 32px rgba(0, 100, 177, 0.10),
@@ -132,10 +132,10 @@
   --glass-border:    rgba(255, 255, 255, 0.12);
   --glass-highlight: rgba(255, 255, 255, 0.07);
   --glass-shadow:    rgba(0, 0, 0, 0.55);
-  --glass-blur:      24px;
+  --glass-blur:      10px;
 
   /* Navbar — dark frosted glass */
-  --navbar-bg:          rgba(20, 24, 29, 0.78);   /* kp-ink translucent */
+  --navbar-bg:          rgba(20, 24, 29, 0.88);   /* kp-ink translucent */
   --navbar-border:      rgba(0, 100, 177, 0.22);  /* kp-blue edge tint */
   --navbar-shadow:
     0 8px 40px rgba(0, 0, 0, 0.55),

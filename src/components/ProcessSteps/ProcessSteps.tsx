@@ -19,7 +19,7 @@ export function ProcessSteps({
   heading = PROCESS_STEPS_DEFAULTS.heading,
 }: ProcessStepsProps) {
   return (
-    <section className={className} style={{ background: "var(--kp-dark)" }}>
+    <section className={className} style={{ background: "var(--stage-bg)" }}>
       <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
         <SectionReveal as="div" className="mb-16">
           <p
@@ -28,7 +28,7 @@ export function ProcessSteps({
               fontSize: "var(--text-label)",
               letterSpacing: "0.45em",
               textTransform: "uppercase",
-              color: "var(--kp-orange)",
+              color: "var(--kp-orange-text)",
             }}
           >
             {label}
@@ -42,7 +42,7 @@ export function ProcessSteps({
               fontSize: "var(--text-section)",
               lineHeight: 1.02,
               textTransform: "uppercase",
-              color: "var(--kp-light)",
+              color: "var(--stage-text)",
               maxWidth: "16ch",
             }}
           />
@@ -71,9 +71,9 @@ export function ProcessSteps({
                 style={{
                   fontFamily: "var(--kp-font-display)",
                   fontSize: "1.15rem",
-                  color: "var(--kp-orange)",
+                  color: "var(--kp-orange-text)",
                   border: "1px solid var(--kp-orange-glow)",
-                  background: "var(--kp-dark-2)",
+                  background: "var(--stage-bg-2)",
                 }}
               >
                 {String(i + 1).padStart(2, "0")}
@@ -85,7 +85,7 @@ export function ProcessSteps({
                   fontSize: "0.66rem",
                   letterSpacing: "0.26em",
                   textTransform: "uppercase",
-                  color: "var(--kp-orange)",
+                  color: "var(--kp-orange-text)",
                 }}
               >
                 {step.label}
@@ -97,7 +97,7 @@ export function ProcessSteps({
                   fontSize: "1.45rem",
                   lineHeight: 1.12,
                   textTransform: "uppercase",
-                  color: "var(--kp-light)",
+                  color: "var(--stage-text)",
                 }}
               >
                 {step.heading.split("\n").map((line, li, arr) => (
@@ -113,8 +113,7 @@ export function ProcessSteps({
                   fontFamily: "var(--kp-font-body)",
                   fontSize: "0.92rem",
                   lineHeight: 1.65,
-                  color: "var(--kp-light)",
-                  opacity: 0.6,
+                  color: "var(--stage-text-soft)",
                 }}
               >
                 {step.body}

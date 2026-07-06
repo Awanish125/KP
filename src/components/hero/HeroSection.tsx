@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useCallback, useState } from "react";
-import NextImage from "next/image";
 import { gsap } from "gsap";
 import { Renderer, Program, Mesh, Triangle, Texture } from "ogl";
 import { useControls, folder } from "leva";
@@ -1167,13 +1166,13 @@ export default function Hero({ images, debug = false, children }: HeroProps) {
       {/* Preload images */}
       <div className="sr-only" aria-hidden="true">
         {normalizedImages.map((src, i) => (
-          <NextImage
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             key={i}
             src={src}
             alt=""
-            width={1}
-            height={1}
-            className="object-cover"
+            loading="eager"
+            decoding="async"
           />
         ))}
       </div>

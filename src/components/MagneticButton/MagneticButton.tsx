@@ -39,13 +39,18 @@ export function MagneticButton({
     const toIX = gsap.quickTo(inner, "x", { duration: duration * 1.2, ease: "power3.out" });
     const toIY = gsap.quickTo(inner, "y", { duration: duration * 1.2, ease: "power3.out" });
 
+    let rect: DOMRect | null = null;
+
     const onEnter = () => {
       shell.style.willChange = "transform";
       inner.style.willChange = "transform";
+      rect = shell.getBoundingClientRect();
     };
 
     const onMove = (e: PointerEvent) => {
-      const rect = shell.getBoundingClientRect();
+      if (!rect) {
+        rect = shell.getBoundingClientRect();
+      }
       const dx = e.clientX - (rect.left + rect.width / 2);
       const dy = e.clientY - (rect.top + rect.height / 2);
       toX(dx * strength);
@@ -55,6 +60,7 @@ export function MagneticButton({
     };
 
     const onLeave = () => {
+      rect = null;
       gsap.to([shell, inner], {
         x: 0,
         y: 0,

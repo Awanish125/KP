@@ -21,8 +21,8 @@ export function CTABanner({
     <SectionReveal
       className={className}
       style={{
-        background: "var(--kp-dark)",
-        borderTop: "1px solid var(--border-soft)",
+        background: "var(--stage-bg)",
+        borderTop: "1px solid var(--stage-border)",
       }}
     >
       <div
@@ -35,7 +35,7 @@ export function CTABanner({
               fontSize: "var(--text-section)",
               lineHeight: 1.02,
               textTransform: "uppercase",
-              color: "var(--kp-light)",
+              color: "var(--stage-text)",
               letterSpacing: "0.01em",
             }}
           >
@@ -46,8 +46,7 @@ export function CTABanner({
             style={{
               fontFamily: "var(--kp-font-body)",
               fontSize: "var(--text-lead)",
-              color: "var(--kp-light)",
-              opacity: 0.64,
+              color: "var(--stage-text-soft)",
             }}
           >
             {sub}

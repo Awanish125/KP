@@ -175,19 +175,27 @@ export function useEntranceAnimation(
     applyHidden();
     hasPlayed.current = false;
 
+    // Track rAF ID so we can cancel on cleanup.
+    let rafId = 0;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           if (!opts.repeatOnScroll) {
             if (!hasPlayed.current) {
               hasPlayed.current = true;
-              tl.play(0);
+              // Defer one rAF so the IO callback doesn't block the scroll
+              // frame that triggered intersection.
+              rafId = requestAnimationFrame(() => tl.play(0));
             }
           } else {
-            applyHidden();
-            tl.restart(true);
+            rafId = requestAnimationFrame(() => {
+              applyHidden();
+              tl.restart(true);
+            });
           }
         } else if (opts.repeatOnScroll) {
+          cancelAnimationFrame(rafId);
           tl.pause(0);
           applyHidden();
         }
@@ -198,6 +206,7 @@ export function useEntranceAnimation(
     observer.observe(container);
 
     return () => {
+      cancelAnimationFrame(rafId);
       observer.disconnect();
       tl.kill();
       entries.forEach(({ el }) => gsap.set(el, { willChange: 'auto', clearProps: 'all' }));

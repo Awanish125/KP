@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import gsap from "gsap";
 import { prefersReducedMotion } from "@/lib/motion";
 import { SCROLL_PROGRESS_DEFAULTS } from "./scrollProgressConfig";
@@ -26,6 +27,7 @@ export function ScrollProgress({
   zIndex = SCROLL_PROGRESS_DEFAULTS.zIndex,
 }: ScrollProgressProps) {
   const barRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     const bar = barRef.current;
@@ -50,24 +52,41 @@ export function ScrollProgress({
       setScaleX(p);
     };
 
+    let measureTimeout: any = null;
+    const debouncedMeasure = () => {
+      if (measureTimeout) clearTimeout(measureTimeout);
+      measureTimeout = setTimeout(() => {
+        measure();
+        tick();
+      }, 80);
+    };
+
+    // Recalculate if the body size shifts during loading
+    const ro = new ResizeObserver(debouncedMeasure);
+    ro.observe(document.body);
+
     if (prefersReducedMotion()) {
       // Still functional, just driven by the native scroll cadence.
       const onScroll = () => tick();
       window.addEventListener("scroll", onScroll, { passive: true });
-      window.addEventListener("resize", measure);
+      window.addEventListener("resize", debouncedMeasure);
       return () => {
+        ro.disconnect();
+        if (measureTimeout) clearTimeout(measureTimeout);
         window.removeEventListener("scroll", onScroll);
-        window.removeEventListener("resize", measure);
+        window.removeEventListener("resize", debouncedMeasure);
       };
     }
 
     gsap.ticker.add(tick);
-    window.addEventListener("resize", measure);
+    window.addEventListener("resize", debouncedMeasure);
     return () => {
+      ro.disconnect();
+      if (measureTimeout) clearTimeout(measureTimeout);
       gsap.ticker.remove(tick);
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", debouncedMeasure);
     };
-  }, []);
+  }, [pathname]);
 
   return (
     <div

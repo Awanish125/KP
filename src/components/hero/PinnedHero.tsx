@@ -1,14 +1,27 @@
 "use client";
 
+/**
+ * PinnedHero — the cinematic intro: hero stage pinned while 2.5 viewports
+ * of scroll scrub through depart → compose → marquee.
+ *
+ * Perf contract (project scroll rules):
+ *  - NO ScrollTrigger. The stage is position:sticky (hero.css); a paused
+ *    timeline is driven by gsap.ticker from window.scrollY, gated by
+ *    IntersectionObserver. The old ScrollTrigger pin re-positioned the
+ *    viewport-sized stage every scrolled frame (~5ms/frame compositing,
+ *    measured) and its smoothed scrub could wedge near the top — both
+ *    problems disappear with sticky + our own lerp.
+ *  - NO filter:blur() in scrubbed tweens: blur re-rasterizes the layer at
+ *    every scrub frame. Opacity/transform sell the same motion.
+ */
+
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-gsap.registerPlugin(ScrollTrigger);
 import HeroStats from "./stats/HeroStats";
 import { HeroEditorialMarquee } from "./HeroEditorialMarquee";
 import { heroUniformBridge } from "./heroUniformBridge";
+import { tickWhileVisible } from "@/lib/motion";
 import type {
   EditorialMarqueeConfig,
   HeroIntroConfig,
@@ -25,7 +38,8 @@ interface PinnedHeroProps {
   children: ReactNode;
 }
 
-const TRIGGER_KEYS = new Set([" ", "PageDown", "ArrowDown"]);
+/** Lerp factor for the scroll → timeline smoothing (old scrub:1.3 feel). */
+const PROGRESS_LERP = 0.14;
 
 export function PinnedHero({
   stats,
@@ -36,12 +50,10 @@ export function PinnedHero({
 }: PinnedHeroProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
-  const scrollTweenRef = useRef<gsap.core.Tween | null>(null);
   const stateRef = useRef<HeroIntroState>("Idle");
-  const readyRef = useRef(false);
-  const touchYRef = useRef<number | null>(null);
 
   const setState = useCallback((state: HeroIntroState) => {
+    if (stateRef.current === state) return;
     stateRef.current = state;
     rootRef.current?.setAttribute("data-intro-state", state);
   }, []);
@@ -71,12 +83,14 @@ export function PinnedHero({
 
     applyCamera();
 
+    let cleanupTicker: (() => void) | null = null;
+
     const context = gsap.context(() => {
       // Set initial state values
       gsap.set(statsPanel, { autoAlpha: 0, y: 28, scale: 0.985 });
       gsap.set([...statReveal, ...statItems], { autoAlpha: 0, y: 18 });
       gsap.set(marqueeRoot, { autoAlpha: 0, y: 24, clipPath: "inset(0 100% 0 0)" });
-      gsap.set(marqueeWords, { autoAlpha: 0, y: 15, filter: "blur(6px)" });
+      gsap.set(marqueeWords, { autoAlpha: 0, y: 15 });
 
       if (reduced) {
         gsap.set(content, { autoAlpha: 0 });
@@ -85,14 +99,12 @@ export function PinnedHero({
           autoAlpha: 1,
           y: 0,
           clipPath: "inset(0 0% 0 0)",
-          filter: "blur(0px)",
         });
         statValues.forEach((el) => { el.textContent = el.dataset.value ?? "0"; });
         camera.zoom = intro.camera.initialZoom;
         camera.offsetX = 0;
         applyCamera();
         setState("Completed");
-        readyRef.current = true;
         return;
       }
 
@@ -100,53 +112,26 @@ export function PinnedHero({
       const containerWidth = marqueeRoot?.offsetWidth ?? 0;
       gsap.set(marqueeTrack, { x: containerWidth * 0.25 });
 
-      // Create master timeline driven entirely by scroll scrub
+      // Master timeline — paused; progress is driven from scroll below.
       const counters = statValues.map((el) => ({ el, value: 0, target: Number(el.dataset.value) || 0 }));
-      
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: root,
-          start: "top top",
-          end: () => `+=${window.innerHeight * 2.5}`,
-          scrub: 1.3,
-          pin: true,
-          pinSpacing: true,
-          // NOT invalidateOnRefresh: a refresh while scrolled past the hero
-          // (e.g. late image loads firing window 'load') would re-record the
-          // depart tween's start values from the CURRENT (hidden) state —
-          // after which scrolling back to top can never restore the content.
-          // All tween values here are static, so invalidation isn't needed.
-          onUpdate: (self) => {
-            if (self.progress === 0) {
-              setState("Idle");
-            } else if (self.progress > 0 && self.progress < 0.98) {
-              setState("Playing");
-            } else {
-              setState("Completed");
-            }
-          }
-        }
-      });
+
+      const tl = gsap.timeline({ paused: true });
       timelineRef.current = tl;
 
       // 1. Depart Sequence
       // fromTo (NOT .to): the content is temporarily hidden by
       // HeroSectionContent while the loading screen plays, and .to() would
       // capture whatever opacity it happens to have when the scrub first
-      // renders (in dev, StrictMode's remount makes that "hidden") — after
-      // which scrolling back to top could never restore the hero. Explicit
-      // start values make the rewind state deterministic.
+      // renders — explicit start values make the rewind state deterministic.
       tl.addLabel("depart")
         .fromTo(content, {
           autoAlpha: 1,
           y: 0,
           scale: 1,
-          filter: "blur(0px)",
         }, {
           autoAlpha: 0,
           y: -54,
           scale: 0.975,
-          filter: "blur(8px)",
           duration: 1.0,
           ease: "power2.inOut",
         }, "depart")
@@ -157,7 +142,7 @@ export function PinnedHero({
           ease: "power2.inOut",
           onUpdate: applyCamera,
         }, "depart")
-        
+
         // 2. Compose Camera Zoom Return & Stats Reveal
         .addLabel("compose", "depart+=0.8")
         .to(camera, {
@@ -208,7 +193,6 @@ export function PinnedHero({
         .to(marqueeWords, {
           autoAlpha: 1,
           y: 0,
-          filter: "blur(0px)",
           duration: 0.8,
           stagger: 0.06,
           ease: "power2.out",
@@ -226,52 +210,53 @@ export function PinnedHero({
           ease: "none",
         }, "scrollMarquee");
 
-      const arm = () => { readyRef.current = true; };
-      if (document.documentElement.classList.contains("page-revealed")) arm();
-      else window.addEventListener("kp:loaded", arm, { once: true });
+      /* ── Scroll driver ─────────────────────────────────────────────
+         The section spans 350svh with a sticky 100svh stage; timeline
+         progress = scroll progress through the runway, smoothed with a
+         lerp. Cached measurements only — no layout reads per frame.
+         Unlike ScrollTrigger's scrub tween this can never wedge: every
+         tick recomputes the target from scrollY, so the old top-watchdog
+         is unnecessary. */
+      let rootTop = 0;
+      let range = 1;
+      const measure = () => {
+        rootTop = root.getBoundingClientRect().top + window.scrollY;
+        range = Math.max(root.offsetHeight - window.innerHeight, 1);
+      };
+      measure();
+      let measureTimeout: ReturnType<typeof setTimeout> | null = null;
+      const debouncedMeasure = () => {
+        if (measureTimeout) clearTimeout(measureTimeout);
+        measureTimeout = setTimeout(measure, 80);
+      };
+      window.addEventListener("resize", debouncedMeasure);
+
+      let current = -1; // -1 = first tick applies target directly
+      const tick = () => {
+        const target = Math.min(Math.max((window.scrollY - rootTop) / range, 0), 1);
+        let next = current < 0 ? target : current + (target - current) * PROGRESS_LERP;
+        if (Math.abs(next - target) < 0.0005) next = target;
+        if (next === current) return; // settled — zero work this frame
+        current = next;
+        tl.progress(current);
+        setState(current <= 0 ? "Idle" : current < 0.98 ? "Playing" : "Completed");
+      };
+
+      const cleanupTick = tickWhileVisible(root, tick);
+      cleanupTicker = () => {
+        cleanupTick();
+        window.removeEventListener("resize", debouncedMeasure);
+        if (measureTimeout) clearTimeout(measureTimeout);
+      };
     }, root);
 
-    /* ── Top watchdog ────────────────────────────────────────────────
-       Whatever brings the user back to the very top (wheel, back-to-top
-       button, keyboard), the intro MUST sit on its first frame. Smoothed
-       scrubs (scrub: 1.3) can wedge mid-progress when scroll updates stop
-       near 0, leaving the hero content invisible at the top. The check is
-       two number reads per frame and only runs while the hero is on
-       screen (IntersectionObserver gate, per project scroll rules). */
-    const topGuard = () => {
-      const tl = timelineRef.current;
-      if (!tl || window.scrollY > 1) return;
-      if (tl.progress() > 0.001) {
-        // Complete the scrub lerp instantly rather than killing it.
-        // kill() orphans the scrub mechanism — ScrollTrigger can't build
-        // a new tween off a dead one, so the forward scrub never fires
-        // again after a back-to-top.  progress(1) finishes the existing
-        // lerp to its target (progress=0 at scroll=0) without destroying it.
-        tl.scrollTrigger?.getTween()?.progress(1);
-        ScrollTrigger.update();
-        setState("Idle");
-      }
-    };
-    let guardActive = false;
-    const guardObserver = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !guardActive) {
-        guardActive = true;
-        gsap.ticker.add(topGuard);
-      } else if (!entry.isIntersecting && guardActive) {
-        guardActive = false;
-        gsap.ticker.remove(topGuard);
-      }
-    });
-    guardObserver.observe(root);
-
     return () => {
-      guardObserver.disconnect();
-      if (guardActive) gsap.ticker.remove(topGuard);
+      cleanupTicker?.();
       timelineRef.current?.kill();
-      scrollTweenRef.current?.kill();
+      timelineRef.current = null;
       context.revert();
     };
-  }, [intro, marquee, setState]);
+  }, [intro, setState]);
 
   return (
     <section ref={rootRef} className="hero-cinematic" data-intro-state="Idle">
