@@ -9,6 +9,16 @@ import { FirstVisitLoader } from '@/components/FirstVisitLoader';
 import { WhatsAppFab } from '@/components/WhatsAppFab';
 import { BackToTop } from '@/components/BackToTop';
 import { AnnouncementBar } from '@/components/AnnouncementBar';
+import dynamic from 'next/dynamic';
+
+const PerformanceOverlay = process.env.NODE_ENV === 'development'
+  ? dynamic(() =>
+      import('@/components/PerformanceOverlay/PerformanceOverlay').then(
+        m => ({ default: m.PerformanceOverlay }),
+      ),
+      { ssr: false },
+    )
+  : () => null;
 
 type ProvidersProps = { children: ReactNode };
 
@@ -29,6 +39,7 @@ export function Providers({ children }: ProvidersProps) {
       <AnnouncementBar />
       <WhatsAppFab />
       <BackToTop />
+      {process.env.NODE_ENV === 'development' && <PerformanceOverlay />}
       {children}
     </ThemeProvider>
   );
