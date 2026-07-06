@@ -27,6 +27,7 @@ import { ClientLogoWall } from "@/components/ClientLogoWall";
 import { VideoShowcase } from "@/components/VideoShowcase";
 import { HorizontalScrollGallery } from "@/components/HorizontalScrollGallery";
 import { BillboardStory, BILLBOARD_STORY_STEPS } from "@/components/BillboardStory";
+import { IdleWarmup } from "@/components/IdleWarmup";
 import { GALLERY_CATEGORIES } from "@/data/categories";
 import data from "@/data/home.json";
 import aboutData from "@/data/about.json";
@@ -71,6 +72,9 @@ export default function Home() {
   return (
     <div className="bg-white dark:bg-secondary" style={{ overflowX: "clip" }}>
       {/* The first-visit / refresh loader is mounted globally in providers.tsx */}
+      {/* Pre-decodes below-fold images and pre-buffers videos on idle so the
+          first scroll never pays fetch/decode costs mid-frame. */}
+      <IdleWarmup />
       <PinnedHero
         stats={data.hero.stats}
         statsPresentation={data.hero.statsPresentation}
@@ -144,13 +148,12 @@ export default function Home() {
       <PremiumRevealSection
         images={SHOWCASE_IMAGES}
         animationStyle="cameraZoom"
-        repeatOnScroll={true}
+        repeatOnScroll={false}
         scrollStart="top 75%"
         minHeight="100vh"
         backgroundColorClass="bg-white dark:bg-secondary"
         animationEnabled
         showEntranceAnimation
-        showBlurEffect
         showScaleAnimation
         showFadeAnimation
         showRotation
@@ -158,7 +161,7 @@ export default function Home() {
         animationDuration={0.1}
         staggerAmount={0.5}
         showOvershoot={true}
-        showLandingJerk={true}
+        showLandingJerk={false}
         showBounceEffect={true}
         showFloatingAnimation
         showMouseParallax
@@ -207,6 +210,8 @@ export default function Home() {
       <CampaignGallery
         campaigns={CATEGORY_CARDS}
         glowColor="rgba(0,100,177,0.5)"
+        enableFloating={false}
+        enableGradientBorder={false}
         onCardClick={(card) => router.push(`/gallery?category=${encodeURIComponent(card.title)}`)}
       />
 

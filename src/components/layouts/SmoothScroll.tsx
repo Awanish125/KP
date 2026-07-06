@@ -52,6 +52,12 @@ export function SmoothScroll() {
     // Lenis (e.g. CustomScrollbar drag). Cleared on unmount.
     window.__kpLenis = lenis;
 
+    if (process.env.NODE_ENV !== "production") {
+      // Dev-only handles for profiling GSAP/ScrollTrigger from the console.
+      (window as any).__kpGsap = gsap;
+      (window as any).__kpST = ScrollTrigger;
+    }
+
     return () => {
       gsap.ticker.remove(raf);
       window.removeEventListener("kp:scroll-lock", stop);

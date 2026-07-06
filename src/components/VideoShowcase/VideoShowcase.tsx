@@ -88,7 +88,7 @@ export function VideoShowcase({
   }, [open]);
 
   return (
-    <section className={className} style={{ background: "var(--kp-dark)" }}>
+    <section className={className} style={{ background: "var(--stage-bg)" }}>
       <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
         <SectionReveal as="div" className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
@@ -98,7 +98,7 @@ export function VideoShowcase({
                 fontSize: "var(--text-label)",
                 letterSpacing: "0.45em",
                 textTransform: "uppercase",
-                color: "var(--kp-orange)",
+                color: "var(--kp-orange-text)",
               }}
             >
               {label}
@@ -112,7 +112,7 @@ export function VideoShowcase({
                 fontSize: "var(--text-section)",
                 lineHeight: 1.02,
                 textTransform: "uppercase",
-                color: "var(--kp-light)",
+                color: "var(--stage-text)",
                 maxWidth: "16ch",
               }}
             />
@@ -124,7 +124,7 @@ export function VideoShowcase({
           <div
             ref={frameRef}
             className="group relative cursor-pointer overflow-hidden rounded-3xl"
-            style={{ aspectRatio: "16 / 8", background: "var(--kp-dark-2)" }}
+            style={{ aspectRatio: "16 / 8", background: "var(--stage-bg-2)" }}
             onClick={() => setOpen(true)}
             role="button"
             aria-label="Open showreel"
@@ -133,24 +133,22 @@ export function VideoShowcase({
               if (e.key === "Enter" || e.key === " ") setOpen(true);
             }}
           >
-            {/* preload="none": don't fetch a single byte until the section
-                nears the viewport (IO calls play(), which starts the load).
-                No hover transform on the <video> — scaling a playing video
-                re-rasterizes its layer continuously. */}
-            {/* poster: first frame placeholder while the video buffers so the
-                section never shows a blank black rectangle.
-                preload="none" still defers the full download — the poster is
-                encoded in the <img> cache and costs almost nothing. */}
+            {/* preload="metadata" keeps the initial page load light;
+                data-warm lets IdleWarmup bump it to "auto" during idle so
+                the buffer is full before the user scrolls here — the first
+                IO-triggered play() used to stall ~90ms on fetch/decode.
+                No hover transform and no will-change on the <video> —
+                a playing video already composites on its own layer. */}
             <video
               ref={loopRef}
               src={src}
+              data-warm
               poster="/homepage/herosection/1.png"
               muted
               loop
               playsInline
-              preload="none"
+              preload="metadata"
               className="h-full w-full object-cover"
-              style={{ transform: "translate3d(0, 0, 0)", willChange: "transform" }}
             />
             <div
               aria-hidden

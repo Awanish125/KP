@@ -22,7 +22,7 @@ import type {
   HorizontalScrollGalleryProps,
 } from "./horizontalScrollGalleryTypes";
 
-function GalleryCard({ item }: { item: HorizontalGalleryItem }) {
+function GalleryCard({ item, index }: { item: HorizontalGalleryItem; index: number }) {
   const inner = (
     <figure
       className="group relative m-0 h-[52vh] w-[68vw] shrink-0 overflow-hidden rounded-2xl sm:w-[44vw] lg:w-[30vw]"
@@ -34,6 +34,7 @@ function GalleryCard({ item }: { item: HorizontalGalleryItem }) {
         fill
         sizes="(max-width: 640px) 68vw, (max-width: 1024px) 44vw, 30vw"
         style={{ objectFit: "cover" }}
+        priority={index < 3}
         className="transition-transform duration-700 ease-out group-hover:scale-[1.06]"
       />
       <div
@@ -199,8 +200,8 @@ export function HorizontalScrollGallery({
         <div className="py-24">
           {header}
           <div className="mt-10 flex gap-5 overflow-x-auto px-6 pb-4">
-            {items.map((item) => (
-              <GalleryCard key={item.title} item={item} />
+            {items.map((item, i) => (
+              <GalleryCard key={item.title} item={item} index={i} />
             ))}
           </div>
         </div>
@@ -222,8 +223,8 @@ export function HorizontalScrollGallery({
       <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden">
         {header}
         <div ref={trackRef} className="mt-10 flex w-max gap-5 pl-6">
-          {items.map((item) => (
-            <GalleryCard key={item.title} item={item} />
+          {items.map((item, i) => (
+            <GalleryCard key={item.title} item={item} index={i} />
           ))}
           {/* Breathing room at the end of the run */}
           <div className="w-[10vw] shrink-0" aria-hidden />

@@ -14,17 +14,26 @@ export function useScrollSpeed(
   useEffect(() => {
     if (!enabled || !containerRef.current) return;
 
-    const getMarqueeEls = (): HTMLElement[] =>
-      Array.from(
-        containerRef.current?.querySelectorAll<HTMLElement>('.rfm-marquee') ?? [],
-      );
+    // Cache elements once — never re-query the DOM inside onUpdate (60fps).
+    let cachedEls: HTMLElement[] = [];
+    const getMarqueeEls = (): HTMLElement[] => {
+      if (cachedEls.length === 0) {
+        cachedEls = Array.from(
+          containerRef.current?.querySelectorAll<HTMLElement>('.rfm-marquee') ?? [],
+        );
+      }
+      return cachedEls;
+    };
 
     let baseDurations: number[] = [];
 
     const readBase = () => {
-      const els = getMarqueeEls();
-      if (!els.length) return;
-      baseDurations = els.map(el => {
+      // Refresh cached els in case rfm re-renders.
+      cachedEls = Array.from(
+        containerRef.current?.querySelectorAll<HTMLElement>('.rfm-marquee') ?? [],
+      );
+      if (!cachedEls.length) return;
+      baseDurations = cachedEls.map(el => {
         const raw = el.style.getPropertyValue('--duration');
         return parseFloat(raw) || 0;
       });
@@ -38,12 +47,14 @@ export function useScrollSpeed(
     const state = { factor: 1 };
     let returnTimer: ReturnType<typeof setTimeout> | null = null;
 
+    // apply() uses the cached element list — zero DOM traversal per frame.
     const apply = () => {
-      getMarqueeEls().forEach((el, i) => {
+      const els = getMarqueeEls();
+      for (let i = 0; i < els.length; i++) {
         const base = baseDurations[i] ?? baseDurations[0];
-        if (!base) return;
-        el.style.setProperty('--duration', `${base * state.factor}s`);
-      });
+        if (!base) continue;
+        els[i].style.setProperty('--duration', `${base * state.factor}s`);
+      }
     };
 
     const scheduleReturn = () => {
@@ -60,6 +71,7 @@ export function useScrollSpeed(
             // Clear cache so next scroll re-reads rfm's current --duration,
             // which reflects any speed-prop changes made during this interaction.
             baseDurations = [];
+            cachedEls = [];
           },
         });
       }, 380);
@@ -70,9 +82,6 @@ export function useScrollSpeed(
       if (baseDurations.length === 0) return; // rfm not ready
 
       // Only react to downward scroll — speeding up on scroll-down is intuitive.
-      // Scroll-up used to slow the marquee down, but that caused a noticeable
-      // speed-increase animation after the user stopped scrolling up (the return
-      // tween would ramp speed back up, looking like another scroll event).
       if (e.deltaY <= 0) return;
 
       const mag    = Math.min(e.deltaY / 60, 3);
@@ -96,6 +105,7 @@ export function useScrollSpeed(
       if (returnTimer) clearTimeout(returnTimer);
       window.removeEventListener('wheel', onWheel);
       gsap.killTweensOf(state);
+      cachedEls = [];
     };
   }, [enabled]);
 }

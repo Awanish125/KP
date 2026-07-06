@@ -45,12 +45,21 @@ export function useScrollParallax(
       ranges.push(SCROLL_PARALLAX_MAX * str);
     });
 
-    const update = () => {
+    let containerTop = 0;
+    let ch = 0;
+    let vh = 0;
+
+    const measure = () => {
       const rect = container.getBoundingClientRect();
-      const vh   = window.innerHeight;
-      const ch   = container.offsetHeight;
+      containerTop = rect.top + window.scrollY;
+      ch = container.offsetHeight;
+      vh = window.innerHeight;
+    };
+
+    const update = () => {
+      const rectTop = containerTop - window.scrollY;
       // t: -1 (section below viewport) → 0 (centred) → +1 (above viewport)
-      const rawT = (vh / 2 - (rect.top + ch / 2)) / (vh / 2 + ch / 2);
+      const rawT = (vh / 2 - (rectTop + ch / 2)) / (vh / 2 + ch / 2);
       const t    = Math.max(-1, Math.min(1, rawT));
       for (let i = 0; i < setters.length; i++) {
         setters[i]?.(t * ranges[i]);
@@ -61,6 +70,7 @@ export function useScrollParallax(
     const obs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          measure();
           update(); // snap to correct position immediately on enter
           gsap.ticker.add(update);
         } else {
@@ -72,8 +82,11 @@ export function useScrollParallax(
     );
     obs.observe(container);
 
+    window.addEventListener('resize', measure);
+
     return () => {
       obs.disconnect();
+      window.removeEventListener('resize', measure);
       gsap.ticker.remove(update);
       scrollRefs.current.forEach(el => el && gsap.set(el, { y: 0 }));
     };

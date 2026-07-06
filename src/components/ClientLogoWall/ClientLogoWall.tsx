@@ -16,9 +16,17 @@ import type { ClientLogoWallProps } from "./clientLogoWallTypes";
 
 function setSpot(e: React.PointerEvent<HTMLElement>) {
   const el = e.currentTarget;
-  const rect = el.getBoundingClientRect();
+  let rect = (el as any).__rect;
+  if (!rect) {
+    rect = el.getBoundingClientRect();
+    (el as any).__rect = rect;
+  }
   el.style.setProperty("--spot-x", `${e.clientX - rect.left}px`);
   el.style.setProperty("--spot-y", `${e.clientY - rect.top}px`);
+}
+
+function clearSpot(e: React.PointerEvent<HTMLElement>) {
+  delete (e.currentTarget as any).__rect;
 }
 
 export function ClientLogoWall({
@@ -86,6 +94,7 @@ export function ClientLogoWall({
                   <span
                     key={brand}
                     onPointerMove={setSpot}
+                    onPointerLeave={clearSpot}
                     className="group relative flex min-h-16 items-center justify-center overflow-hidden rounded-xl px-3 py-4 text-center transition-transform duration-300 hover:-translate-y-1"
                     style={{
                       background: "var(--surface)",

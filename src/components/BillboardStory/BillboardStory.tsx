@@ -49,11 +49,36 @@ export function BillboardStory({
     setReduced(prefersReducedMotion());
   }, []);
 
-  /* Lazy-load the Three.js chunk when the section approaches. */
+  /* Lazy-load the Three.js chunk well before the section is visible.
+   *
+   * LoAF profiling showed the WebGL shader compile blocks the main thread
+   * for ~2.7 s. The old requestIdleCallback(timeout:3500) fired exactly
+   * when the user started scrolling — the worst possible moment.
+   *
+   * Fix: start at 1 500 ms (during the initial page-load busy window, before
+   * most users scroll) AND keep the proximity observer as a safety net. */
   useEffect(() => {
     const host = canvasHostRef.current;
     if (!host || prefersReducedMotion()) return;
-    return observeOnce(host, () => setShouldLoad(true), "100px 0px 100px 0px");
+
+    let cancelled = false;
+
+    // Primary trigger: fixed 1 500 ms delay — initialisation completes during
+    // the page-load phase so the first scroll is never blocked by shader compile.
+    const timer = setTimeout(() => {
+      if (!cancelled) setShouldLoad(true);
+    }, 1500);
+
+    // Safety net: if the user scrolls to the section before 1 500 ms, load now.
+    const cleanupObserve = observeOnce(host, () => {
+      if (!cancelled) setShouldLoad(true);
+    }, "1200px 0px 1200px 0px");
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      cleanupObserve();
+    };
   }, []);
 
   /* Scroll → step index (state changes only at boundaries). */
@@ -67,9 +92,15 @@ export function BillboardStory({
       outerTop = outer.getBoundingClientRect().top + window.scrollY;
       scrollRange = Math.max(outer.offsetHeight - window.innerHeight, 1);
     };
+    let measureTimeout: any = null;
+    const debouncedMeasure = () => {
+      if (measureTimeout) clearTimeout(measureTimeout);
+      measureTimeout = setTimeout(measure, 80);
+    };
+
     measure();
-    window.addEventListener("resize", measure);
-    const ro = new ResizeObserver(measure);
+    window.addEventListener("resize", debouncedMeasure);
+    const ro = new ResizeObserver(debouncedMeasure);
     ro.observe(document.body);
 
     let current = 0;
@@ -85,7 +116,8 @@ export function BillboardStory({
     const cleanup = tickWhileVisible(outer, tick);
     return () => {
       cleanup();
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", debouncedMeasure);
+      if (measureTimeout) clearTimeout(measureTimeout);
       ro.disconnect();
     };
   }, [steps.length]);
@@ -114,27 +146,26 @@ export function BillboardStory({
     fontSize: "0.68rem",
     letterSpacing: "0.32em",
     textTransform: "uppercase",
-    color: "var(--kp-orange)",
+    color: "var(--kp-orange-text)",
   };
   const titleStyle: React.CSSProperties = {
     fontFamily: "var(--kp-font-display)",
     fontSize: "clamp(1.5rem, 2.8vw, 2.3rem)",
     lineHeight: 1.08,
     textTransform: "uppercase",
-    color: "var(--kp-light)",
+    color: "var(--stage-text)",
   };
   const bodyStyle: React.CSSProperties = {
     fontFamily: "var(--kp-font-body)",
     fontSize: "0.98rem",
     lineHeight: 1.7,
-    color: "var(--kp-light)",
-    opacity: 0.65,
+    color: "var(--stage-text-soft)",
   };
 
   /* ── Reduced motion: flat, fully accessible fallback ─────────────── */
   if (reduced) {
     return (
-      <section className={className} style={{ background: "var(--kp-dark)" }}>
+      <section className={className} style={{ background: "var(--stage-bg)" }}>
         <div className="mx-auto max-w-6xl px-6 py-24">
           <p style={kickerStyle}>{label}</p>
           <h2 className="mt-4 mb-12" style={{ ...titleStyle, fontSize: "var(--text-section)" }}>
@@ -167,7 +198,7 @@ export function BillboardStory({
       className={className}
       style={{
         background:
-          "radial-gradient(ellipse at 70% 45%, var(--kp-dark-2), var(--kp-dark) 72%)",
+          "radial-gradient(ellipse at 70% 45%, var(--stage-bg-2), var(--stage-bg) 72%)",
         height: `${100 + steps.length * vhPerStep * 100}vh`,
       }}
     >
@@ -206,7 +237,7 @@ export function BillboardStory({
                           fontFamily: "var(--kp-font-display)",
                           fontSize: "2.2rem",
                           lineHeight: 1,
-                          color: "var(--kp-orange)",
+                          color: "var(--kp-orange-text)",
                         }}
                       >
                         {s.stat.value}
@@ -217,8 +248,7 @@ export function BillboardStory({
                           fontSize: "0.65rem",
                           letterSpacing: "0.22em",
                           textTransform: "uppercase",
-                          color: "var(--kp-light)",
-                          opacity: 0.5,
+                          color: "var(--stage-text-soft)",
                         }}
                       >
                         {s.stat.label}
@@ -236,8 +266,7 @@ export function BillboardStory({
                   fontFamily: "var(--kp-font-mono)",
                   fontSize: "0.75rem",
                   letterSpacing: "0.2em",
-                  color: "var(--kp-light)",
-                  opacity: 0.55,
+                  color: "var(--stage-text-soft)",
                 }}
               >
                 {String(stepIndex + 1).padStart(2, "0")} / {String(steps.length).padStart(2, "0")}
@@ -250,7 +279,7 @@ export function BillboardStory({
                     className="h-1 rounded-full transition-all duration-500"
                     style={{
                       width: i === stepIndex ? "2rem" : "0.6rem",
-                      background: i === stepIndex ? "var(--kp-orange)" : "rgba(245,247,250,0.25)",
+                      background: i === stepIndex ? "var(--kp-orange)" : "var(--stage-border)",
                     }}
                   />
                 ))}
@@ -278,6 +307,21 @@ export function BillboardStory({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Preload steps media */}
+      <div className="sr-only" aria-hidden="true">
+        {steps.map((step, i) => {
+          if (isVideoMedia(step.media)) {
+            return (
+              <video key={i} src={step.media} preload="auto" muted />
+            );
+          }
+          return (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={i} src={step.media} loading="eager" decoding="async" alt="" />
+          );
+        })}
       </div>
     </section>
   );

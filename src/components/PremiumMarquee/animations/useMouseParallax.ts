@@ -30,13 +30,26 @@ export function useMouseParallax(
       return setterCache.get(el)!;
     };
 
+    let rect: DOMRect | null = null;
+    let items: Element[] = [];
+
+    const onMouseEnter = () => {
+      rect = container.getBoundingClientRect();
+      items = Array.from(container.querySelectorAll('[data-marquee-item]'));
+    };
+
     const onMouseMove = (e: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
+      if (!rect) {
+        rect = container.getBoundingClientRect();
+      }
+      if (items.length === 0) {
+        items = Array.from(container.querySelectorAll('[data-marquee-item]'));
+      }
       // Normalise to –1 … +1 relative to container centre
       const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
 
-      container.querySelectorAll('[data-marquee-item]').forEach((el, i) => {
+      items.forEach((el, i) => {
         // Three depth tiers: forward, mid, backward
         const depth = i % 3 === 0 ? 1 : i % 3 === 1 ? 0.55 : -0.35;
         const s = getSetter(el);
@@ -46,16 +59,22 @@ export function useMouseParallax(
     };
 
     const onMouseLeave = () => {
-      container.querySelectorAll('[data-marquee-item]').forEach(el => {
-        gsap.to(el, { x: 0, y: 0, duration: 0.8, ease: 'power3.out' });
-      });
+      rect = null;
+      if (items.length) {
+        items.forEach(el => {
+          gsap.to(el, { x: 0, y: 0, duration: 0.8, ease: 'power3.out' });
+        });
+      }
+      items = [];
       setterCache.clear();
     };
 
+    container.addEventListener('mouseenter', onMouseEnter);
     container.addEventListener('mousemove', onMouseMove);
     container.addEventListener('mouseleave', onMouseLeave);
 
     return () => {
+      container.removeEventListener('mouseenter', onMouseEnter);
       container.removeEventListener('mousemove', onMouseMove);
       container.removeEventListener('mouseleave', onMouseLeave);
       setterCache.forEach((_, el) => gsap.killTweensOf(el));

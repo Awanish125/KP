@@ -24,16 +24,23 @@
 
 .hero-cinematic {
   position: relative;
-  height: 100svh;
-  min-height: 640px;
-  overflow: clip;
+  /* 100svh stage + 250svh of scroll runway. The stage is position:sticky —
+     no ScrollTrigger pin (per project rule: no ScrollTrigger with Lenis;
+     the pin repositioned a viewport-sized layer every scrolled frame and
+     was measured at ~5ms/frame of pure compositing cost). NOTE: overflow
+     on THIS element must stay `clip`/`visible` — `hidden` would create a
+     scroll container and break the sticky child. */
+  height: 350svh;
   isolation: isolate;
   background: #050608;
 }
 
 .hero-cinematic-stage {
-  position: relative;
-  height: 100%;
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 640px;
+  overflow: clip;
 }
 
 .hero-content-scrim {
@@ -62,10 +69,8 @@
   border-radius: 26px 26px 0 0;
   background:
     radial-gradient(circle at 12% 0%, rgba(245, 130, 31, 0.13), transparent 34%),
-    linear-gradient(135deg, rgba(20, 23, 28, 0.86), rgba(5, 7, 10, 0.78));
+    linear-gradient(135deg, rgba(20, 23, 28, 0.94), rgba(5, 7, 10, 0.90));
   box-shadow: 0 -24px 80px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(18px) saturate(1.25);
-  -webkit-backdrop-filter: blur(18px) saturate(1.25);
 }
 
 .hero-stats-highlight {
@@ -93,16 +98,14 @@
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   background:
     radial-gradient(circle at 12% 0%, rgba(245, 130, 31, 0.13), transparent 34%),
-    linear-gradient(135deg, rgba(20, 23, 28, 0.86), rgba(5, 7, 10, 0.78));
-  backdrop-filter: blur(18px) saturate(1.25);
-  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+    linear-gradient(135deg, rgba(20, 23, 28, 0.94), rgba(5, 7, 10, 0.90));
   mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
 }
 .hero-editorial-track { display: flex; width: max-content; will-change: transform; }
 .hero-editorial-group { display: flex; flex: none; align-items: center; padding: 12px 18px; }
 .hero-editorial-pair { display: inline-flex; flex: none; align-items: center; gap: 36px; }
-.hero-editorial-word { color: var(--item-color); line-height: .92; text-transform: uppercase; white-space: nowrap; will-change: transform, opacity, filter; }
+.hero-editorial-word { color: var(--item-color); line-height: .92; text-transform: uppercase; white-space: nowrap; will-change: transform, opacity; }
 .hero-editorial-word.is-outline { color: transparent; -webkit-text-stroke: 1px var(--item-outline); }
 .hero-editorial-word.is-gradient { color: transparent; background-clip: text; -webkit-background-clip: text; }
 .hero-editorial-separator { font-size: 9px; opacity: .85; }
@@ -115,7 +118,7 @@
 @media (max-width: 767px) {
   .hero-content-scrim { background: linear-gradient(180deg, rgba(0,0,0,.32), rgba(0,0,0,.58) 42%, rgba(0,0,0,.42)); }
   .hero-stats-wrap { padding: 0 8px; }
-  .hero-stats-panel { border-radius: 18px 18px 0 0; backdrop-filter: blur(12px); }
+  .hero-stats-panel { border-radius: 18px 18px 0 0; }
   .hero-stats-heading-row { align-items: flex-start; }
   .hero-stats-location { display: none; }
   .hero-stats-grid { gap: 8px; }

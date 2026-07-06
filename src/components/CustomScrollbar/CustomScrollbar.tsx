@@ -91,12 +91,18 @@ export function CustomScrollbar({
       show();
     };
 
+    let measureTimeout: any = null;
+    const debouncedMeasure = () => {
+      if (measureTimeout) clearTimeout(measureTimeout);
+      measureTimeout = setTimeout(measure, 80);
+    };
+
     measure();
     gsap.ticker.add(tick);
 
-    const ro = new ResizeObserver(measure);
+    const ro = new ResizeObserver(debouncedMeasure);
     ro.observe(document.body);
-    window.addEventListener("resize", measure);
+    window.addEventListener("resize", debouncedMeasure);
 
     /* ── Drag to scroll ────────────────────────────────────────────── */
     let startPointerY = 0;
@@ -136,7 +142,8 @@ export function CustomScrollbar({
     return () => {
       gsap.ticker.remove(tick);
       ro.disconnect();
-      window.removeEventListener("resize", measure);
+      if (measureTimeout) clearTimeout(measureTimeout);
+      window.removeEventListener("resize", debouncedMeasure);
       thumb.removeEventListener("pointerdown", onThumbDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", endDrag);

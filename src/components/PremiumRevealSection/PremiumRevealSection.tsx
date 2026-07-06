@@ -224,6 +224,7 @@ function PremiumRevealSectionInner({
                           alt={img.alt ?? ''}
                           width={img.width}
                           draggable={false}
+                          loading="eager"
                           decoding="async"
                           className={[
                             'w-full h-auto block rounded-xl object-cover select-none',

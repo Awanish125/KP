@@ -51,15 +51,16 @@ export function useEntranceAnimation(
 
       if (isFirst || repeat) {
         // ── Full entrance animation ──────────────────────────────────────────
+        // NOTE: no filter:blur — rasterizes every cloned marquee item to its
+        // own GPU layer on every composite frame. opacity+scale is compositor-only.
         hasPlayedOnce.current = true;
-        gsap.set(items, { opacity: 0, ...fromProps, scale: scaleFrom, filter: 'blur(6px)' });
+        gsap.set(items, { opacity: 0, ...fromProps, scale: scaleFrom });
 
         const tl = gsap.timeline();
         tl.to(items, {
           opacity:  1,
           ...toProps,
           scale:    1,
-          filter:   'blur(0px)',
           duration: 0.6,
           stagger:  0.032,
           ease:     'power3.out',
@@ -68,23 +69,23 @@ export function useEntranceAnimation(
 
         return () => { tl.kill(); };
       } else {
-        // ── Blur → unblur on re-entry (no position shift) ───────────────────
+        // ── Fade-in on re-entry (no position shift, no blur) ────────────────
         const tl = gsap.timeline();
         tl.fromTo(
           items,
-          { filter: 'blur(8px)', opacity: 0.25 },
-          { filter: 'blur(0px)', opacity: 1, duration: 0.45, ease: 'power2.out' },
+          { opacity: 0.2, scale: 0.97 },
+          { opacity: 1,   scale: 1, duration: 0.4, ease: 'power2.out' },
         );
         return () => { tl.kill(); };
       }
     } else {
       // ── Leaving viewport ─────────────────────────────────────────────────
       if (repeat) {
-        gsap.set(items, { opacity: 0, ...fromProps, scale: scaleFrom, filter: 'blur(6px)' });
+        gsap.set(items, { opacity: 0, ...fromProps, scale: scaleFrom });
       } else if (hasPlayedOnce.current) {
         gsap.to(items, {
-          filter:   'blur(8px)',
-          opacity:  0.25,
+          opacity:  0.2,
+          scale:    0.97,
           duration: 0.35,
           ease:     'power2.in',
         });

@@ -52,31 +52,39 @@ export function ScrollProgress({
       setScaleX(p);
     };
 
+    let measureTimeout: any = null;
+    const debouncedMeasure = () => {
+      if (measureTimeout) clearTimeout(measureTimeout);
+      measureTimeout = setTimeout(() => {
+        measure();
+        tick();
+      }, 80);
+    };
+
     // Recalculate if the body size shifts during loading
-    const ro = new ResizeObserver(() => {
-      measure();
-      tick();
-    });
+    const ro = new ResizeObserver(debouncedMeasure);
     ro.observe(document.body);
 
     if (prefersReducedMotion()) {
       // Still functional, just driven by the native scroll cadence.
       const onScroll = () => tick();
       window.addEventListener("scroll", onScroll, { passive: true });
-      window.addEventListener("resize", measure);
+      window.addEventListener("resize", debouncedMeasure);
       return () => {
         ro.disconnect();
+        if (measureTimeout) clearTimeout(measureTimeout);
         window.removeEventListener("scroll", onScroll);
-        window.removeEventListener("resize", measure);
+        window.removeEventListener("resize", debouncedMeasure);
       };
     }
 
     gsap.ticker.add(tick);
-    window.addEventListener("resize", measure);
+    window.addEventListener("resize", debouncedMeasure);
     return () => {
       ro.disconnect();
+      if (measureTimeout) clearTimeout(measureTimeout);
       gsap.ticker.remove(tick);
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", debouncedMeasure);
     };
   }, [pathname]);
 
