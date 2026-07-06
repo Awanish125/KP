@@ -203,7 +203,7 @@ export function BillboardStory({
       }}
     >
       <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden">
-        <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 lg:grid-cols-2 lg:items-center lg:gap-14">
+        <div className="mx-auto grid w-full max-w-6xl gap-4 px-6 lg:grid-cols-2 lg:items-center lg:gap-14">
           {/* ── Left: header + swapping step content ─────────────────── */}
           <div className="order-2 lg:order-1">
             <SectionReveal as="div" staggerChildren={false}>
@@ -217,7 +217,7 @@ export function BillboardStory({
             </SectionReveal>
 
             {/* Step stack — absolutely stacked, tweened on change */}
-            <div className="relative mt-10" style={{ minHeight: "16rem" }}>
+            <div className="relative mt-4 lg:mt-10 min-h-[17rem] lg:min-h-[20rem]">
               {steps.map((s, i) => (
                 <div
                   key={s.title}
@@ -260,7 +260,7 @@ export function BillboardStory({
             </div>
 
             {/* Step indicator */}
-            <div className="mt-8 flex items-center gap-4">
+            <div className="mt-4 lg:mt-8 flex items-center gap-4">
               <span
                 style={{
                   fontFamily: "var(--kp-font-mono)",
@@ -290,7 +290,7 @@ export function BillboardStory({
           {/* ── Right: the 3D billboard ──────────────────────────────── */}
           <div
             ref={canvasHostRef}
-            className="relative order-1 h-[42vh] lg:order-2 lg:h-[74vh]"
+            className="relative order-1 h-[34vh] lg:order-2 lg:h-[74vh]"
           >
             {shouldLoad && (
               <BillboardStoryScene

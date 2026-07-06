@@ -30,7 +30,7 @@
  *    invalidate() or faces render black.
  */
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer } from "@react-three/drei";
@@ -102,50 +102,69 @@ function setPoster(mat: THREE.MeshStandardMaterial | null, entry?: StepTexture) 
   mat.needsUpdate = true;
 }
 
-/* ── Floodlight fixture: arm + lamp head + real targeted spotlight ───── */
+/* ── Theme detection ─────────────────────────────────────────────────── */
 
-function Floodlight({ x, side }: { x: number; side: 1 | -1 }) {
-  const target = useMemo(() => new THREE.Object3D(), []);
-  const armY = BOARD_H / 2 + 0.42;
-  const armZ = side * 0.62;
+function useIsDark() {
+  const [dark, setDark] = useState(() =>
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark"),
+  );
+  useEffect(() => {
+    const obs = new MutationObserver(() =>
+      setDark(document.documentElement.classList.contains("dark")),
+    );
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return dark;
+}
+
+/* ── Invisible face lights — no visible geometry, pure illumination ──── */
+
+function BillboardLights() {
+  const frontTarget = useMemo(() => new THREE.Object3D(), []);
+  const backTarget = useMemo(() => new THREE.Object3D(), []);
   return (
-    <group>
-      {/* Arm sweeping up and out from the frame top */}
-      <mesh position={[x, BOARD_H / 2 + 0.22, armZ * 0.45]} rotation={[side * -0.55, 0, 0]}>
-        <cylinderGeometry args={[0.02, 0.025, 0.62, 8]} />
-        <meshStandardMaterial color="#3a3d46" metalness={0.7} roughness={0.45} />
-      </mesh>
-      {/* Lamp head aimed at the poster */}
-      <group position={[x, armY, armZ]} rotation={[side * 0.95, 0, 0]}>
-        <mesh>
-          <cylinderGeometry args={[0.085, 0.12, 0.16, 14]} />
-          <meshStandardMaterial color="#23252c" metalness={0.75} roughness={0.4} />
-        </mesh>
-        {/* Glowing lens */}
-        <mesh position={[0, -0.085, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.075, 14]} />
-          <meshStandardMaterial
-            color="#fff6e6"
-            emissive="#ffe9c4"
-            emissiveIntensity={2.4}
-            toneMapped={false}
-          />
-        </mesh>
-      </group>
-      {/* The actual light — target sits on the poster face */}
+    <>
       <spotLight
-        position={[x, armY, armZ]}
-        target={target}
-        angle={0.75}
-        penumbra={0.65}
-        intensity={9}
+        position={[0, BOARD_H / 2 + 1.0, 1.2]}
+        target={frontTarget}
+        angle={0.8}
+        penumbra={0.55}
+        intensity={10}
         distance={7}
         decay={1.1}
         color="#fff3df"
       />
-      <primitive object={target} position={[x * 0.55, -0.2, side * 0.09]} />
-    </group>
+      <primitive object={frontTarget} position={[0, -0.2, 0.09]} />
+      <spotLight
+        position={[0, BOARD_H / 2 + 1.0, -1.2]}
+        target={backTarget}
+        angle={0.8}
+        penumbra={0.55}
+        intensity={10}
+        distance={7}
+        decay={1.1}
+        color="#fff3df"
+      />
+      <primitive object={backTarget} position={[0, -0.2, -0.09]} />
+    </>
   );
+}
+
+/* ── Camera: point at the billboard assembly centre (y ≈ 1.6 world).
+   Without an explicit lookAt the default camera looks along –Z, so the
+   view ray passes through y = camera.y, leaving the billboard off-centre
+   and its top clipped. useLayoutEffect runs before the first WebGL frame
+   so frameloop="demand" never renders the wrong angle. ──────────────── */
+
+function CameraSetup() {
+  const { camera, invalidate } = useThree();
+  useLayoutEffect(() => {
+    camera.lookAt(0, 1.0, 0);
+    camera.updateMatrixWorld();
+    invalidate();
+  }, [camera, invalidate]);
+  return null;
 }
 
 /* ── The unipole billboard (inside the Canvas) ───────────────────────── */
@@ -153,13 +172,28 @@ function Floodlight({ x, side }: { x: number; side: 1 | -1 }) {
 function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps) {
   const { invalidate, gl, scene, camera } = useThree();
   const groupRef = useRef<THREE.Group>(null);
+  const bodyRef = useRef<THREE.Group>(null);
   const frontMatRef = useRef<THREE.MeshStandardMaterial>(null);
   const backMatRef = useRef<THREE.MeshStandardMaterial>(null);
   const texturesRef = useRef<StepTexture[]>([]);
   const rotRef = useRef({ y: 0 });
-  const dragOffsetRef = useRef(0); // user horizontal drag offset (radians)
+  const dragOffsetRef = useRef(0);
   const readyRef = useRef(onReady);
   readyRef.current = onReady;
+
+  const isDark = useIsDark();
+  /* Redraw whenever theme switches; also set scene background for light mode.
+     scene is a stable R3F reference — safe to omit from deps. */
+  useEffect(() => {
+    scene.background = isDark ? null : new THREE.Color("#dce8ff");
+    invalidate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDark, invalidate]);
+
+  /* Theme colour tokens — light: project blue, dark: charcoal/steel. */
+  const C = isDark
+    ? { pole: "#ffffff", frame: "#ffffff", collar: "#33363f", catwalk: "#2c2f37", rail: "#3a3d46" }
+    : { pole: "#1555C2", frame: "#1555C2", collar: "#0d3a8c", catwalk: "#0d3a8c", rail: "#1555C2" };
 
   const refresh = () => invalidate();
   const frameMaps = usePbrMaps("/textures/frame", refresh, [3, 1]);
@@ -257,7 +291,7 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
       duration: flipDuration,
       ease: "power3.inOut",
       onUpdate: () => {
-        group.rotation.y = rotRef.current.y + dragOffsetRef.current;
+        group.rotation.y = rotRef.current.y;
         invalidate();
       },
     });
@@ -279,11 +313,11 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
      its current step angle, keeping the flip choreography intact. */
   useEffect(() => {
     if (prefersReducedMotion()) return;
-    const group = groupRef.current;
-    if (!group) return;
+    const body = bodyRef.current;
+    if (!body) return;
     const host = gl.domElement;
 
-    const toX = gsap.quickTo(group.rotation, "x", {
+    const toX = gsap.quickTo(body.rotation, "x", {
       duration: 0.8,
       ease: "power2.out",
       onUpdate: invalidate,
@@ -309,7 +343,7 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
         const dx = e.clientX - startX;
         dragOffsetRef.current = dragStart + dx * 0.009;
         dragProxy.offset = dragOffsetRef.current;
-        group.rotation.y = rotRef.current.y + dragOffsetRef.current;
+        body.rotation.y = dragOffsetRef.current;
         invalidate();
       } else {
         // Vertical tilt only when not dragging
@@ -329,7 +363,7 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
         ease: "power2.out",
         onUpdate: () => {
           dragOffsetRef.current = dragProxy.offset;
-          group.rotation.y = rotRef.current.y + dragOffsetRef.current;
+          body.rotation.y = dragProxy.offset;
           invalidate();
         },
         onComplete: () => {
@@ -341,6 +375,7 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
     const onPointerLeave = () => {
       if (!dragging) toX(0);
     };
+
 
     host.style.cursor = "grab";
     host.addEventListener("pointerdown", onPointerDown);
@@ -360,83 +395,99 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
 
   return (
     <group position={[0, 0.55, 0]}>
-      {/* ── Monopole: heavy tapered column ON the rotation axis ─────── */}
-      <mesh position={[0, -2.15, 0]} castShadow>
-        <cylinderGeometry args={[0.16, 0.24, 3.6, 24]} />
-        <meshStandardMaterial {...poleMaps} metalness={0.6} roughness={0.55} envMapIntensity={0.9} />
-      </mesh>
-      {/* Mounting collar at the junction */}
-      <mesh position={[0, -0.42, 0]}>
-        <cylinderGeometry args={[0.3, 0.34, 0.34, 20]} />
-        <meshStandardMaterial color="#33363f" metalness={0.75} roughness={0.4} envMapIntensity={0.9} />
-      </mesh>
-
-      {/* ── Rotating assembly (axis = the pole) ─────────────────────── */}
-      <group ref={groupRef} position={[0, 1.05, 0]}>
-        {/* Steel frame */}
-        <mesh castShadow>
-          <boxGeometry args={[BOARD_W + 0.26, BOARD_H + 0.26, 0.18]} />
-          <meshStandardMaterial {...frameMaps} metalness={0.55} roughness={0.5} envMapIntensity={1.1} />
+      {/* ── All-body group: pole + collar + base + billboard.
+           Rotating this group on drag moves the whole structure. ───── */}
+      <group ref={bodyRef}>
+        {/* Monopole — tapered column, top flush with collar, bottom at ground */}
+        <mesh position={[0, -1.95, 0]} castShadow>
+          <cylinderGeometry args={[0.24, 0.36, 3.2, 24]} />
+          <meshStandardMaterial {...poleMaps} color={C.pole} metalness={0.65} roughness={0.5} envMapIntensity={0.9} />
         </mesh>
-
-        {/* Poster faces — emissive-lifted like a lit hoarding */}
-        <mesh position={[0, 0, 0.095]}>
-          <planeGeometry args={[BOARD_W, BOARD_H]} />
-          <meshStandardMaterial
-            ref={frontMatRef}
-            roughness={0.35}
-            metalness={0}
-            emissive="#ffffff"
-            emissiveIntensity={0.32}
-            envMapIntensity={0.35}
-          />
+        {/* Mounting collar at the billboard junction */}
+        <mesh position={[0, -0.35, 0]}>
+          <cylinderGeometry args={[0.42, 0.48, 0.42, 20]} />
+          <meshStandardMaterial color={C.collar} metalness={0.75} roughness={0.4} envMapIntensity={0.9} />
         </mesh>
-        <mesh position={[0, 0, -0.095]} rotation={[0, Math.PI, 0]}>
-          <planeGeometry args={[BOARD_W, BOARD_H]} />
-          <meshStandardMaterial
-            ref={backMatRef}
-            roughness={0.35}
-            metalness={0}
-            emissive="#ffffff"
-            emissiveIntensity={0.32}
-            envMapIntensity={0.35}
-          />
+        {/* Ground base plate — circular flange sitting at ground level */}
+        <mesh position={[0, -3.5, 0]} castShadow>
+          <cylinderGeometry args={[1.0, 1.15, 0.16, 32]} />
+          <meshStandardMaterial color={C.collar} metalness={0.72} roughness={0.38} envMapIntensity={0.85} />
         </mesh>
-
-        {/* Catwalk + railings — the scale cue that sells "real hoarding" */}
-        <mesh position={[0, -BOARD_H / 2 - 0.22, 0]}>
-          <boxGeometry args={[BOARD_W + 0.7, 0.05, 0.66]} />
-          <meshStandardMaterial color="#2c2f37" metalness={0.7} roughness={0.5} envMapIntensity={0.8} />
-        </mesh>
-        {[1, -1].map((side) => (
-          <mesh key={side} position={[0, -BOARD_H / 2 + 0.02, side * 0.3]}>
-            <boxGeometry args={[BOARD_W + 0.7, 0.025, 0.025]} />
-            <meshStandardMaterial color="#3a3d46" metalness={0.7} roughness={0.45} />
-          </mesh>
-        ))}
-        {[-2.2, -1.1, 0, 1.1, 2.2].flatMap((x) =>
-          [1, -1].map((side) => (
-            <mesh key={`${x}-${side}`} position={[x, -BOARD_H / 2 - 0.09, side * 0.3]}>
-              <cylinderGeometry args={[0.012, 0.012, 0.24, 6]} />
-              <meshStandardMaterial color="#3a3d46" metalness={0.7} roughness={0.45} />
+        {/* Anchor bolts — sit on top of the base plate, evenly spaced */}
+        {[0, 60, 120, 180, 240, 300].map((deg) => {
+          const r = (deg * Math.PI) / 180;
+          return (
+            <mesh key={`b${deg}`} position={[0.82 * Math.cos(r), -3.355, 0.82 * Math.sin(r)]}>
+              <cylinderGeometry args={[0.048, 0.048, 0.13, 8]} />
+              <meshStandardMaterial color="#9a9da8" metalness={0.9} roughness={0.2} />
             </mesh>
-          )),
-        )}
+          );
+        })}
 
-        {/* Two floodlights (one per face, centered) — enough for the lit-hoarding
-            look at lower GPU cost; 6 SpotLights were too heavy for Chrome. */}
-        <Floodlight x={0} side={1} />
-        <Floodlight x={0} side={-1} />
+        {/* ── Rotating assembly (axis = the pole) — only this group flips ── */}
+        <group ref={groupRef} position={[0, 1.05, 0]}>
+          {/* Steel frame */}
+          <mesh castShadow>
+            <boxGeometry args={[BOARD_W + 0.26, BOARD_H + 0.26, 0.18]} />
+            <meshStandardMaterial {...frameMaps} color={C.frame} metalness={0.6} roughness={0.45} envMapIntensity={1.1} />
+          </mesh>
+
+          {/* Poster faces — emissive-lifted like a lit hoarding */}
+          <mesh position={[0, 0, 0.095]}>
+            <planeGeometry args={[BOARD_W, BOARD_H]} />
+            <meshStandardMaterial
+              ref={frontMatRef}
+              roughness={0.35}
+              metalness={0}
+              emissive="#ffffff"
+              emissiveIntensity={0.38}
+              envMapIntensity={0.35}
+            />
+          </mesh>
+          <mesh position={[0, 0, -0.095]} rotation={[0, Math.PI, 0]}>
+            <planeGeometry args={[BOARD_W, BOARD_H]} />
+            <meshStandardMaterial
+              ref={backMatRef}
+              roughness={0.35}
+              metalness={0}
+              emissive="#ffffff"
+              emissiveIntensity={0.38}
+              envMapIntensity={0.35}
+            />
+          </mesh>
+
+          {/* Catwalk + railings — scale cue */}
+          <mesh position={[0, -BOARD_H / 2 - 0.22, 0]}>
+            <boxGeometry args={[BOARD_W + 0.7, 0.05, 0.66]} />
+            <meshStandardMaterial color={C.catwalk} metalness={0.7} roughness={0.5} envMapIntensity={0.8} />
+          </mesh>
+          {[1, -1].map((side) => (
+            <mesh key={side} position={[0, -BOARD_H / 2 + 0.02, side * 0.3]}>
+              <boxGeometry args={[BOARD_W + 0.7, 0.025, 0.025]} />
+              <meshStandardMaterial color={C.rail} metalness={0.7} roughness={0.45} />
+            </mesh>
+          ))}
+          {[-2.2, -1.1, 0, 1.1, 2.2].flatMap((x) =>
+            [1, -1].map((side) => (
+              <mesh key={`${x}-${side}`} position={[x, -BOARD_H / 2 - 0.09, side * 0.3]}>
+                <cylinderGeometry args={[0.012, 0.012, 0.24, 6]} />
+                <meshStandardMaterial color={C.rail} metalness={0.7} roughness={0.45} />
+              </mesh>
+            )),
+          )}
+
+          {/* Face illumination — invisible spotlights, no fixture geometry */}
+          <BillboardLights />
+        </group>
       </group>
 
-      {/* ── Base light rig + baked ground shadow ────────────────────── */}
+      {/* ── Lights + shadow — outside the body group, don't rotate on drag ── */}
       <ambientLight intensity={0.35} />
       <directionalLight position={[5, 7, 6]} intensity={0.9} />
       <directionalLight position={[-6, 3, -5]} intensity={0.35} color="#bcd0ff" />
-      <ContactShadows frames={1} position={[0, -3.98, 0]} opacity={0.5} blur={2.4} scale={12} far={4.5} />
+      <ContactShadows frames={1} position={[0, -3.62, 0]} opacity={0.55} blur={2.6} scale={16} far={7} />
 
-      {/* Procedural studio — gives every metal something to reflect.
-          Built from Lightformers: zero network requests. */}
+      {/* Procedural studio — gives every metal something to reflect. */}
       <Environment resolution={128} frames={1}>
         <Lightformer intensity={1.1} rotation-x={Math.PI / 2} position={[0, 5, 0]} scale={[10, 10, 1]} />
         <Lightformer intensity={0.55} rotation-y={Math.PI / 2} position={[-6, 1.5, 0]} scale={[7, 3, 1]} color="#cfd8ff" />
@@ -456,9 +507,10 @@ export default function BillboardStoryScene(props: BillboardSceneProps) {
       frameloop="demand"
       dpr={[1, 1.5]}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-      camera={{ position: [0.3, 0.55, 7.9], fov: 33 }}
+      camera={{ position: [0.3, 0.3, 13], fov: 32 }}
       style={{ position: "absolute", inset: 0 }}
     >
+      <CameraSetup />
       <Board {...props} />
     </Canvas>
   );

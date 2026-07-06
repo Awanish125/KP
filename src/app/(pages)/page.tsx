@@ -154,6 +154,7 @@ export default function Home() {
         backgroundColorClass="bg-white dark:bg-secondary"
         animationEnabled
         showEntranceAnimation
+        showBlurEffect={false}
         showScaleAnimation
         showFadeAnimation
         showRotation
@@ -164,12 +165,12 @@ export default function Home() {
         showLandingJerk={false}
         showBounceEffect={true}
         showFloatingAnimation
-        showMouseParallax
+        showMouseParallax={false}
         showScrollParallax
         showDepthEffect
-        showHoverInteraction
+        showHoverInteraction={false}
         showBackgroundGradient
-        showNoiseTexture={true}
+        showNoiseTexture={false}
         showGlow={false}
       >
         <div className="relative flex items-center justify-center min-h-screen px-6">
