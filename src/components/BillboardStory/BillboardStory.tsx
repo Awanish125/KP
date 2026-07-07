@@ -16,18 +16,15 @@
  *    covers until the first textured frame. Reduced motion → flat list.
  */
 
-import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import gsap from "gsap";
-import { observeOnce, prefersReducedMotion, tickWhileVisible } from "@/lib/motion";
-import { AssetLoader } from "@/components/AssetLoader";
+import { prefersReducedMotion, tickWhileVisible } from "@/lib/motion";
 import { SectionReveal } from "@/components/SectionReveal";
 import { TextReveal } from "@/components/TextReveal";
 import { BILLBOARD_STORY_DEFAULTS } from "./billboardStoryConfig";
 import { isVideoMedia, type BillboardStoryProps } from "./billboardStoryTypes";
-
-const BillboardStoryScene = dynamic(() => import("./BillboardStoryScene"), { ssr: false });
+import BillboardStoryScene from "./BillboardStoryScene";
 
 export function BillboardStory({
   steps,
@@ -39,48 +36,14 @@ export function BillboardStory({
   staticMode = false,
 }: BillboardStoryProps) {
   const outerRef = useRef<HTMLElement>(null);
-  const canvasHostRef = useRef<HTMLDivElement>(null);
   const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
-  const [shouldLoad, setShouldLoad] = useState(false);
-  const [ready, setReady] = useState(false);
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
     setReduced(prefersReducedMotion());
   }, []);
 
-  /* Lazy-load the Three.js chunk well before the section is visible.
-   *
-   * LoAF profiling showed the WebGL shader compile blocks the main thread
-   * for ~2.7 s. The old requestIdleCallback(timeout:3500) fired exactly
-   * when the user started scrolling — the worst possible moment.
-   *
-   * Fix: start at 1 500 ms (during the initial page-load busy window, before
-   * most users scroll) AND keep the proximity observer as a safety net. */
-  useEffect(() => {
-    const host = canvasHostRef.current;
-    if (!host || prefersReducedMotion()) return;
-
-    let cancelled = false;
-
-    // Primary trigger: fixed 1 500 ms delay — initialisation completes during
-    // the page-load phase so the first scroll is never blocked by shader compile.
-    const timer = setTimeout(() => {
-      if (!cancelled) setShouldLoad(true);
-    }, 1500);
-
-    // Safety net: if the user scrolls to the section before 1 500 ms, load now.
-    const cleanupObserve = observeOnce(host, () => {
-      if (!cancelled) setShouldLoad(true);
-    }, "1200px 0px 1200px 0px");
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      cleanupObserve();
-    };
-  }, []);
 
   /* Scroll → step index (state changes only at boundaries). */
   useEffect(() => {
@@ -288,24 +251,13 @@ export function BillboardStory({
             </div>
           </div>
 
-          {/* ── Right: the 3D billboard ──────────────────────────────── */}
-          <div
-            ref={canvasHostRef}
-            className="relative order-1 h-[34vh] lg:order-2 lg:h-[74vh]"
-          >
-            {shouldLoad && (
-              <BillboardStoryScene
-                steps={steps}
-                stepIndex={stepIndex}
-                flipDuration={flipDuration}
-                onReady={() => setReady(true)}
-              />
-            )}
-            {!ready && (
-              <div style={{ position: "absolute", inset: 0 }}>
-                <AssetLoader label="Raising the billboard" />
-              </div>
-            )}
+          {/* ── Right: billboard ─────────────────────────────────────── */}
+          <div className="relative order-1 h-[34vh] lg:order-2 lg:h-[74vh]">
+            <BillboardStoryScene
+              steps={steps}
+              stepIndex={stepIndex}
+              flipDuration={flipDuration}
+            />
           </div>
         </div>
       </div>

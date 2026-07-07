@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * page.tsx — Kiran Publicity home page.
  *
@@ -12,10 +10,10 @@
  */
 
 import { Fragment } from "react";
-import { useRouter } from "next/navigation";
+import { GallerySection } from "./_GallerySection";
 import { HeroSection, HeroSectionContent, PinnedHero } from "@/components/hero";
 import { PremiumRevealSection } from "@/components/PremiumRevealSection";
-import { CampaignGallery, type Campaign } from "@/components/gallery";
+import type { Campaign } from "@/components/gallery";
 import { ServicesStrip } from "@/components/ServicesStrip";
 import { ProcessSteps } from "@/components/ProcessSteps";
 import { OfficeGrid } from "@/components/OfficeGrid";
@@ -66,8 +64,6 @@ const CATEGORY_CARDS: Campaign[] = GALLERY_CATEGORIES.map((c, i) => ({
 const SHOWCASE_IMAGES = data.showcase.images;
 
 export default function Home() {
-  const router = useRouter();
-
   /* ── JSX ──────────────────────────────────────────────────────────────── */
   return (
     <div className="bg-white dark:bg-secondary" style={{ overflowX: "clip" }}>
@@ -108,23 +104,6 @@ export default function Home() {
         bgColor="var(--bg)"
         fadeWidth="7rem"
         showTopDivider
-        showHoverLift
-        showFadeEdges
-        showSeparatorAnimation
-        pauseOnHover
-      />
-      <PremiumMarquee
-        items={BRANDS}
-        speed={60}
-        direction="left"
-        gap={52}
-        itemPadding="px-0 py-5"
-        borderRadius="rounded-none"
-        separatorIcon="diamond"
-        separatorPosition="before"
-        separatorSpacing={14}
-        bgColor="var(--bg)"
-        fadeWidth="7rem"
         showBottomDivider
         showHoverLift
         showFadeEdges
@@ -194,13 +173,7 @@ export default function Home() {
       </PremiumRevealSection>
 
       
-      <CampaignGallery
-        campaigns={CATEGORY_CARDS}
-        glowColor="rgba(0,100,177,0.5)"
-        enableFloating={false}
-        enableGradientBorder={false}
-        onCardClick={(card) => router.push(`/gallery?category=${encodeURIComponent(card.title)}`)}
-      />
+      <GallerySection campaigns={CATEGORY_CARDS} />
 
       {/* ── Business sections (JSON-driven) ─────────────────────────────── */}
       <ServicesStrip

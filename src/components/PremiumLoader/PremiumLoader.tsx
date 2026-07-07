@@ -26,6 +26,7 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { prefersReducedMotion } from "@/lib/motion";
+import { onPageReady } from "@/lib/pageReady";
 import { PREMIUM_LOADER_DEFAULTS } from "./premiumLoaderConfig";
 import type { PremiumLoaderProps } from "./premiumLoaderTypes";
 
@@ -99,21 +100,57 @@ export function PremiumLoader({
     const letters = Array.from(word.querySelectorAll("[data-letter]"));
     const count = { v: 0 };
 
-    const tl = gsap.timeline({
-      defaults: { ease: "power4.out" },
-      onComplete: () => {
-        // Same contract as the original Loading.tsx: signals fire when the
-        // loader timeline ENDS, so the hero entrance plays in full view
-        // after the wipe — never hidden behind the overlay. The CSS gate
-        // is retired so later mounts (SPA navs) never replay the reveal.
-        document.documentElement.classList.remove("kp-first-visit");
-        emitRevealSignals();
-        setDone(true);
-      },
-    });
+    // Track the exit timeline so cleanup can kill it if the component unmounts
+    // while onPageReady is waiting (prevents setDone on an unmounted component).
+    let exitTl: gsap.core.Timeline | null = null;
+    let alive = true;
+
+    // doExit — runs after both the loader animation AND onPageReady gate clear.
+    // Sequence:
+    //   1. Snap Lenis to 0 + start it NOW — scroll works during the wipe, not after.
+    //   2. Pin overlay visible with an inline style so the CSS class removal
+    //      doesn't flash the page before the wipe completes.
+    //   3. Animate the wipe.
+    //   4. On wipe complete: clear inline style, remove CSS gate, emit signals.
+    const doExit = (wipeDuration: number) => {
+      if (!alive) return;
+
+      // Start Lenis immediately so scroll is responsive the instant the wipe
+      // begins — not after it ends. snap to 0 so first-scroll position is clean.
+      const lenis = window.__kpLenis;
+      lenis?.scrollTo(0, { immediate: true });
+      lenis?.start();
+
+      // Lock visibility via inline style — takes precedence over the CSS class,
+      // keeping the overlay on screen throughout the wipe animation.
+      overlay.style.visibility = "visible";
+      overlay.style.willChange = "clip-path";
+
+      exitTl = gsap.timeline({
+        onComplete: () => {
+          if (!alive) return;
+          // Clear inline overrides, retire the CSS gate, emit reveal signals.
+          overlay.style.visibility = "";
+          overlay.style.willChange = "";
+          document.documentElement.classList.remove("kp-first-visit");
+          emitRevealSignals();
+          setDone(true);
+        },
+      });
+      exitTl.to(overlay, {
+        clipPath: "inset(0 0 100% 0)",
+        duration: wipeDuration,
+        ease: "power4.inOut",
+      });
+    };
+
+    const tl = gsap.timeline({ defaults: { ease: "power4.out" } });
 
     if (short) {
-      // ── Quick brand wipe (~1.3s) for refreshes / returning sessions ──
+      // ── Quick brand wipe for refreshes / returning sessions ──────────
+      // The overlay wipe is split into doExit so onPageReady can hold it
+      // until the WebGL scene is warm — even on a quick 1 s wipe, the GPU
+      // may not have finished its first render before the loader exits.
       gsap.set(foot, { opacity: 0 });
       tl.fromTo(
         letters,
@@ -127,79 +164,63 @@ export function PremiumLoader({
         { opacity: 0.45, scale: 1.05, duration: 0.5, ease: "power2.inOut" },
         0.15,
       );
-      tl.to(
+      tl.to(word, { yPercent: -160, opacity: 0, duration: 0.4, ease: "power3.in" }, 0.72);
+      tl.add(() => onPageReady(() => doExit(0.7)));
+    } else {
+      // ── Full cinematic (first visit of the session) ──────────────────
+
+      // 1 — letters rise into view, tracking breathes open.
+      tl.fromTo(
+        letters,
+        { yPercent: 120 },
+        { yPercent: 0, duration: 0.9, stagger: 0.035 },
+        0.15,
+      );
+      tl.fromTo(
         word,
-        { yPercent: -160, opacity: 0, duration: 0.4, ease: "power3.in" },
-        0.72,
+        { letterSpacing: "0.02em" },
+        { letterSpacing: "0.18em", duration: 2.2, ease: "power2.inOut" },
+        0.15,
       );
+      tl.fromTo(foot, { opacity: 0 }, { opacity: 1, duration: 0.6 }, 0.5);
+
+      // 2 — counter + hairline progress (single tween drives both).
       tl.to(
-        overlay,
-        { clipPath: "inset(0 0 100% 0)", duration: 0.7, ease: "power4.inOut" },
-        0.8,
+        count,
+        {
+          v: 100,
+          duration: countDuration,
+          ease: "power2.inOut",
+          onUpdate: () => {
+            counter.textContent = String(Math.round(count.v)).padStart(2, "0");
+            bar.style.transform = `scaleX(${count.v / 100})`;
+          },
+        },
+        0.35,
       );
-      return () => {
-        tl.kill();
-      };
+
+      // 3 — orange bloom swells behind the wordmark as loading completes.
+      tl.fromTo(
+        bloom,
+        { opacity: 0, scale: 0.6 },
+        { opacity: 0.55, scale: 1.15, duration: 1.1, ease: "power2.inOut" },
+        countDuration - 0.55,
+      );
+
+      // 4 — content exits; overlay wipe is deferred to doExit via onPageReady
+      // so the reveal only happens once the WebGL scene is fully warm.
+      tl.to(
+        [word, foot],
+        { yPercent: -160, opacity: 0, duration: exitDuration * 0.7, ease: "power3.in" },
+        ">-0.05",
+      );
+      tl.add(() => onPageReady(() => doExit(exitDuration)));
     }
 
-    // ── Full cinematic (first visit of the session) ──────────────────
-
-    // 1 — letters rise into view, tracking breathes open.
-    tl.fromTo(
-      letters,
-      { yPercent: 120 },
-      { yPercent: 0, duration: 0.9, stagger: 0.035 },
-      0.15,
-    );
-    tl.fromTo(
-      word,
-      { letterSpacing: "0.02em" },
-      { letterSpacing: "0.18em", duration: 2.2, ease: "power2.inOut" },
-      0.15,
-    );
-    tl.fromTo(foot, { opacity: 0 }, { opacity: 1, duration: 0.6 }, 0.5);
-
-    // 2 — counter + hairline progress (single tween drives both).
-    tl.to(
-      count,
-      {
-        v: 100,
-        duration: countDuration,
-        ease: "power2.inOut",
-        onUpdate: () => {
-          counter.textContent = String(Math.round(count.v)).padStart(2, "0");
-          bar.style.transform = `scaleX(${count.v / 100})`;
-        },
-      },
-      0.35,
-    );
-
-    // 3 — orange bloom swells behind the wordmark as loading completes.
-    tl.fromTo(
-      bloom,
-      { opacity: 0, scale: 0.6 },
-      { opacity: 0.55, scale: 1.15, duration: 1.1, ease: "power2.inOut" },
-      countDuration - 0.55,
-    );
-
-    // 4 — exit wipe. Reveal signals fire in onComplete (above), not here.
-    tl.to(
-      [word, foot],
-      { yPercent: -160, opacity: 0, duration: exitDuration * 0.7, ease: "power3.in" },
-      ">-0.05",
-    );
-    tl.to(
-      overlay,
-      {
-        clipPath: "inset(0 0 100% 0)",
-        duration: exitDuration,
-        ease: "power4.inOut",
-      },
-      "<0.12",
-    );
-
     return () => {
+      alive = false;
       tl.kill();
+      exitTl?.kill();
     };
   }, [countDuration, exitDuration]);
 

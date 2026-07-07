@@ -20,7 +20,6 @@ import type { ReactNode } from "react";
 import { gsap } from "gsap";
 import HeroStats from "./stats/HeroStats";
 import { HeroEditorialMarquee } from "./HeroEditorialMarquee";
-import { heroUniformBridge } from "./heroUniformBridge";
 import { tickWhileVisible, withWillChange } from "@/lib/motion";
 import type {
   EditorialMarqueeConfig,
@@ -75,18 +74,7 @@ export function PinnedHero({
     const marqueeTrack = root.querySelector<HTMLElement>("[data-marquee-track]");
     const marqueeWords = gsap.utils.toArray<HTMLElement>("[data-marquee-word]", root);
     const indicator = root.querySelector<HTMLElement>("[data-scroll-indicator]");
-    const camera = {
-      zoom: intro.camera.initialZoom,
-      offsetX: window.innerWidth < 768 ? 0 : intro.camera.initialOffsetX,
-    };
-    const applyCamera = () => {
-      heroUniformBridge.setZoom?.(camera.zoom);
-      heroUniformBridge.setOffsetX?.(camera.offsetX);
-    };
-
-    applyCamera();
-
-    let cleanupTicker: (() => void) | null = null;
+let cleanupTicker: (() => void) | null = null;
 
     const context = gsap.context(() => {
       // Set initial state values
@@ -104,9 +92,6 @@ export function PinnedHero({
           clipPath: "inset(0 0% 0 0)",
         });
         statValues.forEach((el) => { el.textContent = el.dataset.value ?? "0"; });
-        camera.zoom = intro.camera.initialZoom;
-        camera.offsetX = 0;
-        applyCamera();
         setState("Completed");
         return;
       }
@@ -168,17 +153,9 @@ export function PinnedHero({
             duration: 1.0, ease: "power2.inOut",
           }, "depart")
           .fromTo(indicator, { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: 10, duration: 0.4 }, "depart")
-          .to(camera, {
-            zoom: intro.camera.peakZoom,
-            duration: 1.0, ease: "power2.inOut", onUpdate: applyCamera,
-          }, "depart")
 
-          // 2. Compose — camera returns + stats + marquee revealed
+          // 2. Compose — stats + marquee revealed
           .addLabel("compose", "depart+=0.8")
-          .to(camera, {
-            zoom: intro.camera.initialZoom, offsetX: 0,
-            duration: 1.2, ease: "expo.inOut", onUpdate: applyCamera,
-          }, "compose")
           .to(statsPanel, {
             autoAlpha: 1, y: 0, scale: 1,
             duration: 0.8, ease: "power3.out",
