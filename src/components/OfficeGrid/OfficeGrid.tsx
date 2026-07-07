@@ -9,6 +9,7 @@
 import { MapPin } from "lucide-react";
 import { SectionReveal } from "@/components/SectionReveal";
 import { TextReveal } from "@/components/TextReveal";
+import { onSpotMove, onSpotLeave } from "@/lib/cursorGlow";
 import { OFFICE_GRID_DEFAULTS } from "./officeGridConfig";
 import type { OfficeGridProps } from "./officeGridTypes";
 
@@ -57,13 +58,18 @@ export function OfficeGrid({
             return (
               <div
                 key={office.city}
-                className="flex flex-col rounded-2xl p-7 transition-transform duration-300 hover:-translate-y-1.5"
+                onPointerMove={onSpotMove}
+                onPointerLeave={onSpotLeave}
+                className="group relative flex flex-col overflow-hidden rounded-2xl p-7 transition-transform duration-300 hover:-translate-y-1.5"
                 style={{
-                  background: isHQ ? "var(--kp-dark)" : "var(--surface)",
-                  border: `1px solid ${isHQ ? "var(--kp-orange-glow)" : "var(--border-soft)"}`,
+                  background: isHQ ? "var(--kp-dark)" : "var(--kp-glass-bg)",
+                  border: `1px solid var(--kp-orange-glow)`,
+                  backdropFilter: isHQ ? undefined : "var(--kp-glass-blur)",
+                  WebkitBackdropFilter: isHQ ? undefined : "var(--kp-glass-blur)",
                 }}
               >
-                <div className="flex items-center justify-between">
+                <span aria-hidden className="kp-card-glow" />
+                <div className="relative flex items-center justify-between">
                   <span
                     className="flex h-10 w-10 items-center justify-center rounded-lg"
                     style={{
@@ -88,23 +94,23 @@ export function OfficeGrid({
                   </span>
                 </div>
                 <h3
-                  className="mt-6"
+                  className="relative mt-6"
                   style={{
                     fontFamily: "var(--kp-font-display)",
                     fontSize: "1.4rem",
                     textTransform: "uppercase",
-                    color: isHQ ? "var(--kp-light)" : "var(--text)",
+                    color: "var(--kp-glass-text)",
                   }}
                 >
                   {office.city}
                 </h3>
                 <p
-                  className="mt-2"
+                  className="relative mt-2"
                   style={{
                     fontFamily: "var(--kp-font-body)",
                     fontSize: "0.88rem",
                     lineHeight: 1.65,
-                    color: isHQ ? "rgba(245, 247, 250, 0.6)" : "var(--text-muted)",
+                    color: "var(--kp-glass-text-muted)",
                   }}
                 >
                   {office.address}

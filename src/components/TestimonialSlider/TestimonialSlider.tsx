@@ -13,26 +13,33 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { prefersReducedMotion, tickWhileVisible } from "@/lib/motion";
+import { onSpotMove, onSpotLeave } from "@/lib/cursorGlow";
 import { TESTIMONIAL_SLIDER_DEFAULTS } from "./testimonialSliderConfig";
 import type { Testimonial, TestimonialSliderProps } from "./testimonialSliderTypes";
 
 function QuoteCard({ t, width }: { t: Testimonial; width: number }) {
   return (
     <figure
-      className="flex shrink-0 flex-col justify-between rounded-2xl p-8"
+      onPointerMove={onSpotMove}
+      onPointerLeave={onSpotLeave}
+      className="group relative flex shrink-0 flex-col justify-between overflow-hidden rounded-2xl p-8"
       style={{
         width: `min(${width}px, 82vw)`,
-        background: "var(--surface)",
-        border: "1px solid var(--border-soft)",
+        background: "var(--kp-glass-bg)",
+        border: "1px solid var(--kp-glass-border)",
+        backdropFilter: "var(--kp-glass-blur)",
+        WebkitBackdropFilter: "var(--kp-glass-blur)",
         margin: 0,
       }}
     >
+      <span aria-hidden className="kp-card-glow" />
       <blockquote
+        className="relative"
         style={{
           fontFamily: "var(--kp-font-body)",
           fontSize: "1.05rem",
           lineHeight: 1.65,
-          color: "var(--text)",
+          color: "var(--kp-glass-text)",
           margin: 0,
         }}
       >
@@ -41,8 +48,8 @@ function QuoteCard({ t, width }: { t: Testimonial; width: number }) {
         </span>
         {t.quote}
       </blockquote>
-      <figcaption className="mt-6">
-        <div style={{ fontFamily: "var(--kp-font-body)", fontWeight: 700, fontSize: "0.95rem", color: "var(--text)" }}>
+      <figcaption className="relative mt-6">
+        <div style={{ fontFamily: "var(--kp-font-body)", fontWeight: 700, fontSize: "0.95rem", color: "var(--kp-glass-text)" }}>
           {t.name}
         </div>
         <div
@@ -51,7 +58,7 @@ function QuoteCard({ t, width }: { t: Testimonial; width: number }) {
             fontSize: "0.72rem",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
-            color: "var(--text-muted)",
+            color: "var(--kp-glass-text-muted)",
             marginTop: "0.25rem",
           }}
         >

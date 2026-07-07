@@ -22,6 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { prefersReducedMotion } from "@/lib/motion";
+import { onSpotMove, onSpotLeave } from "@/lib/cursorGlow";
 import { SERVICE_CARD_DEFAULTS } from "./serviceCardConfig";
 import type { ServiceCardProps } from "./serviceCardTypes";
 
@@ -91,22 +92,29 @@ export function ServiceCard({
     <div className={className} style={{ perspective: "900px" }}>
       <div
         ref={cardRef}
-        className="group flex h-full flex-col rounded-2xl p-8 transition-shadow duration-300"
+        className="group relative flex h-full flex-col overflow-hidden rounded-2xl p-8 transition-shadow duration-300"
         style={{
-          background: "var(--surface)",
-          border: "1px solid var(--border-soft)",
+          background: "var(--kp-glass-bg)",
+          border: "1px solid var(--kp-glass-border)",
+          backdropFilter: "var(--kp-glass-blur)",
+          WebkitBackdropFilter: "var(--kp-glass-blur)",
           transformStyle: "preserve-3d",
           boxShadow: "none",
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.boxShadow = "var(--shadow-ambient)";
-          e.currentTarget.style.borderColor = "var(--kp-orange-glow)";
+          e.currentTarget.style.borderColor = "var(--kp-orange)";
+          e.currentTarget.style.background = "var(--kp-glass-bg-hover)";
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.boxShadow = "none";
-          e.currentTarget.style.borderColor = "var(--border-soft)";
+          e.currentTarget.style.borderColor = "var(--kp-glass-border)";
+          e.currentTarget.style.background = "var(--kp-glass-bg)";
         }}
+        onPointerMove={onSpotMove}
+        onPointerLeave={onSpotLeave}
       >
+        <span aria-hidden className="kp-card-glow" />
         <div
           className="flex h-14 w-14 items-center justify-center rounded-xl"
           style={{
@@ -124,7 +132,7 @@ export function ServiceCard({
             fontFamily: "var(--kp-font-display)",
             fontSize: "1.45rem",
             textTransform: "uppercase",
-            color: "var(--text)",
+            color: "var(--kp-glass-text)",
             transform: "translateZ(24px)",
           }}
         >
@@ -137,7 +145,7 @@ export function ServiceCard({
             fontFamily: "var(--kp-font-body)",
             fontSize: "0.95rem",
             lineHeight: 1.7,
-            color: "var(--text-muted)",
+            color: "var(--kp-glass-text-muted)",
             transform: "translateZ(16px)",
           }}
         >
@@ -155,7 +163,7 @@ export function ServiceCard({
                 fontSize: "0.72rem",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                color: "var(--text-muted)",
+                color: "var(--kp-glass-text-muted)",
               }}
             >
               <span

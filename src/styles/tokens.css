@@ -18,6 +18,20 @@
   --kp-dark-2:        #1A1A2E;
   --kp-light:         #F5F7FA;
 
+  /* ── Glass card (dark glassmorphism, orange border) ────────
+     Shared look for content cards — testimonials, services,
+     case studies, offices, client logos. Deliberately dark in
+     BOTH themes (same navy as the original --kp-dark-2 surface,
+     just translucent + blurred) — not theme-toggled. Text on
+     these cards always uses --kp-glass-text(-muted), not the
+     theme --text tokens. */
+  --kp-glass-bg:         rgba(26, 26, 46, 0.62);
+  --kp-glass-bg-hover:   rgba(26, 26, 46, 0.78);
+  --kp-glass-border:     var(--kp-orange-glow);
+  --kp-glass-blur:       blur(20px) saturate(180%);
+  --kp-glass-text:       var(--kp-light);
+  --kp-glass-text-muted: rgba(245, 247, 250, 0.70);
+
   /* ── Theme-dynamic surfaces & text (light mode) ─────────── */
   --bg:               #F5F7FA;
   --bg-secondary:     #FFFFFF;

@@ -191,6 +191,32 @@
 }
 
 /* ============================================================
+   CARD GLOW — per-card cursor spotlight.
+   Pair with onSpotMove/onSpotLeave from src/lib/cursorGlow.ts.
+   Add <span aria-hidden className="kp-card-glow" /> as the
+   FIRST child of the card, before any content, so content
+   painting order (position: relative on later siblings) sits
+   above it.
+   ============================================================ */
+.kp-card-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    320px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    var(--kp-orange-glow) 0%,
+    transparent 70%
+  );
+}
+.group:hover > .kp-card-glow {
+  opacity: 1;
+}
+
+/* ============================================================
    BASE LAYER
    ============================================================ */
 @layer base {
