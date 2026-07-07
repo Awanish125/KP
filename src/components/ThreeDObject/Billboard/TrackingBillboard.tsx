@@ -31,7 +31,6 @@ import React, {
 } from "react";
 import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, AdaptiveEvents, Bvh } from "@react-three/drei";
-import { Leva } from "leva";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { DivScene } from "./DivScene";
@@ -99,7 +98,6 @@ export interface TrackingBillboardHandle {
 interface TrackingBillboardProps {
   initialImage?: string;
   cameraAngle?:  CameraAngle;
-  showLeva?: boolean;
   /** Controls the R3F render loop. Use "demand" to suspend rendering (no GPU
    *  cost) while the canvas is invisible; switch to "always" when it should render. */
   frameloop?: 'always' | 'demand' | 'never';
@@ -110,7 +108,7 @@ interface TrackingBillboardProps {
 export const TrackingBillboard = forwardRef<
   TrackingBillboardHandle,
   TrackingBillboardProps
->(function TrackingBillboard({ initialImage, cameraAngle = "front", showLeva = false, frameloop = 'always' }, ref) {
+>(function TrackingBillboard({ initialImage, cameraAngle = "front", frameloop = 'always' }, ref) {
   const wrapRef  = useRef<HTMLDivElement>(null);
   const billRef  = useRef<BillboardImperativeHandle>(null);
   const rotObj   = useRef<{ y: number }>({ y: 0 });
@@ -176,9 +174,6 @@ export const TrackingBillboard = forwardRef<
 
   return (
     <>
-      {/* hidden=true suppresses the auto-show triggered by useControls hooks in Scene/BillboardMesh */}
-      <Leva hidden={!showLeva} collapsed />
-
     {/* Canvas wrapper — page.tsx GSAP controls top/left/width/height/opacity */}
     <div
       ref={wrapRef}

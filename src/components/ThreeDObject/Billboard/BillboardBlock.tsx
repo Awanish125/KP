@@ -24,7 +24,6 @@ import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, AdaptiveEvents, Bvh } from "@react-three/drei";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Leva } from "leva";
 import { DivScene } from "./DivScene";
 import type {
   BillboardImperativeHandle,
@@ -300,8 +299,6 @@ const BillboardBlock = forwardRef<BillboardBlockHandle, BillboardBlockProps>(
         className={className}
         style={{ position: "relative", overflow: "hidden", ...style }}
       >
-        {showControls && <Leva collapsed />}
-
         <div style={canvasWrapStyle}>
           <Canvas
             dpr={[1, 1.5]}

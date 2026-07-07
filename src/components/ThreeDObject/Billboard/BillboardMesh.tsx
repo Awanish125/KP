@@ -26,7 +26,6 @@ import React, {
 } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
-import { useControls, folder } from "leva";
 import * as THREE from "three";
 import gsap from "gsap";
 import { usePbrMaps, useMediaTexture, sharedLoader } from "./usePbrMaps";
@@ -176,93 +175,83 @@ const BillboardMesh = forwardRef<BillboardImperativeHandle, BillboardMeshProps>(
       ambientLightRef,
     } = props;
 
-    /* ── Leva: Billboard dimensions ─────────────────────────────────────── */
-    const dims = useControls("Billboard", {
-      width:        { value: 4,    min: 1,    max: 10,  step: 0.1  },
-      height:       { value: 2.4,  min: 1,    max: 8,   step: 0.1  },
-      thickness:    { value: 0.18, min: 0.05, max: 0.6, step: 0.01 },
-      frameWidth:   { value: 0.16, min: 0.04, max: 0.5, step: 0.01 },
-      frameDepth:   { value: 0.14, min: 0.04, max: 0.5, step: 0.01 },
-      cornerRadius: { value: 0.04, min: 0,    max: 0.2, step: 0.005 },
-      posterDepth:  { value: 0.02, min: 0.005,max: 0.1, step: 0.005 },
-      posterGap:    { value: 0.01, min: 0,    max: 0.08,step: 0.005 },
-    });
+    /* ── Billboard dimensions ─────────────────────────────────────── */
+    const dims = {
+      width:        4,
+      height:       2.4,
+      thickness:    0.18,
+      frameWidth:   0.16,
+      frameDepth:   0.14,
+      cornerRadius: 0.04,
+      posterDepth:  0.02,
+      posterGap:    0.01,
+    };
 
-    /* ── Leva: Pole ──────────────────────────────────────────────────────── */
-    const poleCtl = useControls("Pole", {
-      radius:        { value: 0.09, min: 0.02, max: 0.3,  step: 0.005 },
-      height:        { value: 3.4,  min: 0.5,  max: 8,    step: 0.1   },
-      segments:      { value: 16,   min: 6,    max: 48,   step: 1     },
-      position:      { value: [0, 0, 0] as [number, number, number] },
-      rotation:      { value: [0, 0, 0] as [number, number, number] },
-      scale:         { value: 1,    min: 0.2,  max: 3,    step: 0.05  },
-      textureRepeat: { value: 2.5,  min: 0.5,  max: 16,   step: 0.5   },
-    });
+    /* ── Pole ──────────────────────────────────────────────────────── */
+    const poleCtl = {
+      radius:        0.09,
+      height:        3.4,
+      segments:      16,
+      position:      [0, 0, 0] as [number, number, number],
+      rotation:      [0, 0, 0] as [number, number, number],
+      scale:         1,
+      textureRepeat: 2.5,
+    };
 
-    /* ── Leva: Rear supports and braces ─────────────────────────────────── */
-    const supportCtl = useControls("Supports", {
+    /* ── Rear supports and braces ─────────────────────────────────── */
+    const supportCtl = {
       enableSupports:   true,
       enableRearBraces: true,
-      thickness: { value: 0.045, min: 0.01, max: 0.15, step: 0.005 },
-      width:     { value: 0.06,  min: 0.01, max: 0.2,  step: 0.005 },
-      depth:     { value: 0.06,  min: 0.01, max: 0.2,  step: 0.005 },
-    });
+      thickness: 0.045,
+      width:     0.06,
+      depth:     0.06,
+    };
 
-    /* ── Leva: Poster images and visual adjustments ──────────────────────── */
-    const posterCtl = useControls("Posters", {
-      frontImage:     { value: props.frontImage ?? "/homepage/herosection/1.png",   label: "Front Image/Video" },
-      backImage:      { value: props.backImage  ?? "/homepage/herosection/kp.png",  label: "Back Image/Video"  },
-      frontBrightness:{ value: 1.4, min: 0, max: 3, step: 0.01 },
-      backBrightness: { value: 1.4, min: 0, max: 3, step: 0.01 },
-      frontOpacity:   { value: 1,   min: 0, max: 1, step: 0.01 },
-      backOpacity:    { value: 1,   min: 0, max: 1, step: 0.01 },
-      contrast:       { value: 1,   min: 0, max: 2, step: 0.01 },
-      saturation:     { value: 1,   min: 0, max: 2, step: 0.01 },
+    /* ── Poster images and visual adjustments ──────────────────────── */
+    const posterCtl = {
+      frontImage:     props.frontImage ?? "/homepage/herosection/1.png",
+      backImage:      props.backImage  ?? "/homepage/herosection/kp.png",
+      frontBrightness: 1.4,
+      backBrightness:  1.4,
+      frontOpacity:   1,
+      backOpacity:    1,
+      contrast:       1,
+      saturation:     1,
       swapImages:     false,
-      printScale:    { value: 180,  min: 40,  max: 600, step: 10,   label: "Canvas Grain Scale"      },
-      printStrength: { value: 0.35, min: 0,   max: 1,   step: 0.01, label: "Print Texture Strength" },
-    });
+      printScale:    180,
+      printStrength: 0.35,
+    };
 
-    /* ── Leva: PBR material controls ─────────────────────────────────────── */
-    const frameMatCtl = useControls("Materials", {
-      Frame: folder({
-        metalness:        { value: 0.75, min: 0, max: 1, step: 0.01 },
-        roughness:        { value: 0.65, min: 0, max: 1, step: 0.01 },
-        clearcoat:        { value: 0.04, min: 0, max: 1, step: 0.01 },
-        clearcoatRoughness:{ value: 0.5, min: 0, max: 1, step: 0.01 },
-        normalScale:      { value: 1.2,  min: 0, max: 3, step: 0.05 },
-        envMapIntensity:  { value: 0.7,  min: 0, max: 5, step: 0.05 },
-        colorTint: "#8a9e84",
-      }),
-      Pole: folder({
-        poleMetalness:  { value: 0.3,  min: 0, max: 1, step: 0.01 },
-        poleRoughness:  { value: 0.85, min: 0, max: 1, step: 0.01 },
-        poleColorTint: "#7a7a7a",
-      }),
-    });
+    /* ── PBR material controls ─────────────────────────────────────── */
+    const frameMatCtl = {
+      metalness:        0.75,
+      roughness:        0.65,
+      clearcoat:        0.04,
+      clearcoatRoughness: 0.5,
+      normalScale:      1.2,
+      envMapIntensity:  0.7,
+      colorTint: "#8a9e84",
+      poleMetalness:  0.3,
+      poleRoughness:  0.85,
+      poleColorTint: "#7a7a7a",
+    };
 
-    /* ── Leva: UV tiling ─────────────────────────────────────────────────── */
-    const tilingCtl = useControls("Texture Tiling", {
-      Frame: folder({
-        frameRepeatX: { value: 2, min: 0.25, max: 8,  step: 0.25 },
-        frameRepeatY: { value: 1, min: 0.25, max: 8,  step: 0.25 },
-      }),
-      Pole: folder({
-        poleRepeatX: { value: 1, min: 0.25, max: 8,  step: 0.25 },
-        poleRepeatY: { value: 4, min: 0.25, max: 16, step: 0.25 },
-      }),
-      Rotation: { value: 0,   min: -Math.PI, max: Math.PI, step: 0.01 },
-      OffsetX:  { value: 0,   min: -1,       max: 1,       step: 0.01 },
-      OffsetY:  { value: 0,   min: -1,       max: 1,       step: 0.01 },
-    });
+    /* ── UV tiling ─────────────────────────────────────────────────── */
+    const tilingCtl = {
+      frameRepeatX: 2,
+      frameRepeatY: 1,
+      poleRepeatX: 1,
+      poleRepeatY: 4,
+      Rotation: 0,
+      OffsetX:  0,
+      OffsetY:  0,
+    };
 
-    // The "Debug > wireframe" control also appears in Scene.tsx — both panels
-    // merge into the same Leva "Debug" folder by design.
-    const wireframeCtl = useControls("Debug", {
+    const wireframeCtl = {
       wireframe:   wireframeProp,
       boundingBox: false,
       axes:        false,
-    });
+    };
 
     /* ── Derived repeat settings ─────────────────────────────────────────── */
     const frameRepeat: RepeatSettings = useMemo(() => ({

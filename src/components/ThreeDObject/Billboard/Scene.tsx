@@ -18,7 +18,6 @@
 import React, { useRef, useEffect } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import { Environment, Grid, OrbitControls } from "@react-three/drei";
-import { useControls, button, folder } from "leva";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { CameraController } from "./CameraController";
@@ -117,45 +116,24 @@ export function Scene({ billboardRef, onManualOverride }: SceneProps) {
   // Poster change tracking
   const activePoster = useRef<string>("");
 
-  /* ── Leva: Lighting ──────────────────────────────────────────────────────── */
-  const lightCtl = useControls("Lighting", {
-    hdrIntensity: { value: 0.6,  min: 0, max: 3,   step: 0.05, label: "HDR Intensity" },
-    exposure:     { value: 1.2,  min: 0.1, max: 3, step: 0.05, label: "Exposure"      },
-  });
+  /* ── Lighting ──────────────────────────────────────────────────────── */
+  const lightCtl = {
+    hdrIntensity: 0.6,
+    exposure:     1.2,
+  };
 
-  /* ── Leva: Camera ────────────────────────────────────────────────────────── */
-  const camCtl = useControls("Camera", {
-    manualOverride: { value: false, label: "🖱 Manual Override — drag mouse to orbit" },
-    Position: folder({
-      posX: { value: 6,   min: -30, max: 30, step: 0.1, label: "X" },
-      posY: { value: 2,   min: -10, max: 20, step: 0.1, label: "Y" },
-      posZ: { value: 11,  min: -30, max: 30, step: 0.1, label: "Z" },
-    }),
-    "Look At": folder({
-      tgtX: { value: 0,   min: -10, max: 10, step: 0.1, label: "X" },
-      tgtY: { value: 0.5, min: -5,  max: 10, step: 0.1, label: "Y" },
-      tgtZ: { value: 0,   min: -10, max: 10, step: 0.1, label: "Z" },
-    }),
-    Optics: folder({
-      fov:     { value: 45,    min: 10,    max: 120, step: 1,      label: "FOV"           },
-      damping: { value: 0.005, min: 0.0001,max: 0.5, step: 0.0001, label: "Damping (lower = slower)" },
-    }),
-    "📋 Copy State": button(() => {
-      const cam   = cameraRef.current;
-      const orbit = orbitRef.current;
-      if (!cam) return;
-      const tgt = orbit?.enabled ? orbit.target : curTarget.current;
-      const s = {
-        pos:    [+cam.position.x.toFixed(3), +cam.position.y.toFixed(3), +cam.position.z.toFixed(3)],
-        target: [+tgt.x.toFixed(3),          +tgt.y.toFixed(3),          +tgt.z.toFixed(3)         ],
-        fov:    +cam.fov.toFixed(1),
-      };
-      navigator.clipboard
-        .writeText(JSON.stringify(s, null, 2))
-        .then(() => console.info("📋 Copied:", s))
-        .catch(() => console.info("📋 Camera state:", s));
-    }),
-  });
+  /* ── Camera ────────────────────────────────────────────────────────── */
+  const camCtl = {
+    manualOverride: false,
+    posX: 6,
+    posY: 2,
+    posZ: 11,
+    tgtX: 0,
+    tgtY: 0.5,
+    tgtZ: 0,
+    fov: 45,
+    damping: 0.005,
+  };
 
   const camCtlRef = useRef(camCtl);
   camCtlRef.current = camCtl;
@@ -179,37 +157,25 @@ export function Scene({ billboardRef, onManualOverride }: SceneProps) {
     }
   }, [camCtl.manualOverride]);
 
-  /* ── Leva: Model ─────────────────────────────────────────────────────────────
+  /* ── Model ─────────────────────────────────────────────────────────────
      Position + scale applied to modelGroupRef (outer wrapper) in useFrame.
      Never set as JSX props — that would let R3F reset them on re-render.
   */
-  const modelCtl = useControls("Model", {
-    x:     { value: 0,   min: -10, max: 10, step: 0.05, label: "Position X (left ↔ right)" },
-    y:     { value: 0,   min: -5,  max: 5,  step: 0.05, label: "Position Y (down ↕ up)"    },
-    z:     { value: 0,   min: -10, max: 10, step: 0.05, label: "Position Z (back ↔ front)"  },
-    scale: { value: 1,   min: 0.1, max: 5,  step: 0.05, label: "Scale"                      },
-    "📋 Copy Model Transform": button(() => {
-      const g = modelGroupRef.current;
-      if (!g) return;
-      const s = {
-        position: [+g.position.x.toFixed(3), +g.position.y.toFixed(3), +g.position.z.toFixed(3)],
-        scale:    +g.scale.x.toFixed(3),
-      };
-      navigator.clipboard
-        .writeText(JSON.stringify(s))
-        .then(() => console.info("📋 Model transform:", s))
-        .catch(() => console.info("📋 Model transform:", s));
-    }),
-  });
+  const modelCtl = {
+    x:     0,
+    y:     0,
+    z:     0,
+    scale: 1,
+  };
 
   const modelCtlRef = useRef(modelCtl);
   modelCtlRef.current = modelCtl;
 
-  /* ── Leva: Debug ─────────────────────────────────────────────────────────── */
-  const debugCtl = useControls("Debug", {
+  /* ── Debug ─────────────────────────────────────────────────────────── */
+  const debugCtl = {
     wireframe: false,
     grid:      false,
-  });
+  };
 
   /* ── Renderer setup ──────────────────────────────────────────────────────── */
   const { gl } = useThree();
