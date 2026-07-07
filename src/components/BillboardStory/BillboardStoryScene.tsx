@@ -162,7 +162,17 @@ function CameraSetup() {
   useLayoutEffect(() => {
     camera.lookAt(0, 1.0, 0);
     camera.updateMatrixWorld();
-    invalidate();
+    // Defer the first render to browser idle time so it does not land in the
+    // same RAF tick as a scroll frame.  requestIdleCallback fires between
+    // tasks (after compositing), not mid-frame, so the 200-500 ms first-render
+    // cost (PMREM bake + shadow bake + texture uploads) cannot block a scroll.
+    // timeout:1500 guarantees it fires within 1.5 s even if the browser is busy.
+    if (typeof requestIdleCallback !== "undefined") {
+      requestIdleCallback(() => invalidate(), { timeout: 1500 });
+    } else {
+      // Fallback: still one macro-task tick away (not mid-RAF)
+      setTimeout(() => invalidate(), 0);
+    }
   }, [camera, invalidate]);
   return null;
 }
@@ -217,12 +227,33 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
     invalidate();
     readyRef.current();
 
-    /* ── GPU warm-up ─────────────────────────────────────────────────
-       The scene mounts on browser idle, usually while it is still far
-       below the fold. Compile every shader program and upload textures
-       NOW — profiling showed the first visible render otherwise paying
-       ~200ms inside the R3F loop mid-scroll. */
-    gl.compileAsync?.(scene, camera)?.catch?.(() => {});
+    /* Shader compile + one warmup render pre-pay the expensive first-frame
+       costs (PMREM bake, shadow bake, texture uploads) during idle time so
+       they cannot stall a scroll frame when the user reaches the section.
+
+       gl.compileAsync compiles GLSL programs off the main thread (uses
+       KHR_parallel_shader_compile when available).  After it resolves we
+       force exactly ONE render via requestIdleCallback — this bakes the
+       Environment cubemap (PMREM) and ContactShadows map, and uploads any
+       textures that have already loaded.  All three are sync GPU operations
+       that would otherwise block the first user-visible render mid-scroll. */
+    let warmupDone = false;
+    const doWarmup = () => {
+      if (warmupDone) return;
+      warmupDone = true;
+      if (typeof requestIdleCallback !== "undefined") {
+        requestIdleCallback(() => invalidate(), { timeout: 1000 });
+      } else {
+        setTimeout(() => invalidate(), 0);
+      }
+    };
+
+    const compilePromise = gl.compileAsync?.(scene, camera);
+    if (compilePromise) {
+      compilePromise.then(doWarmup).catch(doWarmup);
+    } else {
+      doWarmup();
+    }
 
     /* Video steps: spin the decoder once (play → pause at frame 0) so the
        first flip onto a video face doesn't stall on decoder init. */
@@ -244,11 +275,27 @@ function Board({ steps, stepIndex, flipDuration, onReady }: BillboardSceneProps)
       else v.addEventListener("loadeddata", warm, { once: true });
     });
 
-    // Environment/shadow bakes land async — nudge a few repaints.
-    const nudges = [0.3, 0.8, 1.6].map((t) => gsap.delayedCall(t, invalidate));
+    // Single late nudge ensures any textures that loaded after the initial
+    // warmup render are displayed.  Runs during idle time so it cannot land
+    // mid-scroll-frame.
+    const nudgeHandle = { id: 0 as number | ReturnType<typeof setTimeout> };
+    const singleNudge = gsap.delayedCall(2.0, () => {
+      if (typeof requestIdleCallback !== "undefined") {
+        nudgeHandle.id = requestIdleCallback(() => invalidate(), { timeout: 500 });
+      } else {
+        invalidate();
+      }
+    });
+    // Alias so the return cleanup can refer to this the same way as before.
+    const nudges = [singleNudge];
 
     return () => {
       nudges.forEach((n) => n.kill());
+      if (typeof cancelIdleCallback !== "undefined" && typeof nudgeHandle.id === "number") {
+        cancelIdleCallback(nudgeHandle.id as number);
+      } else {
+        clearTimeout(nudgeHandle.id as ReturnType<typeof setTimeout>);
+      }
       textures.forEach((t) => {
         t.texture.dispose();
         if (t.video) {

@@ -19,6 +19,8 @@ export interface BillboardStoryConfig {
 export interface BillboardStoryProps extends Partial<BillboardStoryConfig> {
   steps: StoryStep[];
   className?: string;
+  /** Skip sticky scroll + 3D billboard — renders as a clean step grid. */
+  staticMode?: boolean;
 }
 
 export interface BillboardSceneProps {

@@ -7,7 +7,7 @@
  * the row and warms the number. Content from home.json services.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { SectionReveal } from "@/components/SectionReveal";
 import { TextReveal } from "@/components/TextReveal";
@@ -26,6 +26,21 @@ export function ServicesStrip({
 }: ServicesStripProps) {
   // Which row's format photo floats beside the cursor (null = none).
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+
+  // Lenis uses virtual scroll (CSS transforms), so the native scroll event
+  // won't fire. Use the exposed Lenis instance directly; fall back to native
+  // scroll for cases where Lenis isn't running (reduced motion, SSR hydration).
+  useEffect(() => {
+    if (!previewSrc) return;
+    const clear = () => setPreviewSrc(null);
+    const lenis = window.__kpLenis;
+    if (lenis) {
+      lenis.on("scroll", clear);
+      return () => lenis.off("scroll", clear);
+    }
+    window.addEventListener("scroll", clear, { passive: true, once: true });
+    return () => window.removeEventListener("scroll", clear);
+  }, [previewSrc]);
 
   return (
     <section
