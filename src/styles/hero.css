@@ -1,9 +1,3 @@
-.hero-split-char {
-  display: inline-block;
-  transform-origin: 50% 80%;
-  will-change: transform, opacity;
-}
-
 .hero-bounce {
   animation: hero-bounce 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
@@ -33,6 +27,16 @@
   height: 350svh;
   isolation: isolate;
   background: #050608;
+}
+
+/* Static (no-scroll-animation) variant — same background, 100svh only */
+.hero-static {
+  position: relative;
+  height: 100svh;
+  min-height: 640px;
+  isolation: isolate;
+  background: #050608;
+  overflow: clip;
 }
 
 .hero-cinematic-stage {
@@ -105,7 +109,10 @@
 .hero-editorial-track { display: flex; width: max-content; will-change: transform; }
 .hero-editorial-group { display: flex; flex: none; align-items: center; padding: 12px 18px; }
 .hero-editorial-pair { display: inline-flex; flex: none; align-items: center; gap: 36px; }
-.hero-editorial-word { color: var(--item-color); line-height: .92; text-transform: uppercase; white-space: nowrap; will-change: transform, opacity; }
+/* will-change removed from individual words — managed dynamically by GSAP in
+   PinnedHero (set in onStart, cleared in onComplete) to avoid creating N
+   permanent compositor layers that add GPU memory pressure throughout the scroll. */
+.hero-editorial-word { color: var(--item-color); line-height: .92; text-transform: uppercase; white-space: nowrap; }
 .hero-editorial-word.is-outline { color: transparent; -webkit-text-stroke: 1px var(--item-outline); }
 .hero-editorial-word.is-gradient { color: transparent; background-clip: text; -webkit-background-clip: text; }
 .hero-editorial-separator { font-size: 9px; opacity: .85; }

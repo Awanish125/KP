@@ -114,7 +114,15 @@ export function useEntranceAnimation(
     // ── Master timeline ─────────────────────────────────────────────────────
     const tl = gsap.timeline({ paused: true });
 
-    entries.forEach(({ el, image, fromVars, toVars, ease, duration }, si) => {
+    entries.forEach(({ el, fromVars, image, toVars, ease, duration }, si) => {
+      // If the element starts fully transparent, skip will-change in onStart.
+      // Setting will-change while at large scale (cameraZoom starts at 3–8×)
+      // forces the browser to allocate a compositor layer at that scale —
+      // an expensive one-time texture allocation mid-scroll on the first traversal.
+      // Invisible elements have no visual benefit from pre-promotion, so we defer
+      // the layer hint until the element first becomes visible (opacity > 0).
+      const startsInvisible = (fromVars.opacity as number) === 0;
+
       tl.fromTo(
         el,
         fromVars,
@@ -123,7 +131,9 @@ export function useEntranceAnimation(
           ease,
           duration,
           onStart() {
-            gsap.set(el, { willChange: 'transform, opacity' });
+            if (!startsInvisible) {
+              gsap.set(el, { willChange: 'transform, opacity' });
+            }
           },
           onComplete() {
             gsap.set(el, { willChange: 'auto' });

@@ -108,15 +108,8 @@ export default function Home() {
         bgColor="var(--bg)"
         fadeWidth="7rem"
         showTopDivider
-        // showBottomDivider
-        showScrollSpeedEffect
-        showGradientSweep
         showHoverLift
         showFadeEdges
-        // showEntranceAnimation
-        entranceDirection="top"
-        entranceRepeat={true}
-        showVelocityStretch
         showSeparatorAnimation
         pauseOnHover
       />
@@ -132,16 +125,9 @@ export default function Home() {
         separatorSpacing={14}
         bgColor="var(--bg)"
         fadeWidth="7rem"
-        // showTopDivider
         showBottomDivider
-        showScrollSpeedEffect
-        showGradientSweep
         showHoverLift
         showFadeEdges
-        // showEntranceAnimation
-        entranceDirection="bottom"
-        entranceRepeat={true}
-        showVelocityStretch
         showSeparatorAnimation
         pauseOnHover
       />
@@ -164,10 +150,10 @@ export default function Home() {
         showOvershoot={true}
         showLandingJerk={false}
         showBounceEffect={true}
-        showFloatingAnimation
+        showFloatingAnimation={false}
         showMouseParallax={false}
-        showScrollParallax
-        showDepthEffect
+        showScrollParallax={false}
+        showDepthEffect={false}
         showHoverInteraction={false}
         showBackgroundGradient
         showNoiseTexture={false}
@@ -226,12 +212,12 @@ export default function Home() {
 
       <ProcessSteps steps={data.process.steps} />
 
-      <HorizontalScrollGallery items={PLACEMENT_ITEMS} />
+      <HorizontalScrollGallery items={PLACEMENT_ITEMS} staticMode={false} />
 
       <VideoShowcase />
 
       {/* Pinned billboard story — flips a photoreal 3D board per step */}
-      <BillboardStory steps={BILLBOARD_STORY_STEPS} />
+      <BillboardStory steps={BILLBOARD_STORY_STEPS} staticMode={false} />
 
       {/* Testimonials */}
       <section

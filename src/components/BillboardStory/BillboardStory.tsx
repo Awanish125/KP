@@ -36,6 +36,7 @@ export function BillboardStory({
   heading = BILLBOARD_STORY_DEFAULTS.heading,
   vhPerStep = BILLBOARD_STORY_DEFAULTS.vhPerStep,
   flipDuration = BILLBOARD_STORY_DEFAULTS.flipDuration,
+  staticMode = false,
 }: BillboardStoryProps) {
   const outerRef = useRef<HTMLElement>(null);
   const canvasHostRef = useRef<HTMLDivElement>(null);
@@ -162,8 +163,8 @@ export function BillboardStory({
     color: "var(--stage-text-soft)",
   };
 
-  /* ── Reduced motion: flat, fully accessible fallback ─────────────── */
-  if (reduced) {
+  /* ── Static / reduced-motion: clean step grid, no 3D, no scroll ticker ── */
+  if (staticMode || reduced) {
     return (
       <section className={className} style={{ background: "var(--stage-bg)" }}>
         <div className="mx-auto max-w-6xl px-6 py-24">

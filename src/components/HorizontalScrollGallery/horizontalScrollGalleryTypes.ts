@@ -18,4 +18,6 @@ export interface HorizontalScrollGalleryProps
   extends Partial<HorizontalScrollGalleryConfig> {
   items: HorizontalGalleryItem[];
   className?: string;
+  /** Skip sticky scroll animation — renders as a simple draggable row. */
+  staticMode?: boolean;
 }

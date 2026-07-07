@@ -38,25 +38,7 @@ export function VideoShowcase({
 
   useEffect(() => setMounted(true), []);
 
-  /* Loop plays only while visible. */
-  useEffect(() => {
-    const frame = frameRef.current;
-    const video = loopRef.current;
-    if (!frame || !video || prefersReducedMotion()) return;
-
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !open) {
-          video.play().catch(() => {});
-        } else {
-          video.pause();
-        }
-      },
-      { threshold: 0.2 },
-    );
-    obs.observe(frame);
-    return () => obs.disconnect();
-  }, [open]);
+  /* Loop video shows poster only — no autoplay. Plays via lightbox on click. */
 
   /* Lightbox lifecycle: scroll lock + escape + entrance. */
   useEffect(() => {

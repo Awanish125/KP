@@ -88,6 +88,7 @@ export function HorizontalScrollGallery({
   heading = HORIZONTAL_SCROLL_GALLERY_DEFAULTS.heading,
   vhPerItem = HORIZONTAL_SCROLL_GALLERY_DEFAULTS.vhPerItem,
   lerp = HORIZONTAL_SCROLL_GALLERY_DEFAULTS.lerp,
+  staticMode = false,
 }: HorizontalScrollGalleryProps) {
   const outerRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -193,15 +194,20 @@ export function HorizontalScrollGallery({
     </div>
   );
 
-  if (reduced) {
-    // Accessible fallback: a normal horizontally scrollable row.
+  if (reduced || staticMode) {
+    // Static / reduced-motion: a plain horizontally-scrollable snap row.
     return (
-      <section className={className} style={{ background: "var(--bg)" }}>
+      <section className={className} style={{ background: "var(--bg)", borderTop: "1px solid var(--border-soft)" }}>
         <div className="py-24">
           {header}
-          <div className="mt-10 flex gap-5 overflow-x-auto px-6 pb-4">
+          <div
+            className="mt-10 flex gap-5 px-6 pb-4"
+            style={{ overflowX: "auto", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}
+          >
             {items.map((item, i) => (
-              <GalleryCard key={item.title} item={item} index={i} />
+              <div key={item.title} style={{ scrollSnapAlign: "start", flexShrink: 0 }}>
+                <GalleryCard item={item} index={i} />
+              </div>
             ))}
           </div>
         </div>

@@ -46,7 +46,12 @@ export function SmoothScroll() {
     window.addEventListener("kp:scroll-unlock", start);
     gsap.ticker.add(raf);
     gsap.ticker.lagSmoothing(0);
-    ScrollTrigger.refresh();
+    // Deferred — refresh blocks the main thread on long pages and causes the
+    // 1-2 s scroll freeze on load. Idle callback fires after first paint+interaction.
+    const idleId =
+      typeof requestIdleCallback !== "undefined"
+        ? requestIdleCallback(() => ScrollTrigger.refresh(), { timeout: 2000 })
+        : setTimeout(() => ScrollTrigger.refresh(), 500) as unknown as number;
 
     // Expose for components that need programmatic scrolling in sync with
     // Lenis (e.g. CustomScrollbar drag). Cleared on unmount.
@@ -59,6 +64,8 @@ export function SmoothScroll() {
     }
 
     return () => {
+      if (typeof requestIdleCallback !== "undefined") cancelIdleCallback(idleId);
+      else clearTimeout(idleId as unknown as ReturnType<typeof setTimeout>);
       gsap.ticker.remove(raf);
       window.removeEventListener("kp:scroll-lock", stop);
       window.removeEventListener("kp:scroll-unlock", start);
