@@ -112,7 +112,7 @@ export default function Billboard({
   return (
     <div className={className} style={outerStyle}>
 
-      {showControls && <Leva collapsed />}
+      
 
       {/* Canvas wrapper — see wrapStyle comment above */}
       <div ref={canvasWrapRef} style={wrapStyle}>
