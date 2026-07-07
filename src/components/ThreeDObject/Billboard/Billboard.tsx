@@ -29,7 +29,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, AdaptiveEvents, Bvh } from "@react-three/drei";
-import { Leva } from "leva";
 import { Scene } from "./Scene";
 import type { BillboardImperativeHandle, BillboardProps } from "./types";
 
