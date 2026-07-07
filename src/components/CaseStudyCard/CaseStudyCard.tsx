@@ -6,6 +6,7 @@
  */
 
 import Image from "next/image";
+import { onSpotMove, onSpotLeave } from "@/lib/cursorGlow";
 import { CASE_STUDY_CARD_DEFAULTS } from "./caseStudyCardConfig";
 import type { CaseStudyCardProps } from "./caseStudyCardTypes";
 
@@ -19,16 +20,21 @@ export function CaseStudyCard({
     <button
       type="button"
       onClick={() => onOpen(study)}
-      className={`group block w-full overflow-hidden rounded-2xl text-left ${className ?? ""}`}
+      onPointerMove={onSpotMove}
+      onPointerLeave={onSpotLeave}
+      className={`group relative block w-full overflow-hidden rounded-2xl text-left ${className ?? ""}`}
       style={{
-        background: "var(--surface)",
-        border: "1px solid var(--border-soft)",
+        background: "var(--kp-glass-bg)",
+        border: "1px solid var(--kp-glass-border)",
+        backdropFilter: "var(--kp-glass-blur)",
+        WebkitBackdropFilter: "var(--kp-glass-blur)",
         padding: 0,
         cursor: "pointer",
         ["--cs-hover-scale" as string]: hoverScale,
       }}
       aria-label={`Open case study: ${study.title}`}
     >
+      <span aria-hidden className="kp-card-glow" />
       {/* Cover */}
       <div className="relative overflow-hidden" style={{ aspectRatio: "16 / 10" }}>
         <Image
@@ -78,14 +84,14 @@ export function CaseStudyCard({
       </div>
 
       {/* Copy + result chips */}
-      <div className="p-6">
+      <div className="relative p-6">
         <h3
           style={{
             fontFamily: "var(--kp-font-display)",
             fontSize: "1.35rem",
             lineHeight: 1.15,
             textTransform: "uppercase",
-            color: "var(--text)",
+            color: "var(--kp-glass-text)",
           }}
         >
           {study.title}
@@ -96,7 +102,7 @@ export function CaseStudyCard({
             fontFamily: "var(--kp-font-body)",
             fontSize: "0.9rem",
             lineHeight: 1.65,
-            color: "var(--text-muted)",
+            color: "var(--kp-glass-text-muted)",
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",

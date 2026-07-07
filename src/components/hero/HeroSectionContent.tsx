@@ -51,17 +51,17 @@ const HeroSectionContent = ({
 
     const play = () => {
       if (reduced) {
-        gsap.set([content, items], { autoAlpha: 1, y: 0 });
+        gsap.set(items, { autoAlpha: 1, y: 0 });
         return;
       }
       timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
       timeline
-        .to(content, { autoAlpha: 1, duration: 0.9, ease: "expo.out" })
-        .to(items, { autoAlpha: 1, y: 0, duration: 0.8, stagger: 0.075 }, 0.12)
+        .to(items, { autoAlpha: 1, y: 0, duration: 0.8, stagger: 0.075 })
         .fromTo(indicatorRef.current, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.55 }, "-=0.35");
     };
 
-    gsap.set(content, { autoAlpha: reduced ? 1 : 0 });
+    // PinnedHero owns the content wrapper's visibility (via its fromTo depart tween).
+    // We only hide/animate the inner items — the container stays under PinnedHero control.
     gsap.set(items, { autoAlpha: reduced ? 1 : 0, y: reduced ? 0 : 24 });
     if (document.documentElement.classList.contains("page-revealed")) play();
     else window.addEventListener("kp:loaded", play, { once: true });

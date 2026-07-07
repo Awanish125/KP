@@ -11,23 +11,9 @@
 
 import { SectionReveal } from "@/components/SectionReveal";
 import { TextReveal } from "@/components/TextReveal";
+import { onSpotMove, onSpotLeave } from "@/lib/cursorGlow";
 import { CLIENT_LOGO_WALL_DEFAULTS } from "./clientLogoWallConfig";
 import type { ClientLogoWallProps } from "./clientLogoWallTypes";
-
-function setSpot(e: React.PointerEvent<HTMLElement>) {
-  const el = e.currentTarget;
-  let rect = (el as any).__rect;
-  if (!rect) {
-    rect = el.getBoundingClientRect();
-    (el as any).__rect = rect;
-  }
-  el.style.setProperty("--spot-x", `${e.clientX - rect.left}px`);
-  el.style.setProperty("--spot-y", `${e.clientY - rect.top}px`);
-}
-
-function clearSpot(e: React.PointerEvent<HTMLElement>) {
-  delete (e.currentTarget as any).__rect;
-}
 
 export function ClientLogoWall({
   industries,
@@ -93,12 +79,14 @@ export function ClientLogoWall({
                 {industry.brands.map((brand) => (
                   <span
                     key={brand}
-                    onPointerMove={setSpot}
-                    onPointerLeave={clearSpot}
+                    onPointerMove={onSpotMove}
+                    onPointerLeave={onSpotLeave}
                     className="group relative flex min-h-16 items-center justify-center overflow-hidden rounded-xl px-3 py-4 text-center transition-transform duration-300 hover:-translate-y-1"
                     style={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border-soft)",
+                      background: "var(--kp-glass-bg)",
+                      border: "1px solid var(--kp-glass-border)",
+                      backdropFilter: "var(--kp-glass-blur)",
+                      WebkitBackdropFilter: "var(--kp-glass-blur)",
                     }}
                   >
                     {/* Cursor spotlight */}
@@ -117,7 +105,7 @@ export function ClientLogoWall({
                         fontSize: "clamp(0.85rem, 1.4vw, 1.05rem)",
                         letterSpacing: "0.05em",
                         textTransform: "uppercase",
-                        color: "var(--text-muted)",
+                        color: "var(--kp-glass-text-muted)",
                         lineHeight: 1.2,
                       }}
                     >

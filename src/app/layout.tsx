@@ -48,7 +48,7 @@ export default function RootLayout({
       className={`${archivo.variable} ${manrope.variable} ${spaceMono.variable} ${oswald.variable} h-full antialiased dark`}
     >
       {/* bg and color come from CSS vars in globals.css — no Tailwind hardcoding */}
-      <body className="min-h-full overflow-x-hidden">
+      <body className="min-h-full [overflow-x:clip]">
         {/* Plain inline script (NOT next/script — its beforeInteractive
             timing is unreliable for inline code in the app router). The
             parser executes this synchronously before any content below is

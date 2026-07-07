@@ -75,7 +75,7 @@ export function WhatsAppFab({
     >
       {/* Hover label */}
       <span
-        className="max-w-0 overflow-hidden whitespace-nowrap transition-all duration-500 ease-out group-hover:mr-3 group-hover:max-w-56"
+        className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-all duration-500 ease-out group-hover:mr-3 group-hover:max-w-56 group-hover:opacity-100"
         style={{
           fontFamily: "var(--kp-font-mono)",
           fontSize: "0.7rem",

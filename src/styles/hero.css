@@ -51,6 +51,25 @@
   background: linear-gradient(90deg, rgba(0, 0, 0, 0.48), rgba(0, 0, 0, 0.2) 48%, transparent 72%);
 }
 
+/* Hero overlay — multiple gradient layers for text legibility.
+   Desktop: strong left scrim (content lives on the left) + gentle top/bottom.
+   Mobile:  content spans full width so we use a uniform vertical overlay. */
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to right,  rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.35) 42%, transparent 68%),
+    linear-gradient(to bottom, rgba(0,0,0,0.38) 0%, transparent 28%,      transparent 62%, rgba(0,0,0,0.48) 100%);
+}
+
+@media (max-width: 767px) {
+  .hero-overlay {
+    background:
+      linear-gradient(to bottom, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.28) 35%, rgba(0,0,0,0.38) 65%, rgba(0,0,0,0.58) 100%);
+  }
+}
+
 .hero-cinematic-lower {
   pointer-events: none;
   position: absolute;

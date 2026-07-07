@@ -20,7 +20,6 @@ import type { ReactNode } from "react";
 import { gsap } from "gsap";
 import HeroStats from "./stats/HeroStats";
 import { HeroEditorialMarquee } from "./HeroEditorialMarquee";
-import { heroUniformBridge } from "./heroUniformBridge";
 import { tickWhileVisible, withWillChange } from "@/lib/motion";
 import type {
   EditorialMarqueeConfig,
@@ -75,18 +74,7 @@ export function PinnedHero({
     const marqueeTrack = root.querySelector<HTMLElement>("[data-marquee-track]");
     const marqueeWords = gsap.utils.toArray<HTMLElement>("[data-marquee-word]", root);
     const indicator = root.querySelector<HTMLElement>("[data-scroll-indicator]");
-    const camera = {
-      zoom: intro.camera.initialZoom,
-      offsetX: window.innerWidth < 768 ? 0 : intro.camera.initialOffsetX,
-    };
-    const applyCamera = () => {
-      heroUniformBridge.setZoom?.(camera.zoom);
-      heroUniformBridge.setOffsetX?.(camera.offsetX);
-    };
-
-    applyCamera();
-
-    let cleanupTicker: (() => void) | null = null;
+let cleanupTicker: (() => void) | null = null;
 
     const context = gsap.context(() => {
       // Set initial state values
@@ -104,9 +92,6 @@ export function PinnedHero({
           clipPath: "inset(0 0% 0 0)",
         });
         statValues.forEach((el) => { el.textContent = el.dataset.value ?? "0"; });
-        camera.zoom = intro.camera.initialZoom;
-        camera.offsetX = 0;
-        applyCamera();
         setState("Completed");
         return;
       }
@@ -168,17 +153,9 @@ export function PinnedHero({
             duration: 1.0, ease: "power2.inOut",
           }, "depart")
           .fromTo(indicator, { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: 10, duration: 0.4 }, "depart")
-          .to(camera, {
-            zoom: intro.camera.peakZoom,
-            duration: 1.0, ease: "power2.inOut", onUpdate: applyCamera,
-          }, "depart")
 
-          // 2. Compose — camera returns + stats + marquee revealed
+          // 2. Compose — stats + marquee revealed
           .addLabel("compose", "depart+=0.8")
-          .to(camera, {
-            zoom: intro.camera.initialZoom, offsetX: 0,
-            duration: 1.2, ease: "expo.inOut", onUpdate: applyCamera,
-          }, "compose")
           .to(statsPanel, {
             autoAlpha: 1, y: 0, scale: 1,
             duration: 0.8, ease: "power3.out",
@@ -259,6 +236,14 @@ export function PinnedHero({
         };
         window.addEventListener("resize", debouncedMeasure);
 
+        // Panel expansion state — tracks whether the image has expanded to full width
+        let panelExpanded = false;
+        const panelLeft = { current: 40 }; // mutable value GSAP tweens directly
+        let panelTween: gsap.core.Tween | null = null;
+
+        // Set initial value so HeroSection reads it before first tick
+        root.style.setProperty("--hero-panel-left", "40%");
+
         let current = -1;
         const tick = () => {
           const target = Math.min(Math.max((window.scrollY - rootTop) / range, 0), 1);
@@ -268,11 +253,41 @@ export function PinnedHero({
           current = next;
           tl.progress(current);
           setState(current <= 0 ? "Idle" : current < 0.98 ? "Playing" : "Completed");
+
+          // When content has departed (progress ≥ 0.25), expand image to full width.
+          // When user scrolls back above the threshold, restore the split layout.
+          // Only runs on desktop — mobile uses simple cover+center, no panel split.
+          if (window.innerWidth >= 768) {
+            const shouldExpand = next >= 0.25;
+            if (shouldExpand && !panelExpanded) {
+              panelExpanded = true;
+              panelTween?.kill();
+              panelTween = gsap.to(panelLeft, {
+                current: 0,
+                duration: 1.2,
+                ease: "power2.inOut",
+                onUpdate: () =>
+                  root.style.setProperty("--hero-panel-left", `${panelLeft.current.toFixed(2)}%`),
+              });
+            } else if (!shouldExpand && panelExpanded) {
+              panelExpanded = false;
+              panelTween?.kill();
+              panelTween = gsap.to(panelLeft, {
+                current: 40,
+                duration: 0.9,
+                ease: "power2.inOut",
+                onUpdate: () =>
+                  root.style.setProperty("--hero-panel-left", `${panelLeft.current.toFixed(2)}%`),
+              });
+            }
+          }
         };
 
         const cleanupTick = tickWhileVisible(root, tick);
         cleanupTicker = () => {
           cleanupTick();
+          panelTween?.kill();
+          root.style.removeProperty("--hero-panel-left");
           window.removeEventListener("resize", debouncedMeasure);
           if (measureTimeout) clearTimeout(measureTimeout);
         };
