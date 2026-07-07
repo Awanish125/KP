@@ -1,0 +1,28 @@
+{
+  "_comment": "Locations page content. lat/lng are real coordinates — the 3D globe projects them. To ADD A PIN: append an object to sites[] with name, city, lat, lng, type (Billboard | Digital LED | Transit), count, image. No code changes needed.",
+  "hero": {
+    "label": "The Network",
+    "line1": "PAN INDIA.",
+    "line2": "ROOTED IN BIHAR.",
+    "sub": "Headquartered in Samastipur, strongest across Bihar and Jharkhand, live in every metro that matters. Drag the globe, click a pin."
+  },
+  "sites": [
+    { "name": "Station Road Gantry", "city": "Samastipur", "tag": "HQ", "lat": 25.863, "lng": 85.781, "type": "Billboard", "count": 52, "image": "https://picsum.photos/seed/kpsamastipur/800/500" },
+    { "name": "Bailey Road Unipole Series", "city": "Patna", "lat": 25.594, "lng": 85.137, "type": "Billboard", "count": 74, "image": "https://picsum.photos/seed/kppatna/800/500" },
+    { "name": "Motijheel LED Wall", "city": "Muzaffarpur", "lat": 26.12, "lng": 85.364, "type": "Digital LED", "count": 28, "image": "https://picsum.photos/seed/kpmuzaffarpur/800/500" },
+    { "name": "Tower Chowk Hoardings", "city": "Darbhanga", "lat": 26.152, "lng": 85.897, "type": "Billboard", "count": 31, "image": "https://picsum.photos/seed/kpdarbhanga/800/500" },
+    { "name": "GB Road Junction Faces", "city": "Gaya", "lat": 24.78, "lng": 85.0, "type": "Billboard", "count": 19, "image": "https://picsum.photos/seed/kpgaya/800/500" },
+    { "name": "Station Chowk Series", "city": "Bhagalpur", "lat": 25.245, "lng": 86.972, "type": "Transit", "count": 16, "image": "https://picsum.photos/seed/kpbhagalpur/800/500" },
+    { "name": "Main Road LED Screen", "city": "Ranchi", "lat": 23.344, "lng": 85.31, "type": "Digital LED", "count": 42, "image": "https://picsum.photos/seed/kpranchi/800/500" },
+    { "name": "Bistupur Circle Sites", "city": "Jamshedpur", "lat": 22.804, "lng": 86.203, "type": "Billboard", "count": 27, "image": "https://picsum.photos/seed/kpjamshedpur/800/500" },
+    { "name": "Bank More Flyover Face", "city": "Dhanbad", "lat": 23.796, "lng": 86.43, "type": "Billboard", "count": 21, "image": "https://picsum.photos/seed/kpdhanbad/800/500" },
+    { "name": "Ring Road Gantries", "city": "New Delhi", "lat": 28.613, "lng": 77.209, "type": "Transit", "count": 24, "image": "https://picsum.photos/seed/kpdelhi/800/500" },
+    { "name": "EM Bypass LED", "city": "Kolkata", "lat": 22.573, "lng": 88.364, "type": "Digital LED", "count": 18, "image": "https://picsum.photos/seed/kpkolkata/800/500" },
+    { "name": "Western Express Unipole", "city": "Mumbai", "lat": 19.076, "lng": 72.877, "type": "Billboard", "count": 14, "image": "https://picsum.photos/seed/kpmumbai/800/500" }
+  ],
+  "legend": [
+    { "type": "Billboard", "label": "Billboards & Hoardings" },
+    { "type": "Digital LED", "label": "Digital LED Screens" },
+    { "type": "Transit", "label": "Transit Hubs" }
+  ]
+}

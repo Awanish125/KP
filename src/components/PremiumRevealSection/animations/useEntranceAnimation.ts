@@ -114,7 +114,15 @@ export function useEntranceAnimation(
     // ── Master timeline ─────────────────────────────────────────────────────
     const tl = gsap.timeline({ paused: true });
 
-    entries.forEach(({ el, image, fromVars, toVars, ease, duration }, si) => {
+    entries.forEach(({ el, fromVars, image, toVars, ease, duration }, si) => {
+      // If the element starts fully transparent, skip will-change in onStart.
+      // Setting will-change while at large scale (cameraZoom starts at 3–8×)
+      // forces the browser to allocate a compositor layer at that scale —
+      // an expensive one-time texture allocation mid-scroll on the first traversal.
+      // Invisible elements have no visual benefit from pre-promotion, so we defer
+      // the layer hint until the element first becomes visible (opacity > 0).
+      const startsInvisible = (fromVars.opacity as number) === 0;
+
       tl.fromTo(
         el,
         fromVars,
@@ -123,7 +131,9 @@ export function useEntranceAnimation(
           ease,
           duration,
           onStart() {
-            gsap.set(el, { willChange: 'transform, opacity' });
+            if (!startsInvisible) {
+              gsap.set(el, { willChange: 'transform, opacity' });
+            }
           },
           onComplete() {
             gsap.set(el, { willChange: 'auto' });
@@ -175,19 +185,27 @@ export function useEntranceAnimation(
     applyHidden();
     hasPlayed.current = false;
 
+    // Track rAF ID so we can cancel on cleanup.
+    let rafId = 0;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           if (!opts.repeatOnScroll) {
             if (!hasPlayed.current) {
               hasPlayed.current = true;
-              tl.play(0);
+              // Defer one rAF so the IO callback doesn't block the scroll
+              // frame that triggered intersection.
+              rafId = requestAnimationFrame(() => tl.play(0));
             }
           } else {
-            applyHidden();
-            tl.restart(true);
+            rafId = requestAnimationFrame(() => {
+              applyHidden();
+              tl.restart(true);
+            });
           }
         } else if (opts.repeatOnScroll) {
+          cancelAnimationFrame(rafId);
           tl.pause(0);
           applyHidden();
         }
@@ -198,6 +216,7 @@ export function useEntranceAnimation(
     observer.observe(container);
 
     return () => {
+      cancelAnimationFrame(rafId);
       observer.disconnect();
       tl.kill();
       entries.forEach(({ el }) => gsap.set(el, { willChange: 'auto', clearProps: 'all' }));

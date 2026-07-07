@@ -11,16 +11,17 @@ import { cn, formatCount } from "../gallery/utils/cn";
 const NOISE_URL =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E";
 
-// backdrop-blur kept at md or below — large blur radii across dozens of
-// cards are one of the most expensive things to composite while scrolling.
+// No backdrop-filter: across dozens of floating cards a live blur re-samples
+// the content behind it every frame while scrolling — the dominant scroll
+// cost. Solid gradients over the dark image read the same, paint once.
 const VARIANT_PANEL: Record<GalleryCardVariant, string> = {
-  default: "bg-black/30 backdrop-blur-md border-t border-white/10",
-  glass: "bg-white/10 backdrop-blur-md border border-white/20 m-3 rounded-2xl",
+  default: "bg-gradient-to-t from-black/90 via-black/70 to-black/30 border-t border-white/10",
+  glass: "bg-black/40 border border-white/20 m-3 rounded-2xl",
   minimal: "bg-transparent",
-  floating: "bg-black/25 backdrop-blur-md border-t border-white/10",
-  premium: "bg-gradient-to-t from-black/70 via-black/30 to-transparent backdrop-blur-sm",
-  stack: "bg-black/35 backdrop-blur-md border-t border-white/10",
-  wide: "bg-black/30 backdrop-blur-md border-t border-white/10",
+  floating: "bg-gradient-to-t from-black/85 via-black/60 to-black/25 border-t border-white/10",
+  premium: "bg-gradient-to-t from-black/85 via-black/45 to-transparent",
+  stack: "bg-gradient-to-t from-black/90 via-black/70 to-black/35 border-t border-white/10",
+  wide: "bg-gradient-to-t from-black/90 via-black/70 to-black/30 border-t border-white/10",
   editorial: "bg-transparent",
 };
 
@@ -181,7 +182,7 @@ function GalleryCardInner({
           )}
 
           {enableCategoryBadge && image.category && (
-            <div className="absolute right-3 top-3 z-10 rounded-full border border-white/20 bg-black/30 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.1em] text-white backdrop-blur-md">
+            <div className="absolute right-3 top-3 z-10 rounded-full border border-white/20 bg-black/50 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.1em] text-white">
               {image.category}
             </div>
           )}

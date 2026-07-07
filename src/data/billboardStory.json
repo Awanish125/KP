@@ -1,0 +1,35 @@
+{
+  "_comment": "BillboardStory section (home page). HOW IT WORKS: the section pins while scrolling; each step below owns an EQUAL slice of the scroll — step 1 plays first, then the billboard flips to reveal step 2's media on its other face, and so on, top to bottom. TO ADD/EDIT A STEP: copy one object in steps[], change the text, and point media at any image URL/path OR an .mp4/.webm video (videos auto-play muted on the board). The left text and the board face always stay in sync — no code changes needed.",
+  "label": "On The Board",
+  "heading": "One structure. Every story.",
+  "steps": [
+    {
+      "kicker": "Launch Day",
+      "title": "The IPO the whole highway read",
+      "body": "48 premium faces carried Suvarna Finance's countdown to listing day — re-skinned every Sunday night so Monday's commute always saw a new number.",
+      "media": "https://picsum.photos/seed/kpboard1/1200/720",
+      "stat": { "value": "22M", "label": "Impressions" }
+    },
+    {
+      "kicker": "Festival Push",
+      "title": "Diwali, dayparted to the hour",
+      "body": "NovaMart's creative flipped with the clock — commuter offers till 6 PM, full-motion festival spectacle after dark, synced across every screen in the city centre.",
+      "media": "https://picsum.photos/seed/kpboard2/1200/720",
+      "stat": { "value": "3×", "label": "Footfall lift" }
+    },
+    {
+      "kicker": "Motion Creative",
+      "title": "Full-motion on the night network",
+      "body": "Digital faces run video, not stills. This is the actual loop from our LED network — drop any .mp4 into this slot and it plays on the board.",
+      "media": "/homepage/herosection/hero-light.mp4",
+      "stat": { "value": "45s", "label": "Loop slot" }
+    },
+    {
+      "kicker": "The Reveal",
+      "title": "Three weeks of mystery, one night to flip",
+      "body": "Café Arabia's unbranded black hoardings had all of Patna guessing. On reveal night we re-skinned 18 sites in four hours — this is the moment the city found out.",
+      "media": "https://picsum.photos/seed/kpboard4/1200/720",
+      "stat": { "value": "2hr", "label": "Opening queue" }
+    }
+  ]
+}

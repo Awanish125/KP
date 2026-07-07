@@ -1,0 +1,58 @@
+{
+  "_comment": "Services page content. Edit here — no code changes needed.",
+  "hero": {
+    "label": "What We Do",
+    "line1": "SIX WAYS TO BE",
+    "line2": "UNMISSABLE",
+    "sub": "Every format we run, we own end-to-end — site, structure, printing, installation, lighting, and proof."
+  },
+  "items": [
+    {
+      "id": "billboards",
+      "title": "Billboards & Hoardings",
+      "desc": "Premium large-format sites on India's busiest highways and city junctions — engineered steel, front-lit, back-lit, and monumental.",
+      "icon": "billboard",
+      "features": ["400+ owned structures", "NH & flyover-facing sites", "Monsoon-certified steel", "Monthly photo proof"]
+    },
+    {
+      "id": "digital-led",
+      "title": "Digital LED Screens",
+      "desc": "Large-format outdoor LED in Mumbai, Pune, and Nagpur city centres — dayparted slots, live creative swaps, programmatic booking.",
+      "icon": "led",
+      "features": ["P6–P10 outdoor panels", "Dayparted scheduling", "Real-time creative swap", "Audience analytics"]
+    },
+    {
+      "id": "transit",
+      "title": "Transit Media",
+      "desc": "Bus wraps, auto hoods, and metro panels moving through every artery of the state — your brand doing the commute with your customers.",
+      "icon": "bus",
+      "features": ["State & city bus fleets", "Full & partial wraps", "Railway station panels", "Route-level planning"]
+    },
+    {
+      "id": "airport-mall",
+      "title": "Airport & Mall Media",
+      "desc": "Captive-audience placements inside Patna and Ranchi airports and eastern India's highest-footfall malls — dwell time you can't buy on a highway.",
+      "icon": "building",
+      "features": ["Arrival & departure zones", "Atrium banners", "Digital totems", "Footfall reporting"]
+    },
+    {
+      "id": "activations",
+      "title": "Brand Activations",
+      "desc": "Street-level events, mall takeovers, and launch spectacles with permits, fabrication, staffing, and crowd logistics handled in-house.",
+      "icon": "spark",
+      "features": ["Permits & compliance", "In-house fabrication", "Promoter staffing", "Same-week turnaround"]
+    },
+    {
+      "id": "print-fabrication",
+      "title": "Printing & Fabrication",
+      "desc": "Our own flex printing and steel fabrication units — which is why a 9-city campaign goes live in 72 hours, not three weeks.",
+      "icon": "printer",
+      "features": ["In-house flex printing", "Steel structure works", "72-hour installs", "State-wide crews"]
+    }
+  ],
+  "cta": {
+    "heading": "Not sure which format fits?",
+    "sub": "Send us the brief — we'll map it to the sites that will actually move the needle.",
+    "button": { "label": "Get a Media Plan", "href": "/contact" }
+  }
+}

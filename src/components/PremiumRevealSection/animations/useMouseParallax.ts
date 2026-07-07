@@ -39,8 +39,16 @@ export function useMouseParallax(
       return opts.showDepth ? getDepthConfig(depth).mouseStrength : 0.6;
     });
 
+    let rect: DOMRect | null = null;
+
+    const onEnter = () => {
+      rect = container.getBoundingClientRect();
+    };
+
     const onMove = (e: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
+      if (!rect) {
+        rect = container.getBoundingClientRect();
+      }
       const nx = ((e.clientX - rect.left)  / rect.width  - 0.5) * 2;
       const ny = ((e.clientY - rect.top)   / rect.height - 0.5) * 2;
 
@@ -52,16 +60,19 @@ export function useMouseParallax(
     };
 
     const onLeave = () => {
+      rect = null;
       for (let i = 0; i < images.length; i++) {
         quickXs[i]?.(0);
         quickYs[i]?.(0);
       }
     };
 
+    container.addEventListener('mouseenter', onEnter, { passive: true });
     container.addEventListener('mousemove', onMove, { passive: true });
     container.addEventListener('mouseleave', onLeave, { passive: true });
 
     return () => {
+      container.removeEventListener('mouseenter', onEnter);
       container.removeEventListener('mousemove', onMove);
       container.removeEventListener('mouseleave', onLeave);
       els.forEach(el => el && gsap.killTweensOf(el));

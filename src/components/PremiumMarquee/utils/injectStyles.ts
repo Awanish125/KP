@@ -85,11 +85,12 @@ const CSS = `
     transform-style: preserve-3d;
   }
 
-  /* ── Edge blur overlays ──────────────────────────────────────────────── */
+  /* ── Edge fade overlays ──────────────────────────────────────────────── */
+  /* No backdrop-filter: the mask-image gradient already fades the edges.
+     backdrop-filter would force a full GPU readback + composite pass on
+     every frame even though the overlay is just 5rem wide. */
   .pm-edge-left,
   .pm-edge-right {
-    backdrop-filter: blur(6px) saturate(1.15);
-    -webkit-backdrop-filter: blur(6px) saturate(1.15);
     pointer-events: none;
     z-index: 20;
     position: absolute;

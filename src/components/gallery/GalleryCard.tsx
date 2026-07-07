@@ -43,12 +43,14 @@ interface GalleryCardProps {
 /**
  * Scroll-performance contract (see memory: feedback-scroll-performance):
  *   - NO per-card scroll-linked motion values (useScroll/useTransform ran
- *     main-thread JS on every Lenis frame × every card — the primary cause
- *     of scroll lag).
- *   - NO filter/blur in the entrance animation (filter animates on the
- *     paint path, not the compositor).
- *   - Floating is a pure CSS keyframe (compositor-only, zero JS/frame),
- *     not a motion repeat:Infinity loop per card.
+ *     main-thread JS on every Lenis frame × every card).
+ *   - NO backdrop-filter anywhere on the card. Each floating card moves
+ *     every frame, so a backdrop-blur behind it had to re-sample and re-blur
+ *     the content underneath on every single frame (even at rest) — across
+ *     N cards that was the dominant scroll cost. Semi-opaque backgrounds
+ *     over the dark image gradient read the same with zero per-frame paint.
+ *   - NO filter/blur in the entrance animation (filter is a paint property).
+ *   - Floating is a pure CSS keyframe (compositor-only, transform only).
  *   - Exactly one animation system per element: motion owns the entrance
  *     wrapper, CSS owns the float wrapper, Tilt owns its own wrapper.
  */
@@ -161,7 +163,7 @@ function GalleryCardInner({
               <img
                 src={campaign.image}
                 alt={campaign.title}
-                loading="lazy"
+                loading="eager"
                 decoding="async"
                 draggable={false}
                 className="h-full w-full select-none object-cover transition-transform duration-700 ease-out group-hover:scale-[1.08]"
@@ -185,14 +187,14 @@ function GalleryCardInner({
 
             {/* Featured badge */}
             {campaign.featured && (
-              <div className="absolute left-4 top-4 z-10 flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white backdrop-blur-md">
+              <div className="absolute left-4 top-4 z-10 flex items-center gap-1.5 rounded-full bg-black/45 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white">
                 <Sparkles size={11} className="text-accent" />
                 Featured
               </div>
             )}
 
             {/* Category badge */}
-            <div className="absolute right-4 top-4 z-10 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-white backdrop-blur-md transition-transform duration-500 group-hover:-translate-y-0.5">
+            <div className="absolute right-4 top-4 z-10 rounded-full border border-white/20 bg-black/50 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-white transition-transform duration-500 group-hover:-translate-y-0.5">
               {campaign.category}
             </div>
 
@@ -200,7 +202,7 @@ function GalleryCardInner({
             <div
               className={cn(
                 "absolute inset-x-0 bottom-0 z-10 flex flex-col gap-2 p-5",
-                enableGlass && "border-t border-white/10 bg-black/30 backdrop-blur-md",
+                enableGlass && "border-t border-white/10 bg-gradient-to-t from-black/90 via-black/70 to-black/40",
                 "transition-transform duration-500 ease-out group-hover:-translate-y-1",
               )}
             >
@@ -216,7 +218,7 @@ function GalleryCardInner({
                 <button
                   type="button"
                   aria-label={`Open ${campaign.title}`}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-all duration-300 group-hover:bg-accent group-hover:text-white"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-white transition-all duration-300 group-hover:bg-accent group-hover:text-white"
                 >
                   <ArrowUpRight
                     size={18}
