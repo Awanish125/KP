@@ -85,7 +85,7 @@ export function ServicesStrip({
             <li key={item.title} style={{ listStyle: "none" }}>
               <Link
                 href={href}
-                className="group grid grid-cols-[auto_1fr_auto] items-baseline gap-x-6 py-6 no-underline transition-transform duration-300 hover:translate-x-2 md:grid-cols-[6rem_1fr_1fr_auto] md:items-center"
+                className="group grid grid-cols-[auto_1fr_auto] items-center gap-x-4 py-5 no-underline transition-transform duration-300 hover:translate-x-2 md:grid-cols-[6rem_1fr_1fr_auto] md:gap-x-6 md:py-6 md:items-center"
                 style={{ borderTop: "1px solid var(--border-soft)" }}
                 onMouseEnter={() => setPreviewSrc(item.image ?? null)}
                 onMouseLeave={() => setPreviewSrc(null)}
@@ -112,6 +112,29 @@ export function ServicesStrip({
                 >
                   {item.title}
                 </span>
+                {/* Mobile thumbnail — inline image, hidden on desktop where hover preview takes over */}
+                {item.image && (
+                  <span
+                    aria-hidden
+                    className="row-span-2 md:hidden"
+                    style={{ alignSelf: "center" }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.image}
+                      alt=""
+                      style={{
+                        width: 64,
+                        height: 48,
+                        objectFit: "cover",
+                        borderRadius: "0.5rem",
+                        border: "1px solid var(--border-soft)",
+                        display: "block",
+                        flexShrink: 0,
+                      }}
+                    />
+                  </span>
+                )}
                 <span
                   className="col-start-2 md:col-start-3"
                   style={{

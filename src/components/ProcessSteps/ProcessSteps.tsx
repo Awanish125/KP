@@ -6,9 +6,10 @@
  * Content from home.json process.steps.
  */
 
-import { Fragment } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { SectionReveal } from "@/components/SectionReveal";
 import { TextReveal } from "@/components/TextReveal";
+import { attachCursorGlow } from "@/lib/cursorGlow";
 import { PROCESS_STEPS_DEFAULTS } from "./processStepsConfig";
 import type { ProcessStepsProps } from "./processStepsTypes";
 
@@ -18,8 +19,16 @@ export function ProcessSteps({
   label = PROCESS_STEPS_DEFAULTS.label,
   heading = PROCESS_STEPS_DEFAULTS.heading,
 }: ProcessStepsProps) {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!sectionRef.current) return;
+    return attachCursorGlow(sectionRef.current);
+  }, []);
+
   return (
-    <section className={className} style={{ background: "var(--stage-bg)" }}>
+    <section ref={sectionRef} className={className} style={{ background: "var(--stage-bg)", position: "relative", overflow: "hidden" }}>
+      <div className="kp-glow-layer" aria-hidden />
       <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
         <SectionReveal as="div" className="mb-16">
           <p

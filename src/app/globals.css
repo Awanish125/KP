@@ -170,6 +170,27 @@
 }
 
 /* ============================================================
+   CURSOR GLOW LAYER
+   Pair with attachCursorGlow() from src/lib/cursorGlow.ts.
+   Add <div aria-hidden className="kp-glow-layer" /> as the first
+   child of any section that calls attachCursorGlow on its root.
+   ============================================================ */
+.kp-glow-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+  opacity: var(--glow-opacity, 0);
+  background: radial-gradient(
+    720px circle at var(--glow-x, -999px) var(--glow-y, -999px),
+    rgba(245, 130, 31, 0.11) 0%,
+    transparent 60%
+  );
+  transition: opacity 0.5s ease;
+}
+
+/* ============================================================
    BASE LAYER
    ============================================================ */
 @layer base {

@@ -20,6 +20,7 @@ import { OfficeGrid } from "@/components/OfficeGrid";
 import { TestimonialSlider } from "@/components/TestimonialSlider";
 import { SectionReveal } from "@/components/SectionReveal";
 import { CTABanner } from "@/components/CTABanner";
+import { AchievementsSection } from "@/components/AchievementsSection";
 import { Footer } from "@/components/Footer";
 import { ClientLogoWall } from "@/components/ClientLogoWall";
 import { VideoShowcase } from "@/components/VideoShowcase";
@@ -195,7 +196,7 @@ export default function Home() {
       {/* Testimonials */}
       <section
         className="py-24"
-        style={{ background: "var(--surface)", borderTop: "1px solid var(--border-soft)" }}
+        style={{ background: "var(--stage-bg)", borderTop: "1px solid var(--stage-border)" }}
       >
         <SectionReveal as="div" className="mx-auto mb-12 max-w-6xl px-6">
           <p
@@ -214,6 +215,8 @@ export default function Home() {
       </section>
 
       <ClientLogoWall industries={clientsData.industries} />
+
+      <AchievementsSection />
 
       <OfficeGrid offices={contactData.offices} />
 

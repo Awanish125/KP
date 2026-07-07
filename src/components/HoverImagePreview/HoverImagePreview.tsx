@@ -46,54 +46,71 @@ export function HoverImagePreview({
 
     const setXY = gsap.quickSetter(frame, "css") as (v: object) => void;
     const target = { x: 0, y: 0 };
-    const pos = { x: 0, y: 0 };
-    let snapNext = true;
+    const pos    = { x: 0, y: 0 };
 
-    const onMove = (e: PointerEvent) => {
-      target.x = e.clientX + offsetX;
-      target.y = e.clientY + offsetY;
-      if (snapNext) {
-        // First frame after showing: appear at the cursor, don't fly in.
-        pos.x = target.x;
-        pos.y = target.y;
-        snapNext = false;
-      }
-    };
-
+    // Ticker is added lazily on the first pointermove — prevents the frame
+    // from rendering at (0,0) on show before any cursor data arrives.
+    let tickerAdded = false;
     const tick = () => {
       pos.x += (target.x - pos.x) * lerp;
       pos.y += (target.y - pos.y) * lerp;
       setXY({ x: pos.x, y: pos.y });
     };
+    const addTicker = () => { if (!tickerAdded) { tickerAdded = true; gsap.ticker.add(tick); } };
+    const removeTicker = () => { if (tickerAdded) { tickerAdded = false; gsap.ticker.remove(tick); } };
+
+    // Immediately hides and stops tracking — used both for the hide tween
+    // and as the scroll handler so scrolling always dismisses the preview.
+    const hideAndStop = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("scroll", hideAndStop);
+      (window.__kpLenis as any)?.off?.("scroll", hideAndStop);
+      removeTicker();
+      gsap.to(frame, {
+        opacity: 0, scale: 0.85, rotation: 2,
+        duration: 0.3, ease: "power2.in",
+        onComplete: () => { frame.style.willChange = "auto"; },
+      });
+    };
+
+    let shown = false;
+    const onMove = (e: PointerEvent) => {
+      target.x = e.clientX + offsetX;
+      target.y = e.clientY + offsetY;
+      // Snap pos to cursor on the very first move so the frame never
+      // "flies in" from (0,0); after that the lerp takes over.
+      if (!tickerAdded) {
+        pos.x = target.x;
+        pos.y = target.y;
+        addTicker();
+      }
+      // Delay the show tween until we have real cursor coords — prevents
+      // the frame from flashing at top:0/left:0 before the first pointermove.
+      if (!shown) {
+        shown = true;
+        frame.style.willChange = "transform, opacity";
+        gsap.to(frame, {
+          opacity: 1, scale: 1, rotation: -3,
+          duration: 0.45, ease: "back.out(1.8)",
+        });
+      }
+    };
 
     if (src) {
-      snapNext = true;
       window.addEventListener("pointermove", onMove, { passive: true });
-      gsap.ticker.add(tick);
-      frame.style.willChange = "transform, opacity";
-      gsap.to(frame, {
-        opacity: 1,
-        scale: 1,
-        rotation: -3,
-        duration: 0.45,
-        ease: "back.out(1.8)",
-      });
+      // Belt-and-suspenders: hide as soon as any scroll starts, regardless
+      // of whether the parent row fires mouseleave (it often doesn't on scroll).
+      window.addEventListener("scroll", hideAndStop, { passive: true, once: true });
+      (window.__kpLenis as any)?.on?.("scroll", hideAndStop);
     } else {
-      gsap.to(frame, {
-        opacity: 0,
-        scale: 0.85,
-        rotation: 2,
-        duration: 0.3,
-        ease: "power2.in",
-        onComplete: () => {
-          frame.style.willChange = "auto";
-        },
-      });
+      hideAndStop();
     }
 
     return () => {
       window.removeEventListener("pointermove", onMove);
-      gsap.ticker.remove(tick);
+      window.removeEventListener("scroll", hideAndStop);
+      (window.__kpLenis as any)?.off?.("scroll", hideAndStop);
+      removeTicker();
     };
   }, [src, enabled, lerp, offsetX, offsetY]);
 

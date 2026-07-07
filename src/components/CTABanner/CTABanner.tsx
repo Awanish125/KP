@@ -5,9 +5,11 @@
  * Entrance handled by SectionReveal (IO-triggered, no ScrollTrigger).
  */
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { SectionReveal } from "@/components/SectionReveal";
 import { MagneticButton } from "@/components/MagneticButton";
+import { attachCursorGlow } from "@/lib/cursorGlow";
 import { CTA_BANNER_DEFAULTS } from "./ctaBannerConfig";
 import type { CTABannerProps } from "./ctaBannerTypes";
 
@@ -17,6 +19,13 @@ export function CTABanner({
   button = CTA_BANNER_DEFAULTS.button,
   className,
 }: CTABannerProps) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!wrapRef.current) return;
+    return attachCursorGlow(wrapRef.current);
+  }, []);
+
   return (
     <SectionReveal
       className={className}
@@ -25,6 +34,11 @@ export function CTABanner({
         borderTop: "1px solid var(--stage-border)",
       }}
     >
+      <div
+        ref={wrapRef}
+        style={{ position: "relative", overflow: "hidden" }}
+      >
+      <div className="kp-glow-layer" aria-hidden />
       <div
         className="mx-auto flex max-w-6xl flex-col items-start gap-8 px-6 py-20 md:flex-row md:items-center md:justify-between md:py-28"
       >
@@ -75,6 +89,7 @@ export function CTABanner({
             </span>
           </Link>
         </MagneticButton>
+      </div>
       </div>
     </SectionReveal>
   );
