@@ -236,6 +236,14 @@ let cleanupTicker: (() => void) | null = null;
         };
         window.addEventListener("resize", debouncedMeasure);
 
+        // Panel expansion state — tracks whether the image has expanded to full width
+        let panelExpanded = false;
+        const panelLeft = { current: 40 }; // mutable value GSAP tweens directly
+        let panelTween: gsap.core.Tween | null = null;
+
+        // Set initial value so HeroSection reads it before first tick
+        root.style.setProperty("--hero-panel-left", "40%");
+
         let current = -1;
         const tick = () => {
           const target = Math.min(Math.max((window.scrollY - rootTop) / range, 0), 1);
@@ -245,11 +253,41 @@ let cleanupTicker: (() => void) | null = null;
           current = next;
           tl.progress(current);
           setState(current <= 0 ? "Idle" : current < 0.98 ? "Playing" : "Completed");
+
+          // When content has departed (progress ≥ 0.25), expand image to full width.
+          // When user scrolls back above the threshold, restore the split layout.
+          // Only runs on desktop — mobile uses simple cover+center, no panel split.
+          if (window.innerWidth >= 768) {
+            const shouldExpand = next >= 0.25;
+            if (shouldExpand && !panelExpanded) {
+              panelExpanded = true;
+              panelTween?.kill();
+              panelTween = gsap.to(panelLeft, {
+                current: 0,
+                duration: 1.2,
+                ease: "power2.inOut",
+                onUpdate: () =>
+                  root.style.setProperty("--hero-panel-left", `${panelLeft.current.toFixed(2)}%`),
+              });
+            } else if (!shouldExpand && panelExpanded) {
+              panelExpanded = false;
+              panelTween?.kill();
+              panelTween = gsap.to(panelLeft, {
+                current: 40,
+                duration: 0.9,
+                ease: "power2.inOut",
+                onUpdate: () =>
+                  root.style.setProperty("--hero-panel-left", `${panelLeft.current.toFixed(2)}%`),
+              });
+            }
+          }
         };
 
         const cleanupTick = tickWhileVisible(root, tick);
         cleanupTicker = () => {
           cleanupTick();
+          panelTween?.kill();
+          root.style.removeProperty("--hero-panel-left");
           window.removeEventListener("resize", debouncedMeasure);
           if (measureTimeout) clearTimeout(measureTimeout);
         };

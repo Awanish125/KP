@@ -25,6 +25,9 @@ export function HeroEditorialMarquee({ config }: HeroEditorialMarqueeProps) {
               ? `linear-gradient(100deg, ${item.gradient.join(", ")})`
               : undefined,
             paddingRight: item.spacing ?? undefined,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
           } as CSSProperties;
 
           return (
