@@ -56,7 +56,7 @@ export function BillboardStory({
   useEffect(() => {
     if (!isMobile || reduced || !steps.length) return;
 
-    const cards = gsap.utils.toArray(".mobile-stack-card");
+    const cards = gsap.utils.toArray<Element>(".mobile-stack-card");
     const STEP_VEIL = 0.25;
 
     const triggers: ScrollTrigger[] = [];
