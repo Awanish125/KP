@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { gsap } from "gsap";
 import { ScrollIndicator } from "./ScrollIndicator";
+import { ScrambleText } from "@/components/ScrambleText";
 
 interface HeroCta {
   label: string;
@@ -49,20 +50,75 @@ const HeroSectionContent = ({
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let timeline: gsap.core.Timeline | null = null;
 
+    // Separate focus-line spans (h1 children) from the other hero items
+    const focusLines = Array.from(
+      section.querySelectorAll<HTMLElement>("[data-focus-line]"),
+    );
+    const regularItems = Array.from(items).filter(
+      (el) => !el.hasAttribute("data-focus-line"),
+    );
+
+    // Letter dropout idle loop — wraps individual letters of non-gradient
+    // focus lines (line1 = index 0, line3 = index 2) into spans so a random
+    // letter can dip to opacity 0.18 and recover on a staggered timer.
+    // Line 2 (gradient) is skipped to avoid breaking background-clip:text.
+    const startDropout = () => {
+      if (reduced) return;
+      const letters: HTMLSpanElement[] = [];
+      [focusLines[0], focusLines[2]].filter(Boolean).forEach((line) => {
+        [...(line.childNodes)].forEach((node) => {
+          if (node.nodeType !== Node.TEXT_NODE) return;
+          const frag = document.createDocumentFragment();
+          [...(node.textContent ?? "")].forEach((ch) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            s.style.display = "inline";
+            frag.appendChild(s);
+            if (ch.trim()) letters.push(s);
+          });
+          node.replaceWith(frag);
+        });
+      });
+
+      if (!letters.length) return;
+      const flick = () => {
+        const s = letters[(Math.random() * letters.length) | 0];
+        gsap.timeline({
+          onComplete: () =>
+            gsap.delayedCall(1.8 + Math.random() * 3.2, flick),
+        })
+          .to(s, { opacity: 0.18, duration: 0.08, ease: "power2.in" })
+          .to(s, { opacity: 1,    duration: 0.45, ease: "power2.out" });
+      };
+      gsap.delayedCall(1.5, flick);
+    };
+
     const play = () => {
       if (reduced) {
-        gsap.set(items, { autoAlpha: 1, y: 0 });
+        gsap.set(items, { autoAlpha: 1, y: 0, filter: "none", scale: 1 });
         return;
       }
-      timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
+      timeline = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        onComplete: startDropout,
+      });
       timeline
-        .to(items, { autoAlpha: 1, y: 0, duration: 0.8, stagger: 0.075 })
-        .fromTo(indicatorRef.current, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.55 }, "-=0.35");
+        // Subtitle, divider, description, CTAs — simple fade-up
+        .to(regularItems, { autoAlpha: 1, y: 0, duration: 0.8, stagger: 0.075 })
+        // Rack focus: h1 lines snap from blurred+oversized → sharp
+        .fromTo(
+          focusLines,
+          { scale: 1.18, filter: "blur(22px)", autoAlpha: 0, transformOrigin: "0% 100%" },
+          { scale: 1, filter: "blur(0px)", autoAlpha: 1, duration: 1.4, stagger: 0.12, ease: "expo.out" },
+          "<0.15",
+        )
+        .fromTo(indicatorRef.current, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.55 }, "-=0.4");
     };
 
     // PinnedHero owns the content wrapper's visibility (via its fromTo depart tween).
     // We only hide/animate the inner items — the container stays under PinnedHero control.
-    gsap.set(items, { autoAlpha: reduced ? 1 : 0, y: reduced ? 0 : 24 });
+    gsap.set(regularItems, { autoAlpha: reduced ? 1 : 0, y: reduced ? 0 : 24 });
+    gsap.set(focusLines, { autoAlpha: reduced ? 1 : 0 });
     if (document.documentElement.classList.contains("page-revealed")) play();
     else window.addEventListener("kp:loaded", play, { once: true });
 
@@ -91,12 +147,13 @@ const HeroSectionContent = ({
         )}
 
         <p data-hero-item className="mb-4 text-[10px] font-semibold uppercase tracking-[0.45em] text-primary-light sm:text-xs sm:tracking-[0.5em] md:mb-5">
-          {subtitle}
+          <ScrambleText text={subtitle} duration={1.0} trigger="immediate" />
         </p>
-        <h1 data-hero-item className="hero-text-balance font-heading text-[2.6rem] font-bold leading-[1.08] text-white sm:text-6xl md:text-[4rem] md:leading-[1.05] xl:text-[4.5rem] 2xl:text-[5rem]">
-          <span className="block">{line1}</span>
-          <span className="block bg-[length:200%_100%] bg-clip-text text-transparent" style={{ backgroundImage: gradient }}>{line2}</span>
-          <span className="block">{line3}</span>
+        {/* h1 has no data-hero-item — each span is animated individually via data-focus-line */}
+        <h1 className="hero-text-balance font-heading text-[2.6rem] font-bold leading-[1.08] text-white sm:text-6xl md:text-[4rem] md:leading-[1.05] xl:text-[4.5rem] 2xl:text-[5rem]">
+          <span data-focus-line className="block">{line1}</span>
+          <span data-focus-line className="block bg-[length:200%_100%] bg-clip-text text-transparent" style={{ backgroundImage: gradient }}>{line2}</span>
+          <span data-focus-line className="block">{line3}</span>
         </h1>
         <span data-hero-item aria-hidden className="mt-6 block h-px w-16 bg-gradient-to-r from-accent/80 to-transparent md:mt-8 md:w-24" />
         <p data-hero-item className="mt-5 max-w-md text-sm leading-relaxed text-white/70 sm:text-base md:mt-6 lg:max-w-lg">{description}</p>

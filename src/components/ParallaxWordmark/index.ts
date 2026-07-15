@@ -1,0 +1,1 @@
+export { ParallaxWordmark } from "./ParallaxWordmark";

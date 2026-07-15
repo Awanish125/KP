@@ -29,6 +29,7 @@ function QuoteCard({ t, width }: { t: Testimonial; width: number }) {
         border: "1px solid var(--kp-glass-border)",
         backdropFilter: "var(--kp-glass-blur)",
         WebkitBackdropFilter: "var(--kp-glass-blur)",
+        boxShadow: "var(--kp-glass-shadow)",
         margin: 0,
       }}
     >

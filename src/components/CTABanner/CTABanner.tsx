@@ -30,14 +30,18 @@ export function CTABanner({
     <SectionReveal
       className={className}
       style={{
-        background: "var(--stage-bg)",
-        borderTop: "1px solid var(--stage-border)",
+        background: "transparent",
+        borderTop: "1px solid var(--border-soft)",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
       <div
         ref={wrapRef}
         style={{ position: "relative", overflow: "hidden" }}
       >
+      <div aria-hidden className="kp-glow-blue" style={{ opacity: 0.5 }} />
+      <div aria-hidden className="kp-glow-orange" style={{ opacity: 0.6 }} />
       <div className="kp-glow-layer" aria-hidden />
       <div
         className="mx-auto flex max-w-6xl flex-col items-start gap-8 px-6 py-20 md:flex-row md:items-center md:justify-between md:py-28"
@@ -49,7 +53,7 @@ export function CTABanner({
               fontSize: "var(--text-section)",
               lineHeight: 1.02,
               textTransform: "uppercase",
-              color: "var(--stage-text)",
+              color: "var(--text)",
               letterSpacing: "0.01em",
             }}
           >
@@ -60,7 +64,7 @@ export function CTABanner({
             style={{
               fontFamily: "var(--kp-font-body)",
               fontSize: "var(--text-lead)",
-              color: "var(--stage-text-soft)",
+              color: "var(--text-muted)",
             }}
           >
             {sub}
@@ -72,12 +76,13 @@ export function CTABanner({
             href={button.href}
             className="group inline-flex items-center gap-3 rounded-full px-9 py-5 no-underline"
             style={{
-              background: "var(--kp-orange)",
-              color: "var(--kp-dark)",
+              background: "var(--kp-gradient-cta)",
+              color: "#fff",
               fontFamily: "var(--kp-font-body)",
               fontWeight: 700,
               fontSize: "1rem",
-              boxShadow: "0 8px 40px var(--kp-orange-glow)",
+              boxShadow: "0 8px 40px rgba(244,122,32,0.50), 0 2px 8px rgba(0,0,0,0.25)",
+              transition: "transform 200ms ease, box-shadow 200ms ease",
             }}
           >
             {button.label}

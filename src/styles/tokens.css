@@ -7,34 +7,71 @@
 
 :root {
   /* ── Brand constants (identical in both modes) ─────────── */
-  --kp-orange:        #F5821F;
-  --kp-orange-soft:   rgba(245, 130, 31, 0.12);
-  --kp-orange-glow:   rgba(245, 130, 31, 0.35);
-  --kp-blue:          #5BA3D6;
-  --kp-blue-soft:     rgba(91, 163, 214, 0.14);
+  --kp-orange:        #F47A20;
+  --kp-orange-soft:   rgba(244, 122, 32, 0.12);
+  --kp-orange-glow:   rgba(244, 122, 32, 0.35);
+  --kp-blue:          #0D5AA7;
+  --kp-blue-soft:     rgba(13, 90, 167, 0.14);
   --kp-purple:        #B86CCB;
   --kp-purple-soft:   rgba(184, 108, 203, 0.14);
-  --kp-dark:          #0D0D14;
-  --kp-dark-2:        #1A1A2E;
+  --kp-dark:          #08111F;
+  --kp-dark-2:        #0B1628;
   --kp-light:         #F5F7FA;
 
-  /* ── Glass card (dark glassmorphism, orange border) ────────
-     Shared look for content cards — testimonials, services,
-     case studies, offices, client logos. Deliberately dark in
-     BOTH themes (same navy as the original --kp-dark-2 surface,
-     just translucent + blurred) — not theme-toggled. Text on
-     these cards always uses --kp-glass-text(-muted), not the
-     theme --text tokens. */
-  --kp-glass-bg:         rgba(26, 26, 46, 0.62);
-  --kp-glass-bg-hover:   rgba(26, 26, 46, 0.78);
-  --kp-glass-border:     var(--kp-orange-glow);
+  /* ── Premium gradient system ────────────────────────────── */
+  --kp-gradient-brand:
+    linear-gradient(135deg, #0D5AA7 0%, #0A4A8A 35%, #08111F 100%);
+  --kp-gradient-cta:
+    linear-gradient(135deg, #F47A20 0%, #FF9B4A 50%, #F47A20 100%);
+  --kp-gradient-cta-hover:
+    linear-gradient(135deg, #FF8A2C 0%, #FFB366 100%);
+  --kp-gradient-luxury-blue:
+    linear-gradient(135deg, #0D5AA7 0%, #123D7A 100%);
+  --kp-gradient-hero-glow:
+    linear-gradient(135deg,
+      rgba(13,90,167,0.25) 0%,
+      rgba(244,122,32,0.15) 50%,
+      transparent 100%);
+  --kp-glow-blue:
+    radial-gradient(circle at top left, rgba(13,90,167,0.15), transparent 60%);
+  --kp-glow-orange:
+    radial-gradient(circle at bottom right, rgba(244,122,32,0.10), transparent 60%);
+
+  /* ── Section gradient backgrounds (light mode) ─────────────
+     Use these on section wrappers to avoid flat backgrounds.  */
+  --section-bg:         transparent;
+  --section-bg-alt:     transparent;
+  --section-bg-feature: transparent;
+  --section-bg-stats:   transparent;
+  --section-bg-dark:    transparent;
+
+  /* ── Card gradients ─────────────────────────────────────── */
+  --kp-card-bg:
+    linear-gradient(135deg, #FFFFFF 0%, #FAFBFD 100%);
+  --kp-card-bg-hover:
+    linear-gradient(135deg, #FFFFFF 0%, #F3F8FE 100%);
+
+  /* ── Glass card — theme-aware glassmorphism ────────────────
+     Light mode: frosted white panel, dark text.
+     Dark mode: deep navy panel, light text (see .dark below). */
+  --kp-glass-bg:         rgba(255, 255, 255, 0.78);
+  --kp-glass-bg-hover:   rgba(255, 255, 255, 0.95);
+  --kp-glass-border:     rgba(13, 90, 167, 0.20);
   --kp-glass-blur:       blur(20px) saturate(180%);
-  --kp-glass-text:       var(--kp-light);
-  --kp-glass-text-muted: rgba(245, 247, 250, 0.70);
+  --kp-glass-text:       #0D0D14;
+  --kp-glass-text-muted: rgba(13, 13, 20, 0.62);
+  --kp-glass-shadow:     0 4px 24px rgba(13, 13, 20, 0.10), 0 1px 4px rgba(13, 13, 20, 0.06);
 
   /* ── Theme-dynamic surfaces & text (light mode) ─────────── */
-  --bg:               #F5F7FA;
-  --bg-secondary:     #FFFFFF;
+  --bg:               #FFFFFF;
+  --bg-gradient: linear-gradient(
+  180deg,
+  #FFFFFF 0%,
+  #FCFCFD 25%,
+  #F7F9FC 65%,
+  #F3F6FA 100%
+);
+  --bg-secondary:     #F8FAFC;
   --surface:          #FFFFFF;
   --surface-2:        #EDF1F6;
   --text:             #0D0D14;
@@ -51,8 +88,8 @@
      billboard story…). Dark mode keeps them near-black; light
      mode folds them into the light page so the eye never jumps
      between light and dark containers mid-scroll. */
-  --stage-bg:         #FFFFFF;
-  --stage-bg-2:       #EDF1F6;
+  --stage-bg:         transparent;
+  --stage-bg-2:       transparent;
   --stage-text:       #0D0D14;
   --stage-text-soft:  rgba(13, 13, 20, 0.74);
   --stage-border:     rgba(13, 13, 20, 0.10);
@@ -82,13 +119,44 @@
   /* ── Motion ─────────────────────────────────────────────── */
   --ease-out-expo:    cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ── Footer (theme-aware) ─────────────────────────────────
+     Light mode: bright premium gradient, dark text.
+     Dark mode: deep-space gradient, light text.              */
+  --footer-bg:        transparent;
+  --footer-border:    rgba(13, 90, 167, 0.15);
+  --footer-text:      #0D0D14;
+  --footer-text-muted: rgba(13, 13, 20);
+  --footer-text-faint: rgba(13, 13, 20, 0.42);
+  --footer-hairline:  rgba(13, 13, 20, 0.08);
+
+  /* Footer wordmark stroke colors are applied via JS setProperty —
+     see FooterWordmark.tsx (blue #0065B1 for KIRAN, orange #F58420). */
 }
 
 .dark {
-  --bg:               #0D0D14;
-  --bg-secondary:     #1A1A2E;
-  --surface:          #1A1A2E;
-  --surface-2:        #232338;
+  --bg:               #00101c;
+  --bg-gradient:      linear-gradient(180deg, #00101c 0%, #00101c 100%);
+  --bg-secondary:     #00101c;
+  --surface:          #00101c;
+  --surface-2:        #071422;
+
+  /* Dark mode section gradients */
+  --section-bg:         transparent;
+  --section-bg-alt:     transparent;
+  --section-bg-feature: transparent;
+  --section-bg-stats:   transparent;
+  --section-bg-dark:    transparent;
+
+  /* Dark mode card gradients */
+  --kp-card-bg:
+    linear-gradient(135deg,
+      rgba(255,255,255,0.06) 0%,
+      rgba(255,255,255,0.03) 100%);
+  --kp-card-bg-hover:
+    linear-gradient(135deg,
+      rgba(255,255,255,0.09) 0%,
+      rgba(255,255,255,0.05) 100%);
   --text:             #F5F7FA;
   --text-muted:       rgba(245, 247, 250, 0.64);
   --text-subtle:      rgba(245, 247, 250, 0.38);
@@ -97,12 +165,36 @@
   --shadow-ambient:   0 24px 64px rgba(0, 0, 0, 0.55);
   --scrim:            rgba(13, 13, 20, 0.86);
 
-  /* Stage sections stay the cinematic near-black in dark mode. */
-  --stage-bg:         var(--kp-dark);
-  --stage-bg-2:       var(--kp-dark-2);
+  /* Stage sections — match section-bg so dark backgrounds are consistent. */
+  --stage-bg:         transparent;
+  --stage-bg-2:       transparent;
   --stage-text:       var(--kp-light);
   --stage-text-soft:  rgba(245, 247, 250, 0.74);
   --stage-border:     rgba(245, 247, 250, 0.10);
+
+  /* Glass cards — solid premium gradient, no transparency */
+  --kp-glass-bg:
+    linear-gradient(
+      135deg,
+      #111d30 0%,
+      #0c1524 50%,
+      #080f1c 100%
+    );
+  --kp-glass-bg-hover:
+    linear-gradient(
+      135deg,
+      #162540 0%,
+      #0f1b2e 50%,
+      #0a1220 100%
+    );
+  --kp-glass-blur:       none;
+  --kp-glass-border:     rgba(244, 122, 32, 0.30);
+  --kp-glass-text:       #F5F7FA;
+  --kp-glass-text-muted: rgba(245, 247, 250, 0.65);
+  --kp-glass-shadow:
+    0 0 0 1px rgba(244, 122, 32, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 2px 8px  rgba(0, 0, 0, 0.30);
 
   /* Hair lighter than brand orange: ≥7:1 even on --kp-dark-2. */
   --kp-orange-text:   #FA9130;
@@ -110,4 +202,14 @@
   --fg:               #F5F7FA;
   --fg-muted:         rgba(245, 247, 250, 0.64);
   --fg-subtle:        rgba(245, 247, 250, 0.38);
+
+  /* ── Footer (dark mode) ───────────────────────────────────── */
+  --footer-bg:        transparent;
+  --footer-border:    rgba(13, 90, 167, 0.25);
+  --footer-text:      #F5F7FA;
+  --footer-text-muted: rgba(245, 247, 250);
+  --footer-text-faint: rgba(245, 247, 250, 0.38);
+  --footer-hairline:  rgba(245, 247, 250, 0.08);
+
+  /* Footer wordmark: same stroke colors work on dark bg too. */
 }

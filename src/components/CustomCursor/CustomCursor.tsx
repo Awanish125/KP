@@ -41,7 +41,9 @@ export function CustomCursor({
 
     const setDot = gsap.quickSetter(dot, "css") as (v: object) => void;
     const setRing = gsap.quickSetter(ring, "css") as (v: object) => void;
-    const toRingScale = gsap.quickTo(ring, "scale", { duration: 0.35, ease: "power3.out" });
+    const toRingScaleX = gsap.quickTo(ring, "scaleX", { duration: 0.35, ease: "power3.out" });
+    const toRingScaleY = gsap.quickTo(ring, "scaleY", { duration: 0.35, ease: "power3.out" });
+    const toRingScale = (v: number) => { toRingScaleX(v); toRingScaleY(v); };
 
     const target = { x: -100, y: -100 };
     const pos = { x: -100, y: -100 };

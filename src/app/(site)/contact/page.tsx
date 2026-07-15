@@ -41,7 +41,7 @@ const OFFICE_ROWS = [
 
 export default function ContactPage() {
   return (
-    <div style={{ background: "var(--bg)" }}>
+    <div style={{ background: "transparent" }}>
       <PageHero
         label={data.hero.label}
         line1={data.hero.line1}
@@ -63,7 +63,7 @@ export default function ContactPage() {
                 rel={external ? "noopener noreferrer" : undefined}
                 className="group flex items-center gap-6 rounded-2xl p-7 no-underline transition-transform duration-300 hover:-translate-y-1"
                 style={{
-                  background: "var(--surface)",
+                  background: "var(--kp-card-bg)",
                   border: "1px solid var(--border-soft)",
                 }}
               >
@@ -123,7 +123,7 @@ export default function ContactPage() {
           {/* Head office */}
           <div
             className="rounded-2xl p-7"
-            style={{ background: "var(--surface)", border: "1px solid var(--border-soft)" }}
+            style={{ background: "var(--kp-card-bg)", border: "1px solid var(--border-soft)" }}
           >
             <h2
               style={{
@@ -167,10 +167,9 @@ export default function ContactPage() {
         {/* Globe */}
         <SectionReveal as="div" staggerChildren={false}>
           <div
-            className="overflow-hidden rounded-2xl lg:sticky lg:top-28"
+            className="kp-globe-stage overflow-hidden rounded-2xl lg:sticky lg:top-28"
             style={{
-              background:
-                "radial-gradient(ellipse at 50% 120%, var(--kp-dark-2), var(--kp-dark) 70%)",
+              background: "var(--gs-bg)",
               border: "1px solid var(--border-soft)",
               height: "34rem",
             }}

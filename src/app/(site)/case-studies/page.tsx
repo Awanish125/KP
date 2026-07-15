@@ -25,7 +25,7 @@ export default function CaseStudiesPage() {
       : STUDIES.filter((s) => s.category === category);
 
   return (
-    <div style={{ background: "var(--bg)" }}>
+    <div style={{ background: "transparent" }}>
       <PageHero
         label={data.hero.label}
         line1={data.hero.line1}
@@ -51,9 +51,10 @@ export default function CaseStudiesPage() {
                   letterSpacing: "0.14em",
                   textTransform: "uppercase",
                   cursor: "pointer",
-                  background: active ? "var(--kp-orange)" : "transparent",
-                  color: active ? "var(--kp-dark)" : "var(--text-muted)",
-                  border: `1px solid ${active ? "var(--kp-orange)" : "var(--border-strong)"}`,
+                  background: active ? "var(--kp-gradient-cta)" : "transparent",
+                  color: active ? "#fff" : "var(--text-muted)",
+                  border: `1px solid ${active ? "transparent" : "var(--border-soft)"}`,
+                  boxShadow: active ? "0 4px 16px rgba(244,122,32,0.35)" : "none",
                 }}
               >
                 {cat}

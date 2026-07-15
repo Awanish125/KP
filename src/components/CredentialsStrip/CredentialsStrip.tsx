@@ -77,7 +77,7 @@ export function CredentialsStrip({
               fontSize: "0.6rem",
               letterSpacing: "0.28em",
               textTransform: "uppercase",
-              color: "var(--kp-orange)",
+              color: "var(--kp-orange-text)",
             }}
           >
             {cred.label}
@@ -88,8 +88,7 @@ export function CredentialsStrip({
               fontFamily: "var(--kp-font-mono)",
               fontSize: "0.72rem",
               letterSpacing: "0.08em",
-              color: "var(--kp-light)",
-              opacity: 0.55,
+              color: "var(--footer-text-muted)",
             }}
           >
             {cred.value}

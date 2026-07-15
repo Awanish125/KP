@@ -27,7 +27,7 @@ function GalleryContent() {
 
 export default function Gallery() {
   return (
-    <div className="bg-white dark:bg-secondary" style={{ overflowX: "clip" }}>
+    <div style={{ overflowX: "clip" }}>
       {/* useSearchParams requires a Suspense boundary for prerendering */}
       <Suspense fallback={null}>
         <GalleryContent />

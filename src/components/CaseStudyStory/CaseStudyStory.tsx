@@ -17,7 +17,7 @@ import type { CaseStudyStoryProps } from "./caseStudyStoryTypes";
 
 export function CaseStudyStory({ study, prev, next }: CaseStudyStoryProps) {
   return (
-    <article style={{ background: "var(--bg)" }}>
+    <article style={{ background: "transparent" }}>
       {/* ── Full-bleed hero ───────────────────────────────────────────── */}
       <header className="relative" style={{ minHeight: "70vh" }}>
         <Image
@@ -66,7 +66,7 @@ export function CaseStudyStory({ study, prev, next }: CaseStudyStoryProps) {
 
       {/* ── Results band ──────────────────────────────────────────────── */}
       <SectionReveal
-        style={{ background: "var(--kp-dark-2)" }}
+        style={{ background: "transparent" }}
         className="border-b"
       >
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-6 py-14 md:grid-cols-4">

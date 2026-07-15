@@ -94,14 +94,14 @@ export function ServicesSection() {
                 ref={(el) => { rowRefs.current[i] = el; }}
                 className="opacity-0 group flex items-start gap-4 py-3.5 cursor-default"
               >
-                <span className="text-[10px] font-mono text-secondary/20 dark:text-white/20 mt-0.5 flex-shrink-0 w-5">
+                <span className="text-[10px] font-mono text-secondary/40 dark:text-white/20 mt-0.5 flex-shrink-0 w-5">
                   {s.num}
                 </span>
                 <div>
-                  <p className="text-sm font-light text-secondary/80 dark:text-white/80 group-hover:text-secondary dark:group-hover:text-white transition-colors duration-200">
+                  <p className="text-sm font-medium text-secondary dark:text-white/80 group-hover:text-secondary dark:group-hover:text-white transition-colors duration-200">
                     {s.title}
                   </p>
-                  <p className="text-[11px] text-secondary/25 dark:text-white/25 mt-0.5 leading-snug">
+                  <p className="text-[11px] text-secondary/50 dark:text-white/25 mt-0.5 leading-snug">
                     {s.desc}
                   </p>
                 </div>

@@ -2,8 +2,8 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 
-const BLUE   = '#1555C2';
-const ORANGE = '#F5821F';
+const BLUE   = '#0065B1';
+const ORANGE = '#F58420';
 
 export default function Loading() {
   const overlayRef = useRef<HTMLDivElement>(null);

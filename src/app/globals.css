@@ -20,8 +20,8 @@
   --color-secondary:         #14181D;   /* kp-ink */
   --color-secondary-light:   #2B323B;   /* kp-ink-700 */
   --color-secondary-dark:    #0a0d10;
-  --color-accent:            #F58320;   /* kp-orange */
-  --color-accent-light:      #F9B274;   /* kp-orange-300 */
+  --color-accent:            #F47A20;   /* kp-orange */
+  --color-accent-light:      #FF9B4A;   /* kp-orange-300 */
   --color-accent-dark:       #C75F0E;   /* kp-orange-700 */
   --color-base:              #FFFFFF;
   --color-base-alt:          #F4F6F8;   /* kp-ink-50 */
@@ -50,9 +50,9 @@
   --color-btn-secondary-hover: #2B323B;
   --color-btn-ghost-hover:   #0064B11A;
   --color-overlay:           #14181D99;
-  --gradient-brand:          linear-gradient(135deg, #0064B1 0%, #F58320 100%);
-  --gradient-dark:           linear-gradient(135deg, #14181D 0%, #2B323B 100%);
-  --gradient-hero:           linear-gradient(180deg, #14181D 0%, #07090c 100%);
+  --gradient-brand:          linear-gradient(135deg, #0D5AA7 0%, #0A4A8A 35%, #08111F 100%);
+  --gradient-dark:           linear-gradient(135deg, #07101D 0%, #08111F 100%);
+  --gradient-hero:           linear-gradient(180deg, #030509 0%, #07101D 40%, #05070C 100%);
   /* ── KP fonts ────────────────────────────────────── */
   --font-sans:               var(--font-manrope, "Manrope", ui-sans-serif, system-ui, sans-serif);
   --font-mono:               var(--font-space-mono, "Space Mono", ui-monospace, monospace);
@@ -170,6 +170,31 @@
 }
 
 /* ============================================================
+   GLOBE STAGE — theme-aware panel for DottedGlobe sections
+   (locations, contact). One class flips background, HUD ink,
+   scanline, and tick colors with the theme. Use:
+     <div className="kp-globe-stage" style={{ background: "var(--gs-bg)" }}>
+   ============================================================ */
+.kp-globe-stage {
+  --gs-bg: radial-gradient(ellipse at 50% 120%, #E7EDF6, #F6F8FB 72%);
+  --gs-ink: rgba(13, 13, 20, 0.66);
+  --gs-ink-soft: rgba(13, 13, 20, 0.44);
+  --gs-scanline: rgba(13, 13, 20, 0.035);
+  --gs-tick: rgba(200, 96, 16, 0.55);
+  --gs-track: rgba(13, 13, 20, 0.14);
+  --gs-accent-text: #A34D00;
+}
+.dark .kp-globe-stage {
+  --gs-bg: radial-gradient(ellipse at 50% 120%, var(--kp-dark-2), var(--kp-dark) 70%);
+  --gs-ink: rgba(255, 255, 255, 0.60);
+  --gs-ink-soft: rgba(255, 255, 255, 0.45);
+  --gs-scanline: rgba(255, 255, 255, 0.028);
+  --gs-tick: rgba(244, 122, 32, 0.45);
+  --gs-track: rgba(255, 255, 255, 0.12);
+  --gs-accent-text: var(--kp-orange);
+}
+
+/* ============================================================
    CURSOR GLOW LAYER
    Pair with attachCursorGlow() from src/lib/cursorGlow.ts.
    Add <div aria-hidden className="kp-glow-layer" /> as the first
@@ -254,8 +279,17 @@
     font-weight: 600; font-size: 0.9375rem; cursor: pointer; white-space: nowrap;
     transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
   }
-  .btn-primary  { background: var(--color-btn-primary); color: var(--color-text-on-primary); box-shadow: var(--shadow-primary); }
-  .btn-primary:hover { background: var(--color-btn-primary-hover); }
+  .btn-primary  {
+    background: var(--kp-gradient-cta, var(--color-btn-primary));
+    color: #fff;
+    box-shadow: 0 4px 24px rgba(244,122,32,0.38), 0 1px 4px rgba(0,0,0,0.15);
+    transition: background 200ms ease, box-shadow 200ms ease, transform 150ms ease;
+  }
+  .btn-primary:hover {
+    background: var(--kp-gradient-cta-hover, var(--color-btn-primary-hover));
+    box-shadow: 0 8px 40px rgba(244,122,32,0.55), 0 2px 8px rgba(0,0,0,0.20);
+    transform: translateY(-1px);
+  }
   .btn-secondary { background: var(--color-btn-secondary); color: var(--color-text-inverse); }
   .btn-secondary:hover { background: var(--color-btn-secondary-hover); }
   .btn-outline   { border: 2px solid var(--color-primary); color: var(--color-primary); background: transparent; }
@@ -264,8 +298,19 @@
   .btn-ghost:hover { background: var(--color-btn-ghost-hover); }
   .btn-pill      { border-radius: var(--radius-pill); }
 
-  .card      { background: var(--color-surface); border-radius: var(--radius-card); box-shadow: var(--shadow-card); padding: 1.5rem; }
-  .card-dark { background: var(--color-surface-dark); border-radius: var(--radius-card); box-shadow: var(--shadow-dark); padding: 1.5rem; }
+  .card      {
+    background: var(--kp-card-bg, var(--color-surface));
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 1.5rem;
+  }
+  .card-dark {
+    background: var(--kp-card-bg, var(--color-surface-dark));
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-dark);
+    padding: 1.5rem;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
 
   .badge         { display: inline-flex; align-items: center; padding: 0.2rem 0.75rem; border-radius: var(--radius-pill); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
   .badge-primary { background: var(--color-primary); color: var(--color-text-on-primary); }
@@ -858,11 +903,149 @@
    mid-tween, making the wipe look like an instant vanish in Chrome. */
 .kp-loader-root { visibility: hidden; display: flex; }
 html.kp-first-visit .kp-loader-root { visibility: visible; }
+
+/* MeridianRail — force-hide on narrow viewports */
+@media (max-width: 900px) {
+  [data-kp-meridian-rail] { display: none !important; }
+}
+
 .kp-scrollbar-active::-webkit-scrollbar,
 .kp-scrollbar-active body::-webkit-scrollbar {
   width: 0;
   height: 0;
   display: none;
+}
+
+/* ============================================================
+   FOOTER — theme-aware shell + 3D chrome background wordmark
+   ============================================================ */
+.kp-footer {
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+  border-top: 1px solid var(--footer-border);
+  transition: background 500ms ease, border-color 500ms ease;
+}
+
+/* Wordmark layer — fills the footer, sits behind all content */
+.kp-footer-wordmark {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Both words form a tight stacked block at the center of the footer */
+.kp-footer-wordmark-line {
+  display: flex;
+  justify-content: center;
+  white-space: nowrap;
+  line-height: 0.9;
+  font-size: clamp(4rem, 22vw, 60rem);
+}
+
+/* Outline-only glyph — transparent fill, stroke color set per-char
+   via inline style (#0065B1 for KIRAN, #F58420 for PUBLICITY).
+   Opacity driven by JS (0 → MAX_OPACITY). */
+.kp-fw-char {
+  display: inline-block;
+  text-align: center;
+  font-family: var(--kp-font-display, sans-serif);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: transparent;
+  opacity: 0;
+  transform: translateY(104%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kp-fw-char { opacity: 0.10; transform: none; }
+}
+
+/* ============================================================
+   PREMIUM SECTION GRADIENTS
+   Apply these classes to <section> wrappers in place of flat bg.
+   ============================================================ */
+.kp-section {
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+.kp-section-alt {
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+.kp-section-feature {
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+.kp-section-stats {
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Radial glow overlays — add as <div aria-hidden> children */
+.kp-glow-blue {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: var(--kp-glow-blue);
+}
+.kp-glow-orange {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: var(--kp-glow-orange);
+}
+
+/* Gradient border utility */
+.kp-gradient-border {
+  position: relative;
+}
+.kp-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg,
+    rgba(13,90,167,0.5) 0%,
+    rgba(244,122,32,0.4) 100%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Noise texture overlay for depth */
+.kp-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 150px 150px;
+  opacity: 0.022;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: overlay;
 }
 
 /* ============================================================
@@ -894,9 +1077,26 @@ html::-webkit-scrollbar {
 
 body {
   overflow-x: clip;
+  background-image: var(--bg-gradient);
   background-color: var(--bg);
+  background-attachment: scroll;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
   color: var(--fg);
   transition:
     background-color 500ms ease,
+    background-image 500ms ease,
     color 500ms ease;
+}
+
+/* Stacking depth veil for mobile cards */
+.sc-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background: var(--bg);
+  opacity: 0;
+  border-radius: inherit;
+  transition: opacity 100ms ease;
 }

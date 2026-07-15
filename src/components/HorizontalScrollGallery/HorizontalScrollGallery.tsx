@@ -197,7 +197,7 @@ export function HorizontalScrollGallery({
   if (reduced || staticMode) {
     // Static / reduced-motion: a plain horizontally-scrollable snap row.
     return (
-      <section className={className} style={{ background: "var(--bg)", borderTop: "1px solid var(--border-soft)" }}>
+      <section className={className} style={{ background: "var(--section-bg)", borderTop: "1px solid var(--border-soft)" }}>
         <div className="py-24">
           {header}
           <div
@@ -220,7 +220,7 @@ export function HorizontalScrollGallery({
       ref={outerRef}
       className={className}
       style={{
-        background: "var(--bg)",
+        background: "var(--section-bg)",
         // Total scroll length: one viewport + N × vhPerItem.
         height: `${100 + items.length * vhPerItem * 100}vh`,
         borderTop: "1px solid var(--border-soft)",

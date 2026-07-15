@@ -1,8 +1,11 @@
 "use client";
 
 /**
- * Footer — 4-column dark footer with KP orange accents.
- * Always dark (var(--kp-dark)) in both themes, per design.
+ * Footer — 4-column theme-aware footer with KP orange accents and a
+ * giant 3D chrome wordmark filling the background (FooterWordmark).
+ * Shell styling lives in globals.css (.kp-footer) driven by the
+ * --footer-* tokens: light gradient + dark text in light mode,
+ * deep-space gradient + light text in dark mode.
  * Content comes from src/data/footer.json via footerConfig defaults.
  */
 
@@ -10,6 +13,7 @@ import Link from "next/link";
 import { FaFacebookF, FaInstagram, FaLinkedinIn, FaYoutube } from "react-icons/fa6";
 import { SectionReveal } from "@/components/SectionReveal";
 import { CredentialsStrip } from "@/components/CredentialsStrip";
+import { FooterWordmark } from "./FooterWordmark";
 import { FOOTER_DEFAULTS } from "./footerConfig";
 import type { FooterProps } from "./footerTypes";
 
@@ -28,14 +32,16 @@ export function Footer({
   className,
 }: FooterProps) {
   return (
-    <footer
-      className={className}
-      style={{
-        background: "var(--kp-dark)",
-        borderTop: "1px solid var(--kp-orange-soft)",
-      }}
-    >
-      <SectionReveal as="div" className="mx-auto max-w-6xl px-6 pt-16 pb-8 md:pt-20">
+    <footer className={`kp-footer ${className ?? ""} dark:!bg-transparent !bg-[#ffffffa1]`}>
+      {/* Atmospheric glows */}
+      <div aria-hidden className="kp-glow-blue" style={{ opacity: 0.8 }} />
+      <div aria-hidden className="kp-glow-orange" style={{ opacity: 0.6 }} />
+
+      {/* Giant 3D chrome wordmark — fills the footer, behind all content */}
+      <FooterWordmark />
+
+      {/* All footer content above the wordmark */}
+      <SectionReveal as="div" className="mx-auto max-w-6xl px-6 pt-16 pb-10 md:pt-20" style={{ position: "relative", zIndex: 1 }}>
         {/* Brand row */}
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -44,19 +50,17 @@ export function Footer({
                 fontFamily: "var(--kp-font-display)",
                 fontSize: "clamp(1.6rem, 3vw, 2.4rem)",
                 textTransform: "uppercase",
-                color: "var(--kp-light)",
                 lineHeight: 1,
               }}
             >
-              Kiran<span style={{ color: "var(--kp-orange)" }}> Publicity</span>
+              <span style={{ color: "#0065B1" }}>Kiran</span><span style={{ color: "#F58420" }}> Publicity</span>
             </div>
             <p
               className="mt-3 max-w-sm"
               style={{
                 fontFamily: "var(--kp-font-body)",
                 fontSize: "0.95rem",
-                color: "var(--kp-light)",
-                opacity: 0.55,
+                color: "var(--footer-text-muted)",
                 lineHeight: 1.6,
               }}
             >
@@ -77,17 +81,17 @@ export function Footer({
                   aria-label={key}
                   className="flex h-11 w-11 items-center justify-center rounded-full transition-colors duration-300"
                   style={{
-                    color: "var(--kp-light)",
+                    color: "var(--footer-text)",
                     border: "1px solid var(--kp-orange-soft)",
                     background: "transparent",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = "var(--kp-orange)";
-                    e.currentTarget.style.color = "var(--kp-dark)";
+                    e.currentTarget.style.color = "#08111F";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "var(--kp-light)";
+                    e.currentTarget.style.color = "var(--footer-text)";
                   }}
                 >
                   <Icon size={18} />
@@ -107,7 +111,7 @@ export function Footer({
                   fontSize: "var(--text-label)",
                   letterSpacing: "0.3em",
                   textTransform: "uppercase",
-                  color: "var(--kp-orange)",
+                  color: "var(--kp-orange-text)",
                 }}
               >
                 {col.title}
@@ -121,8 +125,7 @@ export function Footer({
                       style={{
                         fontFamily: "var(--kp-font-body)",
                         fontSize: "0.95rem",
-                        color: "var(--kp-light)",
-                        opacity: 0.6,
+                        color: "var(--footer-text-muted)",
                       }}
                     >
                       {link.label}
@@ -140,14 +143,13 @@ export function Footer({
         {/* Legal */}
         <div
           className="mt-8 flex flex-col gap-2 pt-6 md:flex-row md:items-center md:justify-between"
-          style={{ borderTop: "1px solid rgba(245, 247, 250, 0.08)" }}
+          style={{ borderTop: "1px solid var(--footer-hairline)" }}
         >
           <p
             style={{
               fontFamily: "var(--kp-font-body)",
               fontSize: "0.8rem",
-              color: "var(--kp-light)",
-              opacity: 0.4,
+              color: "var(--footer-text-faint)",
             }}
           >
             {legal}
@@ -158,8 +160,7 @@ export function Footer({
               fontSize: "0.7rem",
               letterSpacing: "0.2em",
               textTransform: "uppercase",
-              color: "var(--kp-light)",
-              opacity: 0.3,
+              color: "var(--footer-text-faint)",
             }}
           >
             Owning the skyline since 1998

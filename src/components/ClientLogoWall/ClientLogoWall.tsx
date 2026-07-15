@@ -24,7 +24,7 @@ export function ClientLogoWall({
   return (
     <section
       className={className}
-      style={{ background: "var(--bg)", borderTop: "1px solid var(--border-soft)" }}
+      style={{ background: "transparent", borderTop: "1px solid var(--border-soft)", position: "relative", overflow: "hidden" }}
     >
       <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
         <SectionReveal as="div" className="mb-14">

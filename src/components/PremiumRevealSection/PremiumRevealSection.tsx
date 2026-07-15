@@ -164,11 +164,11 @@ function PremiumRevealSectionInner({
         {showBackgroundGradient && !backgroundGradientClass && (
           <div
             className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                'radial-gradient(ellipse 70% 60% at 18% 28%, rgba(111,91,255,0.09) 0%, transparent 65%),' +
-                'radial-gradient(ellipse 60% 50% at 82% 72%, rgba(241,107,87,0.08) 0%, transparent 60%)',
-            }}
+            // style={{
+            //   background:
+            //     'radial-gradient(ellipse 70% 60% at 18% 28%, rgba(111,91,255,0.09) 0%, transparent 65%),' +
+            //     'radial-gradient(ellipse 60% 50% at 82% 72%, rgba(241,107,87,0.08) 0%, transparent 60%)',
+            // }}
             aria-hidden="true"
           />
         )}

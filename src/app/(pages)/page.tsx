@@ -67,7 +67,7 @@ const SHOWCASE_IMAGES = data.showcase.images;
 export default function Home() {
   /* ── JSX ──────────────────────────────────────────────────────────────── */
   return (
-    <div className="bg-white dark:bg-secondary" style={{ overflowX: "clip" }}>
+    <div style={{ overflowX: "clip" }}>
       {/* The first-visit / refresh loader is mounted globally in providers.tsx */}
       {/* Pre-decodes below-fold images and pre-buffers videos on idle so the
           first scroll never pays fetch/decode costs mid-frame. */}
@@ -102,7 +102,7 @@ export default function Home() {
         separatorIcon="diamond"
         separatorPosition="before"
         separatorSpacing={14}
-        bgColor="var(--bg)"
+        bgColor="transparent"
         fadeWidth="7rem"
         showTopDivider
         showBottomDivider
@@ -117,7 +117,7 @@ export default function Home() {
         repeatOnScroll={false}
         scrollStart="top 75%"
         minHeight="100vh"
-        backgroundColorClass="bg-white dark:bg-secondary"
+        backgroundColorClass=""
         animationEnabled
         showEntranceAnimation
         showBlurEffect={false}
@@ -195,9 +195,11 @@ export default function Home() {
 
       {/* Testimonials */}
       <section
-        className="py-24"
-        style={{ background: "var(--stage-bg)", borderTop: "1px solid var(--stage-border)" }}
+        className="py-24 kp-section-alt"
+        style={{ borderTop: "1px solid var(--stage-border)", position: "relative", overflow: "hidden" }}
       >
+        <div aria-hidden className="kp-glow-blue" style={{ opacity: 0.6 }} />
+        <div aria-hidden className="kp-glow-orange" style={{ opacity: 0.5 }} />
         <SectionReveal as="div" className="mx-auto mb-12 max-w-6xl px-6">
           <p
             style={{
