@@ -26,7 +26,7 @@
      scroll container and break the sticky child. */
   height: 350svh;
   isolation: isolate;
-  background: #050608;
+  background: transparent;
 }
 
 /* Static (no-scroll-animation) variant — same background, 100svh only */
@@ -35,7 +35,7 @@
   height: 100svh;
   min-height: 640px;
   isolation: isolate;
-  background: #050608;
+  background: transparent;
   overflow: clip;
 }
 
@@ -51,22 +51,46 @@
   background: linear-gradient(90deg, rgba(0, 0, 0, 0.48), rgba(0, 0, 0, 0.2) 48%, transparent 72%);
 }
 
-/* Hero overlay — multiple gradient layers for text legibility.
-   Desktop: strong left scrim (content lives on the left) + gentle top/bottom.
+/* Hero overlay — layered premium gradients for depth + brand richness.
+   Desktop: strong left scrim (content lives on the left) + brand blue/orange glow.
    Mobile:  content spans full width so we use a uniform vertical overlay. */
 .hero-overlay {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(to right,  rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.35) 42%, transparent 68%),
-    linear-gradient(to bottom, rgba(0,0,0,0.38) 0%, transparent 28%,      transparent 62%, rgba(0,0,0,0.48) 100%);
+    /* Brand blue glow — top-left corner */
+    radial-gradient(ellipse 70% 60% at 15% 20%,
+      rgba(13,90,167,0.28) 0%, transparent 60%),
+    /* Orange warmth — bottom-right */
+    radial-gradient(ellipse 50% 45% at 80% 85%,
+      rgba(244,122,32,0.18) 0%, transparent 55%),
+    /* Left-side content scrim */
+    linear-gradient(to right,
+      rgba(3,5,9,0.80) 0%,
+      rgba(5,10,18,0.55) 38%,
+      rgba(5,10,18,0.20) 60%,
+      transparent 75%),
+    /* Top-bottom vignette */
+    linear-gradient(to bottom,
+      rgba(3,5,9,0.45) 0%,
+      transparent 22%,
+      transparent 60%,
+      rgba(5,10,18,0.65) 100%);
 }
 
 @media (max-width: 767px) {
   .hero-overlay {
     background:
-      linear-gradient(to bottom, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.28) 35%, rgba(0,0,0,0.38) 65%, rgba(0,0,0,0.58) 100%);
+      radial-gradient(ellipse 80% 50% at 50% 10%,
+        rgba(13,90,167,0.22) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 50% 90%,
+        rgba(244,122,32,0.15) 0%, transparent 55%),
+      linear-gradient(to bottom,
+        rgba(3,5,9,0.62) 0%,
+        rgba(3,5,9,0.20) 30%,
+        rgba(3,5,9,0.25) 65%,
+        rgba(5,10,18,0.72) 100%);
   }
 }
 
@@ -87,13 +111,17 @@
   overflow: hidden;
   max-width: 1280px;
   margin: 0 auto;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(13,90,167,0.25);
   border-bottom: 0;
   border-radius: 26px 26px 0 0;
   background:
-    radial-gradient(circle at 12% 0%, rgba(245, 130, 31, 0.13), transparent 34%),
-    linear-gradient(135deg, rgba(20, 23, 28, 0.94), rgba(5, 7, 10, 0.90));
-  box-shadow: 0 -24px 80px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255, 255, 255, 0.08);
+    radial-gradient(ellipse at 8% 0%, rgba(13,90,167,0.22), transparent 40%),
+    radial-gradient(ellipse at 92% 100%, rgba(244,122,32,0.14), transparent 40%),
+    linear-gradient(135deg, rgba(8,17,31,0.96) 0%, rgba(5,7,12,0.94) 100%);
+  box-shadow:
+    0 -24px 80px rgba(0, 0, 0, 0.55),
+    0 -4px 24px rgba(13,90,167,0.18),
+    inset 0 1px rgba(255,255,255,0.08);
 }
 
 .hero-stats-highlight {
@@ -118,10 +146,11 @@
   visibility: hidden;
   position: relative;
   overflow: hidden;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(13,90,167,0.20);
   background:
-    radial-gradient(circle at 12% 0%, rgba(245, 130, 31, 0.13), transparent 34%),
-    linear-gradient(135deg, rgba(20, 23, 28, 0.94), rgba(5, 7, 10, 0.90));
+    radial-gradient(ellipse at 10% 50%, rgba(13,90,167,0.18), transparent 45%),
+    radial-gradient(ellipse at 90% 50%, rgba(244,122,32,0.12), transparent 45%),
+    linear-gradient(135deg, rgba(8,17,31,0.97) 0%, rgba(5,7,12,0.95) 100%);
   mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
 }

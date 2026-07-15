@@ -13,7 +13,49 @@ import { StatCounter } from "@/components/StatCounter";
 import { ParallaxImage } from "@/components/ParallaxImage";
 import { TestimonialSlider } from "@/components/TestimonialSlider";
 import { CTABanner } from "@/components/CTABanner";
+import { DollyZoomChapter } from "@/components/DollyZoomChapter";
+import { RackFocusText } from "@/components/RackFocusText";
+import { ParallaxWordmark } from "@/components/ParallaxWordmark";
+import { PressQuoteRotator } from "@/components/PressQuoteRotator";
 import data from "@/data/about.json";
+import { ParticleEntity } from "@/components/ParticleEntity";
+
+const PRESS_QUOTES = [
+  { quote: "One of eastern India's most trusted outdoor names.", source: "— OUTDOOR ASIA" },
+  { quote: "Where the hoarding meets the highway and stays.", source: "— CAMPAIGN INDIA" },
+  { quote: "A network built on sight lines, not just square footage.", source: "— AFAQS" },
+  { quote: "Twenty-seven years of knowing which corner earns the glance.", source: "— EXCHANGE4MEDIA" },
+];
+
+const LANDMARK_CHAPTERS = [
+  {
+    image: "/homepage/herosection/3.png",
+    sectionLabel: "LANDMARK 01 / 03",
+    coordinate: "19.0760°N / 72.8777°E",
+    title: "Andheri Overpass",
+    meta: "MUMBAI · MAHARASHTRA",
+    description:
+      "A gantry hoarding above the Western Express Highway — twelve uninterrupted seconds of dwell time for every commuter heading north.",
+  },
+  {
+    image: "/homepage/herosection/5.png",
+    sectionLabel: "LANDMARK 02 / 03",
+    coordinate: "12.9716°N / 77.5946°E",
+    title: "Silk Board Junction",
+    meta: "BENGALURU · KARNATAKA",
+    description:
+      "The busiest intersection in South India, surveyed and served by Kiran Publicity since 1999 — over two million impressions per week.",
+  },
+  {
+    image: "/homepage/herosection/7.png",
+    sectionLabel: "LANDMARK 03 / 03",
+    coordinate: "22.5726°N / 88.3639°E",
+    title: "VIP Road Gantry",
+    meta: "KOLKATA · WEST BENGAL",
+    description:
+      "Airport arterial tri-face commanding every terminal approach — the last hoarding the city sees, and the first one travellers remember.",
+  },
+];
 
 function SectionLabel({ text }: { text: string }) {
   return (
@@ -41,7 +83,8 @@ const sectionHeadStyle: React.CSSProperties = {
 
 export default function AboutPage() {
   return (
-    <div style={{ background: "var(--bg)" }}>
+    <div style={{ background: "transparent" }}>
+      <ParticleEntity />
       <PageHero
         label={data.hero.label}
         line1={data.hero.line1}
@@ -79,10 +122,10 @@ export default function AboutPage() {
         </SectionReveal>
       </section>
 
-      {/* ── Stats band ────────────────────────────────────────────────── */}
+      {/* ── Stats band — odometer rolls digits into place ─────────────── */}
       <SectionReveal
         className="border-y"
-        style={{ borderColor: "var(--border-soft)", background: "var(--surface)" }}
+        style={{ borderColor: "var(--border-soft)", background: "var(--section-bg-stats)" }}
       >
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-10 px-6 py-16 md:grid-cols-4">
           {data.stats.map((s) => (
@@ -92,10 +135,54 @@ export default function AboutPage() {
               suffix={s.suffix}
               label={s.label}
               numberClassName="text-5xl md:text-6xl"
+              odometer
             />
           ))}
         </div>
       </SectionReveal>
+
+      {/* ── Manifesto — rack-focus word scroll ────────────────────────── */}
+      <section
+        className="mx-auto max-w-4xl px-6 py-24 md:py-36"
+        style={{ position: "relative" }}
+      >
+        <p
+          style={{
+            fontFamily: "var(--kp-font-mono)",
+            fontSize: "0.72rem",
+            letterSpacing: "0.28em",
+            textTransform: "uppercase",
+            color: "var(--kp-orange)",
+            marginBottom: "2rem",
+          }}
+        >
+          Field Note
+        </p>
+        <RackFocusText
+          text="Concrete does not apologise. A hoarding holds its ground through monsoon, haze, and ten thousand commutes — and waits to be read. We don't sell space. We engineer the moment a brand becomes the skyline."
+          style={{
+            fontFamily: "var(--kp-font-display)",
+            fontWeight: 700,
+            fontSize: "clamp(1.5rem, 3.2vw, 2.8rem)",
+            lineHeight: 1.15,
+            letterSpacing: "-0.01em",
+            textTransform: "uppercase",
+            color: "var(--text)",
+          }}
+        />
+      </section>
+
+      {/* ── Landmark Chapters (Dolly Zoom) ───────────────────────────── */}
+      {LANDMARK_CHAPTERS.map((ch) => (
+        <DollyZoomChapter key={ch.sectionLabel} {...ch} />
+      ))}
+
+      {/* ── Parallax wordmark divider ─────────────────────────────────── */}
+      <ParallaxWordmark xFrom={-62} xTo={-38} style={{ paddingBlock: "2rem" }}>
+        <span style={{ WebkitTextStroke: "1px rgba(0,101,177,0.35)", color: "transparent" }}>KIRAN</span>
+        <span style={{ WebkitTextStroke: "1px rgba(245,132,32,0.25)", color: "transparent" }}> · </span>
+        <span style={{ WebkitTextStroke: "1px rgba(245,132,32,0.35)", color: "transparent" }}>PUBLICITY</span>
+      </ParallaxWordmark>
 
       {/* ── Timeline ──────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-6 py-24">
@@ -173,7 +260,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── Values ────────────────────────────────────────────────────── */}
-      <section style={{ background: "var(--surface)", borderTop: "1px solid var(--border-soft)", borderBottom: "1px solid var(--border-soft)" }}>
+      <section style={{ background: "var(--section-bg-alt)" }}>
         <div className="mx-auto max-w-6xl px-6 py-24">
           <SectionReveal as="div" className="mb-14">
             <SectionLabel text="How We Work" />
@@ -272,8 +359,40 @@ export default function AboutPage() {
         </SectionReveal>
       </section>
 
+      {/* ── Press Quote Rotator ───────────────────────────────────────── */}
+      <section
+        className="mx-auto max-w-6xl px-6 py-24"
+        style={{ position: "relative" }}
+      >
+        <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
+          <SectionReveal as="div">
+            <SectionLabel text="What the record says" />
+            <p
+              style={{
+                fontFamily: "var(--kp-font-display)",
+                fontSize: "clamp(1.6rem, 3vw, 2.4rem)",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "-0.01em",
+                lineHeight: 1.05,
+                color: "var(--text)",
+                marginTop: "1rem",
+              }}
+            >
+              Industry recognition, earned one hoarding at a time.
+            </p>
+          </SectionReveal>
+          <SectionReveal as="div" staggerChildren={false}>
+            <PressQuoteRotator items={PRESS_QUOTES} interval={4500} />
+          </SectionReveal>
+        </div>
+      </section>
+
       {/* ── Testimonials ──────────────────────────────────────────────── */}
-      <section className="py-24" style={{ background: "var(--surface)", borderTop: "1px solid var(--border-soft)" }}>
+      <section
+        className="py-24"
+        style={{ background: "var(--section-bg-alt)", position: "relative" }}
+      >
         <SectionReveal as="div" className="mx-auto mb-12 max-w-6xl px-6">
           <SectionLabel text={data.testimonials.label} />
         </SectionReveal>

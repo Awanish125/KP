@@ -27,7 +27,9 @@ export function ProcessSteps({
   }, []);
 
   return (
-    <section ref={sectionRef} className={className} style={{ background: "var(--stage-bg)", position: "relative", overflow: "hidden" }}>
+    <section ref={sectionRef} className={className} style={{ background: "transparent", position: "relative", overflow: "hidden" }}>
+      <div aria-hidden className="kp-glow-blue" style={{ opacity: 0.7 }} />
+      <div aria-hidden className="kp-glow-orange" style={{ opacity: 0.7 }} />
       <div className="kp-glow-layer" aria-hidden />
       <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
         <SectionReveal as="div" className="mb-16">

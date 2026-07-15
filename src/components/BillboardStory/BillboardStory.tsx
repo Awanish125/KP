@@ -19,12 +19,15 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { prefersReducedMotion, tickWhileVisible } from "@/lib/motion";
 import { SectionReveal } from "@/components/SectionReveal";
 import { TextReveal } from "@/components/TextReveal";
 import { BILLBOARD_STORY_DEFAULTS } from "./billboardStoryConfig";
 import { isVideoMedia, type BillboardStoryProps } from "./billboardStoryTypes";
 import BillboardStoryScene from "./BillboardStoryScene";
+
+gsap.registerPlugin(ScrollTrigger);
 
 export function BillboardStory({
   steps,
@@ -39,10 +42,51 @@ export function BillboardStory({
   const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
   const [reduced, setReduced] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setReduced(prefersReducedMotion());
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Stacking depth veil animation for mobile cards
+  useEffect(() => {
+    if (!isMobile || reduced || !steps.length) return;
+
+    const cards = gsap.utils.toArray(".mobile-stack-card");
+    const STEP_VEIL = 0.25;
+
+    const triggers: ScrollTrigger[] = [];
+
+    cards.forEach((card: any, i: number) => {
+      const veil = card.querySelector(".sc-veil");
+      if (!veil) return;
+
+      for (let j = i + 1; j < cards.length; j++) {
+        const before = j - 1 - i;
+        const after = j - i;
+        const st = ScrollTrigger.create({
+          trigger: cards[j],
+          start: "top 95%",
+          end: "top 45%",
+          scrub: true,
+          onUpdate: (self) => {
+            const progress = self.progress;
+            const currentOpacity = (STEP_VEIL * before) + (STEP_VEIL * progress);
+            gsap.set(veil, { opacity: Math.min(currentOpacity, 0.65) });
+          }
+        });
+        triggers.push(st);
+      }
+    });
+
+    return () => {
+      triggers.forEach((st) => st.kill());
+    };
+  }, [isMobile, reduced, steps.length]);
 
 
   /* Scroll → step index (state changes only at boundaries). */
@@ -127,27 +171,52 @@ export function BillboardStory({
   };
 
   /* ── Static / reduced-motion: clean step grid, no 3D, no scroll ticker ── */
-  if (staticMode || reduced) {
+  if (staticMode || reduced || isMobile) {
     return (
-      <section className={className} style={{ background: "var(--stage-bg)" }}>
+      <section className={className} style={{ background: "transparent" }}>
         <div className="mx-auto max-w-6xl px-6 py-24">
           <p style={kickerStyle}>{label}</p>
-          <h2 className="mt-4 mb-12" style={{ ...titleStyle, fontSize: "var(--text-section)" }}>
+          <h2 className="mt-4 mb-16" style={{ ...titleStyle, fontSize: "var(--text-section)" }}>
             {heading}
           </h2>
-          <div className="grid gap-10">
-            {steps.map((s) => (
-              <div key={s.title} className="grid gap-6 md:grid-cols-2 md:items-center">
-                <div>
+          <div className="flex flex-col gap-12 relative pb-24">
+            {steps.map((s, i) => (
+              <div
+                key={s.title}
+                className="mobile-stack-card grid gap-6 md:grid-cols-2 md:items-center relative overflow-hidden"
+                style={{
+                  position: "sticky",
+                  top: `calc(100px + ${i * 1.5}rem)`,
+                  zIndex: i,
+                  transform: `scale(${1 - (steps.length - 1 - i) * 0.025})`,
+                  transformOrigin: "center top",
+                  background: "var(--kp-card-bg)",
+                  border: "1px solid var(--border-soft)",
+                  borderRadius: "16px",
+                  padding: "2rem",
+                  boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
+                  backdropFilter: "blur(12px)",
+                }}
+              >
+                {/* Depth veil overlays other elements inside card */}
+                <span className="sc-veil" aria-hidden="true" />
+                
+                <div style={{ position: "relative", zIndex: 2 }}>
                   <p style={kickerStyle}>{s.kicker}</p>
                   <h3 className="mt-2" style={titleStyle}>{s.title}</h3>
                   <p className="mt-3" style={bodyStyle}>{s.body}</p>
                 </div>
-                {!isVideoMedia(s.media) && (
-                  <div className="relative overflow-hidden rounded-xl" style={{ aspectRatio: "5 / 3" }}>
-                    <Image src={s.media} alt={s.title} fill sizes="(max-width: 768px) 100vw, 50vw" style={{ objectFit: "cover" }} />
-                  </div>
-                )}
+                <div style={{ position: "relative", zIndex: 2 }}>
+                  {isVideoMedia(s.media) ? (
+                    <div className="relative overflow-hidden rounded-xl" style={{ aspectRatio: "5 / 3" }}>
+                      <video src={s.media} autoPlay muted loop playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                  ) : (
+                    <div className="relative overflow-hidden rounded-xl" style={{ aspectRatio: "5 / 3" }}>
+                      <Image src={s.media} alt={s.title} fill sizes="(max-width: 768px) 100vw, 50vw" style={{ objectFit: "cover" }} />
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -161,8 +230,7 @@ export function BillboardStory({
       ref={outerRef}
       className={className}
       style={{
-        background:
-          "radial-gradient(ellipse at 70% 45%, var(--stage-bg-2), var(--stage-bg) 72%)",
+        background: "transparent",
         height: `${100 + steps.length * vhPerStep * 100}vh`,
       }}
     >
@@ -252,7 +320,7 @@ export function BillboardStory({
           </div>
 
           {/* ── Right: billboard ─────────────────────────────────────── */}
-          <div className="relative order-1 h-[34vh] lg:order-2 lg:h-[74vh]">
+          <div className="relative order-1 w-full aspect-[5/3] lg:order-2 lg:h-[74vh] lg:aspect-none">
             <BillboardStoryScene
               steps={steps}
               stepIndex={stepIndex}

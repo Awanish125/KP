@@ -13,7 +13,7 @@ import data from "@/data/services.json";
 
 export default function ServicesPage() {
   return (
-    <div style={{ background: "var(--bg)" }}>
+    <div style={{ background: "transparent" }}>
       <PageHero
         label={data.hero.label}
         line1={data.hero.line1}

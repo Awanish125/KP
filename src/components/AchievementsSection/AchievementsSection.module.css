@@ -7,7 +7,7 @@
   position: relative;
   padding: 8rem 2rem 7rem;
   overflow: hidden;
-  background: var(--stage-bg);
+  background: transparent;
 }
 
 /* Faint graph-paper grid */

@@ -1,26 +1,25 @@
 "use client";
 
 /**
- * PremiumLoader — minimal, cinematic first-visit reveal.
+ * PremiumLoader — Atlas Brut-style curtain split + scramble decode.
  *
- * Sequence: wordmark letters rise in and tracking widens → counter runs
- * 0→100 against a hairline progress bar → a soft orange bloom breathes
- * behind the wordmark → the whole field wipes upward, unveiling the page.
+ * Sequence:
+ *   • Title scrambles from block glyphs → "KIRAN PUBLICITY" (left→right reveal)
+ *   • Subtitle scrambles in — "OUTDOOR ADVERTISING · PAN INDIA"
+ *   • Counter 0→100 runs against a hairline progress bar
+ *   • Orange bloom breathes behind the wordmark
+ *   • Console content fades out
+ *   • Two curtain halves fly apart (left → xPercent -101, right → xPercent +101)
+ *     with expo.inOut — the same Atlas Brut curtain split
  *
- * First-paint contract (the loader must NEVER appear late):
- *  - Rendered in the SSR HTML (no portal, no state gate), so it covers
- *    the page from the first frame even while everything else loads.
- *  - Visibility is CSS-gated: the inline head script in layout.tsx adds
- *    `kp-first-visit` to <html> BEFORE paint when the session is new;
- *    repeat visitors never see a flash (display: none).
+ * First-paint contract (unchanged):
+ *  - SSR-rendered — covers the page before any JS runs.
+ *  - CSS-gated: `kp-first-visit` on <html> makes it visible; without it the
+ *    component is invisible so repeat visitors never flash.
  *
- * Reveal contract (same as the original Loading.tsx):
- *  - `page-revealed` on <html> + `kp:loaded` fire when the timeline ENDS,
- *    so the hero entrance plays in full view.
- *  - When the loader is skipped (repeat visit / reduced motion), the same
- *    signals fire — but only after the PageTransition veil has finished,
- *    so the hero entrance is never hidden behind the veil.
- *  - pointer-events: none — the page underneath is interactive throughout.
+ * Reveal contract (unchanged):
+ *  - `page-revealed` on <html> + `kp:loaded` event fire on wipe complete.
+ *  - pointer-events: none throughout.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -30,12 +29,14 @@ import { onPageReady } from "@/lib/pageReady";
 import { PREMIUM_LOADER_DEFAULTS } from "./premiumLoaderConfig";
 import type { PremiumLoaderProps } from "./premiumLoaderTypes";
 
+import { scrambleDecode } from "@/lib/scramble";
+
+/* ── Reveal signals ─────────────────────────────────────────────────────── */
 function emitRevealSignals() {
   document.documentElement.classList.add("page-revealed");
   window.dispatchEvent(new Event("kp:loaded"));
 }
 
-/** Fire the reveal signals once the route veil (if any) is out of the way. */
 function emitRevealSignalsAfterVeil() {
   let fired = false;
   const fire = () => {
@@ -45,12 +46,13 @@ function emitRevealSignalsAfterVeil() {
   };
   if (window.__kpVeilActive) {
     window.addEventListener("kp:veil-done", fire, { once: true });
-    window.setTimeout(fire, 1600); // safety net — never leave the hero hidden
+    window.setTimeout(fire, 1600);
   } else {
     fire();
   }
 }
 
+/* ── Component ──────────────────────────────────────────────────────────── */
 export function PremiumLoader({
   word1 = PREMIUM_LOADER_DEFAULTS.word1,
   word2 = PREMIUM_LOADER_DEFAULTS.word2,
@@ -58,27 +60,21 @@ export function PremiumLoader({
   exitDuration = PREMIUM_LOADER_DEFAULTS.exitDuration,
 }: PremiumLoaderProps) {
   const [done, setDone] = useState(false);
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const wordRef = useRef<HTMLDivElement>(null);
-  const bloomRef = useRef<HTMLDivElement>(null);
-  const counterRef = useRef<HTMLSpanElement>(null);
-  const barRef = useRef<HTMLDivElement>(null);
-  const footRef = useRef<HTMLDivElement>(null);
+
+  // Two curtain halves — the new exit mechanism
+  const rootRef   = useRef<HTMLDivElement>(null);
+  const leftRef   = useRef<HTMLDivElement>(null);
+  const rightRef  = useRef<HTMLDivElement>(null);
+  // Console content
+  const titleRef    = useRef<HTMLParagraphElement>(null);
+  const subtitleRef = useRef<HTMLParagraphElement>(null);
+  const bloomRef    = useRef<HTMLDivElement>(null);
+  const counterRef  = useRef<HTMLSpanElement>(null);
+  const barRef      = useRef<HTMLDivElement>(null);
+  const footRef     = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // The pre-paint flag marks a HARD document load (the inline head
-    // script sets it; we retire it below, so SPA navigations never see
-    // it). Every hard load gets covered — the full cinematic for a brand
-    // new session, a quick brand wipe for refreshes/returns — so raw
-    // half-loaded content is never the first paint.
     const hardLoad = document.documentElement.classList.contains("kp-first-visit");
-    let seen = false;
-    try {
-      seen = !!sessionStorage.getItem("kp-visited");
-    } catch {
-      /* storage blocked — treat as seen */
-      seen = true;
-    }
 
     if (!hardLoad || prefersReducedMotion()) {
       document.documentElement.classList.remove("kp-first-visit");
@@ -87,104 +83,95 @@ export function PremiumLoader({
       return;
     }
 
-    const short = seen; // refresh / returning this session → quick wipe
+    // Full cinematic on every hard load — no short path
+    const short = false;
 
-    const overlay = overlayRef.current;
-    const word = wordRef.current;
-    const bloom = bloomRef.current;
-    const counter = counterRef.current;
-    const bar = barRef.current;
-    const foot = footRef.current;
-    if (!overlay || !word || !bloom || !counter || !bar || !foot) return;
+    const root     = rootRef.current;
+    const left     = leftRef.current;
+    const right    = rightRef.current;
+    const title    = titleRef.current;
+    const subtitle = subtitleRef.current;
+    const bloom    = bloomRef.current;
+    const counter  = counterRef.current;
+    const bar      = barRef.current;
+    const foot     = footRef.current;
 
-    const letters = Array.from(word.querySelectorAll("[data-letter]"));
+    if (!root || !left || !right || !title || !subtitle || !bloom || !counter || !bar || !foot) return;
+
+    const titleText    = `${word1} ${word2}`;
+    const subtitleText = "OUTDOOR ADVERTISING · PAN INDIA";
     const count = { v: 0 };
 
-    // Track the exit timeline so cleanup can kill it if the component unmounts
-    // while onPageReady is waiting (prevents setDone on an unmounted component).
     let exitTl: gsap.core.Timeline | null = null;
     let alive = true;
 
-    // doExit — runs after both the loader animation AND onPageReady gate clear.
-    // Sequence:
-    //   1. Snap Lenis to 0 + start it NOW — scroll works during the wipe, not after.
-    //   2. Pin overlay visible with an inline style so the CSS class removal
-    //      doesn't flash the page before the wipe completes.
-    //   3. Animate the wipe.
-    //   4. On wipe complete: clear inline style, remove CSS gate, emit signals.
+    /* doExit — curtain split.
+       1. Snap Lenis + start it so scroll is live during the wipe.
+       2. Pin the root visible via inline style (overrides CSS class removal).
+       3. Fade console, then both curtains fly apart simultaneously.
+       4. On complete: clear inline styles, remove CSS gate, emit signals.    */
     const doExit = (wipeDuration: number) => {
       if (!alive) return;
 
-      // Start Lenis immediately so scroll is responsive the instant the wipe
-      // begins — not after it ends. snap to 0 so first-scroll position is clean.
       const lenis = window.__kpLenis;
       lenis?.scrollTo(0, { immediate: true });
       lenis?.start();
 
-      // Lock visibility via inline style — takes precedence over the CSS class,
-      // keeping the overlay on screen throughout the wipe animation.
-      overlay.style.visibility = "visible";
-      overlay.style.willChange = "clip-path";
+      // Keep the root on screen through the animation
+      root.style.visibility = "visible";
 
       exitTl = gsap.timeline({
         onComplete: () => {
           if (!alive) return;
-          // Clear inline overrides, retire the CSS gate, emit reveal signals.
-          overlay.style.visibility = "";
-          overlay.style.willChange = "";
+          root.style.visibility = "";
           document.documentElement.classList.remove("kp-first-visit");
           emitRevealSignals();
           setDone(true);
         },
       });
-      exitTl.to(overlay, {
-        clipPath: "inset(0 0 100% 0)",
-        duration: wipeDuration,
-        ease: "power4.inOut",
+
+      // Console fades just before the curtains part
+      exitTl.to([title, subtitle, foot], {
+        autoAlpha: 0,
+        duration: 0.3,
+        ease: "power2.in",
       });
+
+      // Both curtain halves fly out simultaneously — the Atlas Brut split
+      exitTl.to(left,  { xPercent: -101, duration: wipeDuration, ease: "expo.inOut" }, "-=0.05");
+      exitTl.to(right, { xPercent:  101, duration: wipeDuration, ease: "expo.inOut" }, "<");
     };
 
     const tl = gsap.timeline({ defaults: { ease: "power4.out" } });
 
     if (short) {
-      // ── Quick brand wipe for refreshes / returning sessions ──────────
-      // The overlay wipe is split into doExit so onPageReady can hold it
-      // until the WebGL scene is warm — even on a quick 1 s wipe, the GPU
-      // may not have finished its first render before the loader exits.
-      gsap.set(foot, { opacity: 0 });
-      tl.fromTo(
-        letters,
-        { yPercent: 120 },
-        { yPercent: 0, duration: 0.5, stagger: 0.018 },
-        0.05,
-      );
+      /* ── Quick wipe for returning sessions ─────────────────────────────
+         Scramble the title once, bloom in, then curtain split.           */
+      tl.add(scrambleDecode(title, titleText, 0.6), 0);
       tl.fromTo(
         bloom,
         { opacity: 0, scale: 0.7 },
         { opacity: 0.45, scale: 1.05, duration: 0.5, ease: "power2.inOut" },
         0.15,
       );
-      tl.to(word, { yPercent: -160, opacity: 0, duration: 0.4, ease: "power3.in" }, 0.72);
-      tl.add(() => onPageReady(() => doExit(0.7)));
+      tl.add(() => onPageReady(() => doExit(0.75)));
+
     } else {
-      // ── Full cinematic (first visit of the session) ──────────────────
+      /* ── Full cinematic (first visit) ──────────────────────────────────
+         1. Title scramble decodes (1.5 s)
+         2. Subtitle scramble decodes (1.2 s, slight offset)
+         3. Foot fades in; counter runs 0→100 with hairline bar
+         4. Orange bloom swells
+         5. Console fades; curtain split                                   */
 
-      // 1 — letters rise into view, tracking breathes open.
-      tl.fromTo(
-        letters,
-        { yPercent: 120 },
-        { yPercent: 0, duration: 0.9, stagger: 0.035 },
-        0.15,
-      );
-      tl.fromTo(
-        word,
-        { letterSpacing: "0.02em" },
-        { letterSpacing: "0.18em", duration: 2.2, ease: "power2.inOut" },
-        0.15,
-      );
-      tl.fromTo(foot, { opacity: 0 }, { opacity: 1, duration: 0.6 }, 0.5);
+      // foot is visible from frame 0 — counter always shows progress
+      gsap.set(foot, { opacity: 1 });
 
-      // 2 — counter + hairline progress (single tween drives both).
+      // 1 — scramble decode both lines concurrently with the counter
+      tl.add(scrambleDecode(title, titleText, 1.5), 0);
+      tl.add(scrambleDecode(subtitle, subtitleText, 1.2), 0.25);
+
+      // 2 — counter + hairline bar run from the very first frame
       tl.to(
         count,
         {
@@ -196,10 +183,10 @@ export function PremiumLoader({
             bar.style.transform = `scaleX(${count.v / 100})`;
           },
         },
-        0.35,
+        0,
       );
 
-      // 3 — orange bloom swells behind the wordmark as loading completes.
+      // 3 — bloom swells as counter nears 100
       tl.fromTo(
         bloom,
         { opacity: 0, scale: 0.6 },
@@ -207,13 +194,7 @@ export function PremiumLoader({
         countDuration - 0.55,
       );
 
-      // 4 — content exits; overlay wipe is deferred to doExit via onPageReady
-      // so the reveal only happens once the WebGL scene is fully warm.
-      tl.to(
-        [word, foot],
-        { yPercent: -160, opacity: 0, duration: exitDuration * 0.7, ease: "power3.in" },
-        ">-0.05",
-      );
+      // 5 — curtain split (deferred so WebGL scene is warm first)
       tl.add(() => onPageReady(() => doExit(exitDuration)));
     }
 
@@ -222,32 +203,59 @@ export function PremiumLoader({
       tl.kill();
       exitTl?.kill();
     };
-  }, [countDuration, exitDuration]);
+  }, [word1, word2, countDuration, exitDuration]);
 
   if (done) return null;
 
   return (
     <div
-      ref={overlayRef}
+      ref={rootRef}
       aria-hidden
       className="kp-loader-root"
       style={{
         position: "fixed",
         inset: 0,
         zIndex: 999,
-        background: "var(--kp-dark)",
-        clipPath: "inset(0 0 0% 0)",
         pointerEvents: "none",
-        display: "flex",   // explicit — CSS gate controls visibility, not display
-        alignItems: "center",
-        justifyContent: "center",
+        overflow: "hidden", // clips curtain halves as they fly out
       }}
     >
-      {/* Orange bloom */}
+      {/* ── Left curtain half ── */}
+      <div
+        ref={leftRef}
+        style={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          left: 0,
+          width: "50.5%",           // 0.5% overlap kills the 1-px seam
+          background: "var(--bg)",
+          willChange: "transform",
+        }}
+      />
+
+      {/* ── Right curtain half ── */}
+      <div
+        ref={rightRef}
+        style={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          right: 0,
+          width: "50.5%",
+          background: "var(--bg)",
+          willChange: "transform",
+        }}
+      />
+
+      {/* ── Orange bloom — sits above the curtains ── */}
       <div
         ref={bloomRef}
         style={{
           position: "absolute",
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
           width: "min(70vw, 640px)",
           aspectRatio: "1",
           borderRadius: "50%",
@@ -258,42 +266,53 @@ export function PremiumLoader({
         }}
       />
 
-      {/* Wordmark — each letter masked, rises in */}
+      {/* ── Console — center content ── */}
       <div
-        ref={wordRef}
         style={{
-          position: "relative",
+          position: "absolute",
+          inset: 0,
           display: "flex",
-          gap: "0.35em",
-          fontFamily: "var(--kp-font-display)",
-          fontSize: "clamp(1.4rem, 4.5vw, 3rem)",
-          fontWeight: 600,
-          textTransform: "uppercase",
-          color: "var(--kp-light)",
-          letterSpacing: "0.02em",
-          lineHeight: 1,
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "0.6rem",
+          textAlign: "center",
         }}
       >
-        {[word1, word2].map((w, wi) => (
-          <span key={wi} style={{ display: "inline-flex" }}>
-            {w.split("").map((ch, i) => (
-              <span key={i} style={{ overflow: "hidden", display: "inline-block" }}>
-                <span
-                  data-letter
-                  style={{
-                    display: "inline-block",
-                    color: wi === 1 ? "var(--kp-orange)" : undefined,
-                  }}
-                >
-                  {ch}
-                </span>
-              </span>
-            ))}
-          </span>
-        ))}
+        {/* Scramble title: KIRAN PUBLICITY */}
+        <p
+          ref={titleRef}
+          style={{
+            fontFamily: "var(--kp-font-display)",
+            fontSize: "clamp(1.4rem, 4.5vw, 3rem)",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            background: "linear-gradient(90deg, #0065B1 0%, #0065B1 36%, #F58420 52%, #F58420 100%)",
+            WebkitBackgroundClip: "text",
+            backgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            color: "transparent",
+            letterSpacing: "0.12em",
+            lineHeight: 1,
+            margin: 0,
+          }}
+        />
+
+        {/* Scramble subtitle: OUTDOOR ADVERTISING · PAN INDIA */}
+        <p
+          ref={subtitleRef}
+          style={{
+            fontFamily: "var(--kp-font-mono, monospace)",
+            fontSize: "0.68rem",
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: "var(--kp-orange)",
+            margin: 0,
+          }}
+        />
       </div>
 
-      {/* Foot row: counter + hairline */}
+      {/* ── Foot row: counter + hairline ── */}
       <div
         ref={footRef}
         style={{
@@ -302,6 +321,7 @@ export function PremiumLoader({
           right: 0,
           bottom: 0,
           padding: "0 clamp(1.5rem, 5vw, 4rem) clamp(1.25rem, 4vh, 2.5rem)",
+          opacity: 0,
         }}
       >
         <div
@@ -314,12 +334,11 @@ export function PremiumLoader({
         >
           <span
             style={{
-              fontFamily: "var(--kp-font-mono)",
+              fontFamily: "var(--kp-font-mono, monospace)",
               fontSize: "0.65rem",
               letterSpacing: "0.4em",
               textTransform: "uppercase",
-              color: "var(--kp-light)",
-              opacity: 0.45,
+              color: "var(--text-muted)",
             }}
           >
             Outdoor Advertising · Pan India
@@ -329,7 +348,7 @@ export function PremiumLoader({
               fontFamily: "var(--kp-font-display)",
               fontSize: "clamp(2.4rem, 7vw, 5rem)",
               lineHeight: 0.9,
-              color: "var(--kp-light)",
+              color: "var(--text)",
               fontVariantNumeric: "tabular-nums",
             }}
           >
@@ -337,10 +356,12 @@ export function PremiumLoader({
             <span style={{ color: "var(--kp-orange)" }}>%</span>
           </span>
         </div>
+
+        {/* Hairline progress bar */}
         <div
           style={{
             height: 1,
-            background: "rgba(245, 247, 250, 0.14)",
+            background: "var(--text-subtle)",
             position: "relative",
             overflow: "hidden",
           }}

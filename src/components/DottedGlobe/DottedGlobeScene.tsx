@@ -97,10 +97,36 @@ export default function DottedGlobeScene({
     const group = new THREE.Group();
     scene.add(group);
 
-    /* Occluder — hides far-side dots. */
+    /* Sphere body — also occludes far-side dots. Fresnel-shaded so the
+       ball reads as 3D: core color at the center, limb color toward the
+       edge, plus a soft top-left sheen. Colors are theme uniforms. */
     const occluderGeom = new THREE.SphereGeometry(radius * 0.99, 48, 48);
-    const occluderMat = new THREE.MeshBasicMaterial({
-      color: tokenColor("--kp-dark-2", "#1A1A2E"),
+    const occluderMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uCore: { value: new THREE.Color("#0D1B30") },
+        uLimb: { value: new THREE.Color("#274B77") },
+        uSheen: { value: new THREE.Color("#35659B") },
+        uSheenStr: { value: 0.35 },
+      },
+      vertexShader: /* glsl */ `
+        varying vec3 vN; varying vec3 vV;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vN = normalize(normalMatrix * normal);
+          vV = normalize(-mv.xyz);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uCore; uniform vec3 uLimb; uniform vec3 uSheen;
+        uniform float uSheenStr;
+        varying vec3 vN; varying vec3 vV;
+        void main() {
+          float fres = pow(1.0 - max(dot(vN, vV), 0.0), 2.0);
+          vec3 col = mix(uCore, uLimb, fres);
+          float lit = max(dot(vN, normalize(vec3(-0.35, 0.55, 0.75))), 0.0);
+          col += uSheen * pow(lit, 3.0) * uSheenStr;
+          gl_FragColor = vec4(col, 1.0);
+        }`,
     });
     group.add(new THREE.Mesh(occluderGeom, occluderMat));
 
@@ -123,13 +149,36 @@ export default function DottedGlobeScene({
     });
     group.add(new THREE.Points(landGeom, landMat));
 
-    /* Atmosphere rim. */
-    const rimGeom = new THREE.SphereGeometry(radius * 1.02, 48, 48);
-    const rimMat = new THREE.MeshBasicMaterial({
-      color: tokenColor("--kp-blue", "#5BA3D6"),
+    /* Atmosphere — back-side shell with rim-concentrated fresnel glow.
+       Additive halo in dark mode; soft alpha-blended blue edge in light. */
+    const rimGeom = new THREE.SphereGeometry(radius * 1.12, 48, 48);
+    const rimMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uGlow: { value: tokenColor("--kp-blue", "#5BA3D6") },
+        uStrength: { value: 1.0 },
+        // bias/power shape the falloff: wide soft halo (dark) vs a
+        // tight crisp edge (light) — fog-like glow looks bad on light
+        uBias: { value: 0.72 },
+        uPower: { value: 2.0 },
+      },
+      vertexShader: /* glsl */ `
+        varying vec3 vN;
+        void main() {
+          vN = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uGlow; uniform float uStrength;
+        uniform float uBias; uniform float uPower;
+        varying vec3 vN;
+        void main() {
+          float intensity = pow(max(uBias - dot(vN, vec3(0.0, 0.0, 1.0)), 0.0), uPower);
+          gl_FragColor = vec4(uGlow * intensity, intensity * uStrength);
+        }`,
       transparent: true,
-      opacity: 0.05,
       side: THREE.BackSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
     });
     group.add(new THREE.Mesh(rimGeom, rimMat));
 
@@ -157,6 +206,54 @@ export default function DottedGlobeScene({
     const ring = new THREE.Mesh(ringGeom, ringMat);
     ring.visible = false;
     group.add(ring);
+
+    /* Theme palettes — the sphere/atmosphere re-skin with the .dark class.
+       (No CSS tokens exist for sphere shading; hex lives here on purpose.) */
+    const applyTheme = () => {
+      const dark = document.documentElement.classList.contains("dark");
+      const u = occluderMat.uniforms;
+      if (dark) {
+        // deep navy ball, lighter blue limb, cool sheen — backlit look
+        (u.uCore.value as THREE.Color).set("#0D1B30");
+        (u.uLimb.value as THREE.Color).set("#274B77");
+        (u.uSheen.value as THREE.Color).set("#35659B");
+        u.uSheenStr.value = 0.35;
+        (rimMat.uniforms.uGlow.value as THREE.Color).set("#3E7BC0");
+        rimMat.uniforms.uStrength.value = 1.0;
+        rimMat.uniforms.uBias.value = 0.72;
+        rimMat.uniforms.uPower.value = 2.0;
+        rimMat.blending = THREE.AdditiveBlending;
+        landMat.color.set(tokenColor("--kp-blue", "#5BA3D6"));
+        landMat.opacity = 0.9;
+        landMat.size = config.dotSize;
+      } else {
+        // porcelain ball with pronounced limb shading — matte 3D on
+        // light, with a tight rim edge instead of a foggy halo
+        (u.uCore.value as THREE.Color).set("#EFF4FA");
+        (u.uLimb.value as THREE.Color).set("#8FA9C9");
+        (u.uSheen.value as THREE.Color).set("#FFFFFF");
+        u.uSheenStr.value = 0.15;
+        (rimMat.uniforms.uGlow.value as THREE.Color).set("#5E86B4");
+        rimMat.uniforms.uStrength.value = 0.55;
+        rimMat.uniforms.uBias.value = 0.6;
+        rimMat.uniforms.uPower.value = 3.5;
+        rimMat.blending = THREE.NormalBlending;
+        landMat.color.set("#0A4C8F");
+        landMat.opacity = 1.0;
+        landMat.size = config.dotSize * 1.15;
+      }
+      rimMat.needsUpdate = true;
+      landMat.needsUpdate = true;
+    };
+    applyTheme();
+    const themeObs = new MutationObserver(() => {
+      applyTheme();
+      apiRef.current.renderOnce?.();
+    });
+    themeObs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
 
     const placeRing = (i: number) => {
       const site = sites[i];
@@ -323,6 +420,7 @@ export default function DottedGlobeScene({
     return () => {
       stopTicking?.();
       ro.disconnect();
+      themeObs.disconnect();
       renderer.domElement.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);

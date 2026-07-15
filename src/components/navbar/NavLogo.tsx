@@ -52,7 +52,10 @@ export function NavLogo() {
       <div ref={markRef} className="nav-logo-mark">
         <Image src="/logo/kp-mark.png" alt="KP" width={44} height={44} priority />
       </div>
-      <span className="nav-logo-text hidden lg:block">Kiran Publicity</span>
+      <span className="nav-logo-text hidden lg:block">
+        <span style={{ color: "#0065B1" }}>Kiran</span>
+        <span style={{ color: "#F58420" }}> Publicity</span>
+      </span>
     </Link>
   );
 }
