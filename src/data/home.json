@@ -1,13 +1,23 @@
 {
   "_comment": "Home page content â€” edit values here to update the site. No code changes needed.",
   "hero": {
-    "images": [
-      "/homepage/herosection/1.png",
-      "/homepage/herosection/kp.png",
-      "/homepage/herosection/2.png",
-      "/homepage/herosection/kp.png",
-      "/homepage/herosection/3.png",
-      "/homepage/herosection/kp.png"
+    "imagesDark": [
+      "/homepage/herosection/dark/1.png",
+      "/homepage/herosection/dark/2.png",
+      "/homepage/herosection/dark/3.png",
+      "/homepage/herosection/dark/4.png",
+      "/homepage/herosection/dark/5.png",
+      "/homepage/herosection/dark/6.png",
+      "/homepage/herosection/dark/7.png"
+    ],
+    "imagesLight": [
+      "/homepage/herosection/light/1.png",
+      "/homepage/herosection/light/2.png",
+      "/homepage/herosection/light/3.png",
+      "/homepage/herosection/light/4.png",
+      "/homepage/herosection/light/5.png",
+      "/homepage/herosection/light/6.png",
+      "/homepage/herosection/light/7.png"
     ],
     "subtitle": "Premium Outdoor Advertising",
     "line1": "MAKING BRANDS",
@@ -377,7 +387,7 @@
           "gap": 28,
           "separator": {
             "type": "image",
-            "src": "/homepage/herosection/kp.png",
+            "src": "/logo/kp-mark.png",
             "alt": "Kiran Publicity",
             "width": 18,
             "height": 18,

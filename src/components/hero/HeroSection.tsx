@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
+import { useTheme } from "@components/theme";
 
 interface HeroProps {
-  images: string[];
+  imagesDark: string[];
+  imagesLight: string[];
   children?: React.ReactNode;
 }
 
@@ -20,7 +22,15 @@ const HOLD_MS = 6000;
 const XFADE_S = 1.1;
 const KB_DUR  = HOLD_MS / 1000 + XFADE_S;
 
-export default function HeroSection({ images, children }: HeroProps) {
+export default function HeroSection({ imagesDark, imagesLight, children }: HeroProps) {
+  // Pre-mount defaults to the light set (matches the app's SSR/system-theme
+  // default) so there's no reference to an undefined array before hydration.
+  const { resolvedTheme, mounted } = useTheme();
+  const images = useMemo(
+    () => (mounted && resolvedTheme === "dark" ? imagesDark : imagesLight),
+    [mounted, resolvedTheme, imagesDark, imagesLight],
+  );
+
   const [curIdx, setCurIdx] = useState(0);
   const [nxtIdx, setNxtIdx] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -32,6 +42,7 @@ export default function HeroSection({ images, children }: HeroProps) {
   const live    = useRef(0);
   const started = useRef(false);
   const disposed = useRef(false);
+  const prevTheme = useRef<string | null>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -102,6 +113,30 @@ export default function HeroSection({ images, children }: HeroProps) {
       gsap.killTweensOf(nxtRef.current);
     };
   }, [begin]);
+
+  // Theme toggled mid-session → the whole image set changed underneath the
+  // slideshow, so restart the cycle at that set's first image (1.png) rather
+  // than continuing on whatever index the old theme's set happened to be on.
+  useEffect(() => {
+    if (!mounted) return;
+    if (prevTheme.current === null) {
+      prevTheme.current = resolvedTheme;
+      return;
+    }
+    if (prevTheme.current === resolvedTheme) return;
+    prevTheme.current = resolvedTheme;
+    if (!started.current) return;
+
+    if (timer.current) clearTimeout(timer.current);
+    gsap.killTweensOf(curRef.current);
+    gsap.killTweensOf(nxtRef.current);
+    live.current = 0;
+    setCurIdx(0);
+    setNxtIdx(null);
+    if (bg1Ref.current) bg1Ref.current.style.backgroundImage = `url(${images[0]})`;
+    if (curRef.current) curRef.current.style.opacity = "1";
+    timer.current = setTimeout(runTransition, HOLD_MS);
+  }, [resolvedTheme, mounted, images, runTransition]);
 
   if (!images.length) return <>{children}</>;
 

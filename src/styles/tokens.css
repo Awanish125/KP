@@ -192,9 +192,9 @@
   --kp-glass-text:       #F5F7FA;
   --kp-glass-text-muted: rgba(245, 247, 250, 0.65);
   --kp-glass-shadow:
-    0 0 0 1px rgba(244, 122, 32, 0.08),
-    0 8px 32px rgba(0, 0, 0, 0.55),
-    0 2px 8px  rgba(0, 0, 0, 0.30);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 12px 32px rgba(0, 0, 0, 0.32),
+    0 2px 8px  rgba(0, 0, 0, 0.18);
 
   /* Hair lighter than brand orange: ≥7:1 even on --kp-dark-2. */
   --kp-orange-text:   #FA9130;

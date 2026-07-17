@@ -82,7 +82,7 @@ export default function HomeNew() {
           intro={data.hero.intro}
           marquee={data.hero.editorialMarquee}
         >
-          <HeroSection images={data.hero.images}>
+          <HeroSection imagesDark={data.hero.imagesDark} imagesLight={data.hero.imagesLight}>
             <HeroSectionContent
               subtitle={data.hero.subtitle}
               line1={data.hero.line1}

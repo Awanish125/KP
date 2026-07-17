@@ -99,7 +99,10 @@ export function OfficeGrid({
                     fontFamily: "var(--kp-font-display)",
                     fontSize: "1.4rem",
                     textTransform: "uppercase",
-                    color: "var(--kp-glass-text)",
+                    // HQ card's background stays dark in both themes, so its
+                    // text must stay light too — the glass tokens flip to
+                    // near-black in light mode and disappear on it.
+                    color: isHQ ? "var(--kp-light)" : "var(--kp-glass-text)",
                   }}
                 >
                   {office.city}
@@ -110,7 +113,9 @@ export function OfficeGrid({
                     fontFamily: "var(--kp-font-body)",
                     fontSize: "0.88rem",
                     lineHeight: 1.65,
-                    color: "var(--kp-glass-text-muted)",
+                    color: isHQ
+                      ? "color-mix(in srgb, var(--kp-light) 65%, transparent)"
+                      : "var(--kp-glass-text-muted)",
                   }}
                 >
                   {office.address}

@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { Campaign, CampaignGalleryProps } from "./types/gallery";
 import { GalleryCard } from "./GalleryCard";
 import { GallerySkeleton } from "./GallerySkeleton";
 import { GalleryEmpty } from "./GalleryEmpty";
+import { prefersReducedMotion } from "@/lib/motion";
+
+gsap.registerPlugin(ScrollTrigger);
 
 /**
  * Tracks how many columns should render at the current breakpoint. CSS
@@ -61,6 +66,43 @@ export function CampaignGallery({
   onCardClick,
 }: CampaignGalleryProps) {
   const activeColumns = useResponsiveColumns(columns);
+  const stacked = activeColumns === 1;
+
+  // Mobile "card deck" depth veil — mirrors the BillboardStory stacking
+  // effect: each sticky card gains a dark veil as the next card scrolls
+  // over it, so the deck reads as physically layered rather than a plain list.
+  useEffect(() => {
+    if (!stacked || prefersReducedMotion() || campaigns.length === 0) return;
+
+    const cards = gsap.utils.toArray<Element>(".gallery-stack-card");
+    const STEP_VEIL = 0.25;
+    const triggers: ScrollTrigger[] = [];
+
+    cards.forEach((card, i) => {
+      const veil = card.querySelector(".sc-veil");
+      if (!veil) return;
+
+      for (let j = i + 1; j < cards.length; j++) {
+        const before = j - 1 - i;
+        const st = ScrollTrigger.create({
+          trigger: cards[j],
+          start: "top 95%",
+          end: "top 45%",
+          scrub: true,
+          onUpdate: (self) => {
+            const progress = self.progress;
+            const currentOpacity = STEP_VEIL * before + STEP_VEIL * progress;
+            gsap.set(veil, { opacity: Math.min(currentOpacity, 0.65) });
+          },
+        });
+        triggers.push(st);
+      }
+    });
+
+    return () => {
+      triggers.forEach((st) => st.kill());
+    };
+  }, [stacked, campaigns.length]);
 
   const columnBuckets = useMemo(() => {
     const buckets: { campaign: Campaign; index: number }[][] = Array.from({ length: activeColumns }, () => []);
@@ -84,6 +126,43 @@ export function CampaignGallery({
         <GallerySkeleton />
       ) : campaigns.length === 0 ? (
         <GalleryEmpty />
+      ) : stacked ? (
+        <div className="relative flex flex-col gap-8 pb-32">
+          {campaigns.map((campaign, i) => (
+            <div
+              key={campaign.id}
+              className="gallery-stack-card relative overflow-hidden"
+              style={{
+                position: "sticky",
+                top: `calc(88px + ${i * 14}px)`,
+                zIndex: i,
+                transform: `scale(${1 - (campaigns.length - 1 - i) * 0.015})`,
+                transformOrigin: "center top",
+                borderRadius: cardRadius,
+              }}
+            >
+              <GalleryCard
+                campaign={campaign}
+                index={i}
+                glowColor={campaign.glowColor ?? glowColor}
+                cardRadius={cardRadius}
+                enableGlass={enableGlass}
+                enableGlow={enableGlow}
+                enableGradientBorder={enableGradientBorder}
+                enableMouseTilt={enableMouseTilt}
+                enableFloating={enableFloating}
+                enableNoise={enableNoise}
+                enableScrollReveal={enableScrollReveal}
+                tiltStrength={tiltStrength}
+                staggerDelay={staggerDelay}
+                stacked
+                onClick={onCardClick}
+              />
+              {/* Depth veil — dimmed by the next card scrolling over it */}
+              <span className="sc-veil" aria-hidden="true" />
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="flex items-start" style={{ gap }}>
           {columnBuckets.map((bucket, colIndex) => (
@@ -104,6 +183,7 @@ export function CampaignGallery({
                   enableScrollReveal={enableScrollReveal}
                   tiltStrength={tiltStrength}
                   staggerDelay={staggerDelay}
+                  stacked={false}
                   onClick={onCardClick}
                 />
               ))}

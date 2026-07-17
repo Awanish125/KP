@@ -96,7 +96,9 @@
 /* ── Single stat cell ──────────────────────────────────── */
 .stat {
   position: relative;
-  padding: 2.75rem 2.5rem 2.75rem 0;
+  /* Symmetric left/right padding so the hover highlight gives the first
+     column the same breathing room the divider gives columns 2 and 3. */
+  padding: 2.75rem 2.5rem;
   transition: background 0.35s ease;
 }
 
@@ -107,7 +109,6 @@
 /* Vertical separators — 2nd and 3rd column */
 .stat:nth-child(3n + 2),
 .stat:nth-child(3n + 3) {
-  padding-left: 2.5rem;
   border-left: 1px solid var(--stage-border);
 }
 
