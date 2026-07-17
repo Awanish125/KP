@@ -380,6 +380,19 @@
     box-shadow 500ms ease;
 }
 
+/* Below 640px the 420px min-width no longer fits — let the pill shrink to
+   the viewport (minus the wrapper's side gutter) instead of overflowing. */
+@media (max-width: 640px) {
+  .navbar-fixed-wrapper {
+    padding: 0 16px;
+  }
+  .glass-navbar {
+    min-width: 0;
+    width: 100%;
+    max-width: 420px;
+  }
+}
+
 /* Top-edge highlight — the white sheen across the top of the pill */
 .glass-navbar::before {
   content: '';
@@ -1000,7 +1013,7 @@ html.kp-first-visit .kp-loader-root { visibility: visible; }
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background: var(--kp-glow-blue);
+  /* background: var(--kp-glow-blue); */
 }
 .kp-glow-orange {
   position: absolute;

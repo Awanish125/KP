@@ -29,7 +29,7 @@ function QuoteCard({ t, width }: { t: Testimonial; width: number }) {
         border: "1px solid var(--kp-glass-border)",
         backdropFilter: "var(--kp-glass-blur)",
         WebkitBackdropFilter: "var(--kp-glass-blur)",
-        boxShadow: "var(--kp-glass-shadow)",
+        // boxShadow: "var(--kp-glass-shadow)",
         margin: 0,
       }}
     >
@@ -129,10 +129,19 @@ export function TestimonialSlider({
     };
   }, [speed, lerp, items.length]);
 
+  // Fade cards out at the viewport edges so they never hard-clip
+  // or collide with the fixed MeridianRail on the left.
+  const edgeFade: React.CSSProperties = {
+    WebkitMaskImage:
+      "linear-gradient(to right, transparent 0, #000 clamp(48px, 7vw, 120px), #000 calc(100% - clamp(48px, 7vw, 120px)), transparent 100%)",
+    maskImage:
+      "linear-gradient(to right, transparent 0, #000 clamp(48px, 7vw, 120px), #000 calc(100% - clamp(48px, 7vw, 120px)), transparent 100%)",
+  };
+
   if (reduced) {
     // Static, scrollable row — content fully accessible without motion.
     return (
-      <div className={className} style={{ overflowX: "auto", display: "flex", gap }}>
+      <div className={className} style={{ overflowX: "auto", display: "flex", gap, ...edgeFade }}>
         {items.map((t, i) => (
           <QuoteCard key={i} t={t} width={cardWidth} />
         ))}
@@ -144,7 +153,7 @@ export function TestimonialSlider({
     <div
       ref={viewportRef}
       className={className}
-      style={{ overflow: "hidden" }}
+      style={{ overflow: "hidden", ...edgeFade }}
       onMouseEnter={() => (hoverRef.current = true)}
       onMouseLeave={() => (hoverRef.current = false)}
     >

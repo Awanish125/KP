@@ -19,6 +19,7 @@ import { ParallaxWordmark } from "@/components/ParallaxWordmark";
 import { PressQuoteRotator } from "@/components/PressQuoteRotator";
 import data from "@/data/about.json";
 import { ParticleEntity } from "@/components/ParticleEntity";
+import { useTheme } from "@components/theme";
 
 const PRESS_QUOTES = [
   { quote: "One of eastern India's most trusted outdoor names.", source: "— OUTDOOR ASIA" },
@@ -27,9 +28,11 @@ const PRESS_QUOTES = [
   { quote: "Twenty-seven years of knowing which corner earns the glance.", source: "— EXCHANGE4MEDIA" },
 ];
 
+// `image` is the hero-section photo number — resolved to the dark/light
+// folder at render time based on the active theme (see AboutPage below).
 const LANDMARK_CHAPTERS = [
   {
-    image: "/homepage/herosection/3.png",
+    image: 3,
     sectionLabel: "LANDMARK 01 / 03",
     coordinate: "19.0760°N / 72.8777°E",
     title: "Andheri Overpass",
@@ -38,7 +41,7 @@ const LANDMARK_CHAPTERS = [
       "A gantry hoarding above the Western Express Highway — twelve uninterrupted seconds of dwell time for every commuter heading north.",
   },
   {
-    image: "/homepage/herosection/5.png",
+    image: 5,
     sectionLabel: "LANDMARK 02 / 03",
     coordinate: "12.9716°N / 77.5946°E",
     title: "Silk Board Junction",
@@ -47,7 +50,7 @@ const LANDMARK_CHAPTERS = [
       "The busiest intersection in South India, surveyed and served by Kiran Publicity since 1999 — over two million impressions per week.",
   },
   {
-    image: "/homepage/herosection/7.png",
+    image: 7,
     sectionLabel: "LANDMARK 03 / 03",
     coordinate: "22.5726°N / 88.3639°E",
     title: "VIP Road Gantry",
@@ -82,6 +85,9 @@ const sectionHeadStyle: React.CSSProperties = {
 };
 
 export default function AboutPage() {
+  const { resolvedTheme } = useTheme();
+  const heroFolder = resolvedTheme === "dark" ? "dark" : "light";
+
   return (
     <div style={{ background: "transparent" }}>
       <ParticleEntity />
@@ -174,7 +180,11 @@ export default function AboutPage() {
 
       {/* ── Landmark Chapters (Dolly Zoom) ───────────────────────────── */}
       {LANDMARK_CHAPTERS.map((ch) => (
-        <DollyZoomChapter key={ch.sectionLabel} {...ch} />
+        <DollyZoomChapter
+          key={ch.sectionLabel}
+          {...ch}
+          image={`/homepage/herosection/${heroFolder}/${ch.image}.png`}
+        />
       ))}
 
       {/* ── Parallax wordmark divider ─────────────────────────────────── */}

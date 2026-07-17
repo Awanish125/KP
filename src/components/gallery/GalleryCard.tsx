@@ -22,6 +22,11 @@ const NOISE_URL =
 const ENTRANCE_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const ENTRANCE_DURATION = 1.1;
 
+// Stacked (single-column/mobile) entrance — matches the ServicesStrip
+// "Advertising Solutions" row reveal: a plain fade + slide-up, no 3D tilt,
+// since a full-width block reads better as a simple lift than a flip.
+const STACKED_ENTRANCE_DURATION = 0.85;
+
 interface GalleryCardProps {
   campaign: Campaign;
   index: number;
@@ -37,6 +42,8 @@ interface GalleryCardProps {
   tiltStrength?: number;
   hoverScale?: number;
   staggerDelay?: number;
+  /** True when the grid has collapsed to a single column (mobile block layout). */
+  stacked?: boolean;
   onClick?: (campaign: Campaign) => void;
 }
 
@@ -69,6 +76,7 @@ function GalleryCardInner({
   tiltStrength = 8,
   hoverScale = 1.015,
   staggerDelay = 0.08,
+  stacked = false,
   onClick,
 }: GalleryCardProps) {
   const rotateDirection = (index % 3) - 1; // -1, 0, 1 — alternates the entrance per card
@@ -92,12 +100,24 @@ function GalleryCardInner({
       <motion.div
         initial={
           enableScrollReveal
-            ? { opacity: 0, y: 90, scale: 0.82, rotateX: 14, rotateY: rotateDirection * 12 }
+            ? stacked
+              ? { opacity: 0, y: 18 }
+              : { opacity: 0, y: 90, scale: 0.82, rotateX: 14, rotateY: rotateDirection * 12 }
             : undefined
         }
-        whileInView={enableScrollReveal ? { opacity: 1, y: 0, scale: 1, rotateX: 0, rotateY: 0 } : undefined}
+        whileInView={
+          enableScrollReveal
+            ? stacked
+              ? { opacity: 1, y: 0 }
+              : { opacity: 1, y: 0, scale: 1, rotateX: 0, rotateY: 0 }
+            : undefined
+        }
         viewport={{ once: true, amount: 0.15 }}
-        transition={{ duration: ENTRANCE_DURATION, delay: entranceDelay, ease: ENTRANCE_EASE }}
+        transition={{
+          duration: stacked ? STACKED_ENTRANCE_DURATION : ENTRANCE_DURATION,
+          delay: entranceDelay,
+          ease: ENTRANCE_EASE,
+        }}
       >
         <Tilt
           tiltEnable={enableMouseTilt}

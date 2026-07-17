@@ -17,6 +17,7 @@ import { createPortal } from "react-dom";
 import { Play, X } from "lucide-react";
 import gsap from "gsap";
 import { prefersReducedMotion } from "@/lib/motion";
+import { useTheme } from "@components/theme";
 import { SectionReveal } from "@/components/SectionReveal";
 import { TextReveal } from "@/components/TextReveal";
 import { MagneticButton } from "@/components/MagneticButton";
@@ -30,6 +31,9 @@ export function VideoShowcase({
   cta = VIDEO_SHOWCASE_DEFAULTS.cta,
   src = VIDEO_SHOWCASE_DEFAULTS.src,
 }: VideoShowcaseProps) {
+  const { resolvedTheme } = useTheme();
+  const posterFolder = resolvedTheme === "dark" ? "dark" : "light";
+
   const frameRef = useRef<HTMLDivElement>(null);
   const loopRef = useRef<HTMLVideoElement>(null);
   const lightboxRef = useRef<HTMLDivElement>(null);
@@ -125,7 +129,7 @@ export function VideoShowcase({
               ref={loopRef}
               src={src}
               data-warm
-              poster="/homepage/herosection/1.png"
+              poster={`/homepage/herosection/${posterFolder}/1.png`}
               muted
               loop
               playsInline
